@@ -1,0 +1,29 @@
+
+
+defun fib(n) {
+  if (n<2) return n;
+  return fib(n-2)+fib(n-1);
+}
+var any[] fibmem;
+defun memofib(n) {
+  if (n<2) return n;
+  if (n>length(fibmem)) resize(fibmem,n+1);
+  if (fibmem[n]!=null) return fibmem[n];
+  return fibmem[n]=memofib(n-2)+memofib(n-1);
+}
+defun memoize(fun) {
+  var assoc memo;
+  var memofun=function(x) {
+    var s=tostr(x);
+    if (memo[s]!=null) return memo[s];
+    memo[s]=fun(x); // no work because recursion needs memoisation too
+    return memo[s];
+  };
+}
+var mfib=memoize(fib);
+tic();
+prln(fib(20));
+toc();
+tic();
+prln(memofib(48));
+toc();

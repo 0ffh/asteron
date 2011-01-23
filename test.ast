@@ -1,0 +1,52 @@
+/*
+*** todo
+ - type interning to be scoped
+ - more on types: supertype, type literals
+ - modules/namespaces
+ - ternary dispatch
+ - do static analysis
+ - generate code
+ - type families
+*/
+supertype numeric int;
+defun foo(numeric a,numeric b) {
+  return tostr("numeric",a,b);
+}
+defun foo(a,b) {
+  return tostr("any",a,b);
+}
+prln(foo(1,2));
+prln(foo(1.1,2));
+supertype numeric float;
+prln(foo(1,2.2));
+prln(foo(1.1,2.2));
+prln(foo(1.1,"x"));
+
+/*
+scope {
+  var i=1;
+  prln("i =",i);
+};
+scope (s) {
+  var i=2;
+  prln("i =",i);
+  defun foo(n) {return 2*n;}
+};
+prln("s =",s);
+prln("s.i =",s.i);
+var foo=s.foo;
+prln("s.foo(2) =",foo(2));
+*/
+/*
+aliastype intarr int[];
+prln(intarr);
+var intarr ia;
+prln(ia);
+resize(ia,4);
+prln(ia);
+for (var int k=0;k<4;k=k+1) {
+  prln(k);
+  ia[k]=k;
+}
+prln(ia);
+*/

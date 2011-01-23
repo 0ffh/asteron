@@ -1,0 +1,475 @@
+//----------------------------------------------------------------------
+//--- minimal testing framework
+tic();
+prln();
+prln("-------------------- running test suite now");
+prln();
+var testname="";
+var errors=0,tests=0;
+var suberr=0,subtest=0;
+defun start(tn) {
+  tests=tests+1;
+  testname=tn;
+  subtest=0;
+  suberr=0;
+  prln("--- testing",testname);
+}
+defun test(actual,expected) {
+  subtest=subtest+1;
+  if (expected!=actual) {
+    prln("subtest",subtest,"failed : expected",expected,"but got",actual);
+    suberr=suberr+1;
+  }
+}
+defun finish() {
+  if (suberr) {
+    prln("failed",suberr,"of",subtest,"subtests");
+    errors=errors+1;
+  } else {
+    prln(testname,"succeeded all subtests");
+  }
+  prln();
+}
+defun summary() {
+  prln("*** test summary");
+  if (errors) {
+    prln(errors,"of",tests,"tests failed!");
+  } else {
+    prln("All tests succeeded!");
+  }
+  pr("Total time spent on all tests: ");
+  toc();
+}
+//----------------------------------------------------------------------
+//--- fibonacci parameter and expected result
+var fib_par=2,fib_res=1;
+//var fib_par=12,fib_res=144;
+//var fib_par=35,fib_res=9227465;
+//----------------------------------------------------------------------
+//--- tests
+//--- each test is embedded in a scope to avoid namespace pollution
+scope {
+  start("first order functions");
+  defun muln(n) {
+    return function(y){return n*y;};
+  }
+  var doubler=muln(2);
+  var tripler=muln(3);
+  test(doubler(4),8);
+  test(tripler(4),12);
+  finish();
+};
+scope {
+  start("closures (1)");
+  defun count_down_from(n) {
+    return function(){n=n-1;};
+  }
+  var count_down_from_3=count_down_from(3);
+  var count_down_from_4=count_down_from(4);
+  test(count_down_from_3(),2);
+  test(count_down_from_4(),3);
+  test(count_down_from_3(),1);
+  test(count_down_from_3(),0);
+  test(count_down_from_4(),2);
+  test(count_down_from_4(),1);
+  test(count_down_from_4(),0);
+  finish();
+};
+scope {
+  start("closures (2)");
+  var set_hidden,get_hidden;
+  defun init_hidden() {
+    var hidden=0;
+    set_hidden=function(n) {hidden=n;};
+    get_hidden=function() {return hidden;};
+  }
+  init_hidden();
+  test(get_hidden(),0);
+  test(set_hidden(12),12);
+  test(get_hidden(),12);
+  finish();
+};
+scope {
+  start("fibonacci");
+  defun fib(n) {
+    if (n<2) {
+      return n;
+    } else {
+      return fib(n-2)+fib(n-1);
+    }
+  }
+  test(fib(fib_par),fib_res);
+  finish();
+};
+scope {
+  start("fibonacci object");
+  var o=new_object();
+  o.fib=function(n) {
+    if (n<2) {
+      return n;
+    } else {
+      return this.fib(n-2)+this.fib(n-1);
+    }
+  };
+  prln(o);
+  test(o.fib(fib_par),fib_res);
+  finish();
+};
+scope {
+  start("object scoping");
+  // base
+  var m="base-m";
+  defun bar() {
+    test(m,"base-m");
+  }
+  // object
+  var o=new_object();
+  o.m="object-m";
+  o.foo=function() {
+    test(m,"object-m");
+    bar();
+  };
+  o.foo();
+  //
+  finish();
+};
+scope {
+  start("loops");
+  var i=0;
+  // for
+  pr("for ");
+  for (var i=0;i<10;i=i+1) {
+    pr(i);
+  }
+  prln();
+  test(i,0);
+  if (i!=0) {
+    prln("local scope in for loop is broken");
+    i=0;
+  }
+  // while
+  pr("while ");
+  while (i<10) {
+    pr(i);
+    i=i+1;
+  }
+  prln();
+  test(i,10);
+  // do
+  pr("do ");
+  i=0;
+  do {
+    pr(i);
+    i=i+1;
+  } while (i<10);
+  test(i,10);
+  prln();
+  //
+  finish();
+};
+scope {
+  start("return");
+  defun fib(n) {
+    if (n<2) {return n;}
+    return fib(n-2)+fib(n-1);
+  }
+  test(fib(fib_par),fib_res);
+  finish();
+};
+scope {
+  start("break");
+  var i=0;
+  while (i<20) {
+    if (i==10) {
+      break;
+    }
+    i=i+1;
+  }
+  test(i,10);
+  finish();
+};
+scope {
+  start("continue");
+  var i=1;
+  var ok=1;
+  while (i) {
+    i=0;
+    continue;
+    ok=0;
+  }
+  test(ok,1);
+  finish();
+};
+scope {
+  start("object literal");
+  var ok=1;
+  var m="base-m";
+  defun bar() {
+    test(m,"base-m");
+  }
+  var o={
+    m:"object-m",
+    foo:function() {
+      test(m,"object-m");
+      bar();
+    }
+  };
+  o.foo();
+  finish();
+};
+scope {
+  start("switch");
+  var ok=0;
+  switch (0) {
+    // mit blöcken
+    case 0: {ok=1;break;}
+    case 1: {ok=0;break;}
+  }
+  switch (1) {
+    // oder ohne
+    case 0: break;
+    case 1: ok=ok+2;break;
+  }
+  test(ok,3);
+  finish();
+};
+scope {
+  start("return from switch");
+  var ok=1;
+  defun foo(n) {
+    switch (n) {
+      case 0: break;
+      case 1: return 1;
+      case 2: ok=0;
+    }
+    return 0;
+  }
+  test(ok,1);
+  test(foo(1),1);
+  finish();
+};
+scope {
+  start("switch fallthrough");
+  var ok=0;
+  switch (1) {
+    case 0: ok=ok+1;
+    case 1: ok=ok+1;
+    case 2: ok=ok+1;
+  }
+  test(ok,2);
+  finish();
+};
+scope {
+  start("arrays");
+  var a=[0,1,2,3,"test"];
+  test(length(a),5);
+  test(a[0],0);
+  test(a[1],1);
+  test(a[2],2);
+  test(a[3],3);
+  test(a[4],"test");
+  a[1]="one";
+  test(a[1],"one");
+  a[2]=[2.0,2.1,2.2];
+  test(a[2][0],2.0);
+  test(a[2][1],2.1);
+  test(a[2][2],2.2);
+  a[2][1]="2.1";
+  test(a[2][1],"2.1");
+  finish();
+};
+scope {
+  start("references");
+  var o={},a=[];
+  var oref=o;
+  var aref=a;
+  o.test="foo";
+  resize(a,1)[0]="bar";
+  test(oref.test,"foo");
+  test(aref[0],"bar");
+  finish();
+};
+scope {
+  start("signature dispatch");
+  defun foo(a,b) {return "foo-any-any";}
+  defun foo(float a,float b) {return "foo-float-float";}
+  defun foo(int a,int b) {return "foo-int-int";}
+  defun foo(int a,b) {return "foo-int-any";}
+  defun foo(int a,string b) {return "foo-int-string";}
+  test(foo("1","2"),"foo-any-any");
+  test(foo(1,2),"foo-int-int");
+  test(foo(1.0,2.0),"foo-float-float");
+  test(foo(1.0,2),"foo-any-any");
+  test(foo(1,2.0),"foo-int-any");
+  test(foo(1,"2"),"foo-int-string");
+  finish();
+};
+scope {
+  start("evil blockless constructs");
+  var a=[0,1,2,3];
+  test(length(a),4);
+  for (var k=0;k<length(a);k=k+1) test(a[k],k);
+  if (1) test(0,0); else test(0,1);
+  if (0) test(0,1); else test(0,0);
+  var k;
+  for (k=0;k<length(a);k=k+1) test(a[k],k);
+  test(k,length(a));
+  k=0;
+  while (k<length(a)) k=k+1;
+  test(k,length(a));
+  k=0;
+  do k=k+1; while (k<length(a));
+  test(k,length(a));
+  defun foo(a,b) return a+b;
+  test(foo(2,3),5);
+  finish();
+};
+scope {
+  start("types (1)");
+  var int i;
+  var float f;
+  test(typeof(i),int);
+  test(typeof(f),float);
+  defun foo(int a) {return "foo-int";}
+  defun foo(float a) {return "foo-float";}
+  defun foo(string a) {return "foo-string";}
+  test(foo(1),"foo-int");
+  test(foo(1.0),"foo-float");
+  test(foo("2"),"foo-string");
+  finish();
+};
+scope {
+  start("types (2)");
+  deftype intvec int[];
+  deftype intmat intvec[];
+  defun resize(intvec vec,int len) resize(unpack(vec),len);
+  defun set(intvec vec,int idx,int value) unpack(vec)[idx]=value;
+  defun get(intvec vec,int idx) return unpack(vec)[idx];
+  defun resize(intmat mat,int len) resize(unpack(mat),len);
+  defun set(intmat mat,int idx,intvec value) unpack(mat)[idx]=value;
+  defun get(intmat mat,int idx) return unpack(mat)[idx];
+  var intvec iv;
+  var intmat im;
+  test(typeof(iv),intvec);
+  test(typeof(im),intmat);
+  test(typeof(intvec),type);
+  test(typeof(intmat),type);
+  defun foo(intvec a) {return "foo-intvec";}
+  defun foo(intmat a) {return "foo-intmat";}
+  test(foo(iv),"foo-intvec");
+  test(foo(im),"foo-intmat");
+  resize(iv,2);
+  iv[0]=0;
+  iv[1]=1;
+  test(tostr(iv),"[0 1]");
+  resize(im,2);
+  resize(im[0],2);
+  resize(im[1],2);
+  im[0]=iv;
+  im[1][0]=2;
+  im[1][1]=3;
+  test(tostr(im),"[[0 1] [2 3]]");
+  iv[1]=5;
+  test(tostr(iv),"[0 5]");
+  test(tostr(im),"[[0 5] [2 3]]");
+  finish();
+};
+scope {
+  start("default arguments");
+  defun foo(a,b=2) tostr([a,b]);
+  test(foo(0,1),"[0 1]");
+  test(foo(1),"[1 2]");
+  test(typeof(new(array(int))),array(int));
+  test(typeof(new(array())),array(any));
+  finish();
+};
+scope {
+  start("structs (anonymous)");
+  var struct{a,int i,float f} x;
+  test("{a=any,i=0,f=0}",tostr(x));
+  x.a="prlnx";
+  test("prlnx",x.a);
+  test("{a='prlnx',i=0,f=0}",tostr(x));
+  x.i=1;
+  test(1,x.i);
+  x.f=2.0;
+  test("{a='prlnx',i=1,f=2}",tostr(x));
+  finish();
+};
+scope {
+  start("structs (aliastype)");
+  aliastype at struct{a,int i,float f};
+  var at x;
+  test("{a=any,i=0,f=0}",tostr(x));
+  x.a="prlnx";
+  test("prlnx",x.a);
+  test("{a='prlnx',i=0,f=0}",tostr(x));
+  x.i=1;
+  test(1,x.i);
+  x.f=2.0;
+  test("{a='prlnx',i=1,f=2}",tostr(x));
+  finish();
+};
+scope {
+  start("structs (deftype)");
+  deftype t struct{a,int i,float f};
+  //test("(struct (any a) (int i) (float f))",tostr(t));
+  defun set(t x,string idx,value) set(unpack(x),idx,value);
+  defun get(t x,string idx) return get(unpack(x),idx);
+  var t y;
+  test("{a=any,i=0,f=0}",tostr(y));
+  y.a="prlny";
+  test("prlny",y.a);
+  test("{a='prlny',i=0,f=0}",tostr(y));
+  y.i=2;
+  test(2,y.i);
+  y.f=1.0;
+  test("{a='prlny',i=2,f=1}",tostr(y));
+  finish();
+};
+scope {
+  start("unions (anonymous)");
+  var union{a,int i,float f} z;
+  test("{a,i,f}",tostr(z));
+  z.a="prlnz";
+  test("prlnz",z.a);
+  test("{a='prlnz',i,f}",tostr(z));
+  z.i=1;
+  test("{a,i=1,f}",tostr(z));
+  z.f=2.0;
+  test("{a,i,f=2}",tostr(z));
+  finish();
+};
+scope {
+  start("unions (deftype)");
+  deftype u union{a,int i,float f};
+  //test("(union (any a) (int i) (float f))",tostr(u));
+  defun set(u x,string idx,value) set(unpack(x),idx,value);
+  defun get(u x,string idx) return get(unpack(x),idx);
+  var u z;
+  test("{a,i,f}",tostr(z));
+  z.a="prlnz";
+  test("prlnz",z.a);
+  test("{a='prlnz',i,f}",tostr(z));
+  z.i=1;
+  test("{a,i=1,f}",tostr(z));
+  z.f=2.0;
+  test("{a,i,f=2}",tostr(z));
+  finish();
+};
+scope {
+  start("aliastype");
+  aliastype intarr int[];
+  test(tostr(intarr),"intarr");
+  var intarr ia;
+  test(tostr(ia),"[]");
+  resize(ia,4);
+  test(tostr(ia),"[0 0 0 0]");
+  for (var int k=0;k<4;k=k+1) ia[k]=k;
+  test(tostr(ia),"[0 1 2 3]");
+  finish();
+};
+
+//----------------------------------------------------------------------
+//--- summary
+summary();
