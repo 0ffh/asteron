@@ -29,7 +29,21 @@ void pop_env() {
 }
 void push_env(Env* env=null) {
   envstack~=environment;
-  if (!env) env=mk_env(environment);
+  if (!env) {
+    env=mk_env(environment);
+    // copy typetable
+    Cell tytc=env_get(environment,"type_table");
+    TypeTable* oldtyt=as_typetable(tytc);
+    TypeTable tyt;
+    foreach (string key;oldtyt.str2typ.keys) {
+      Type val=oldtyt.str2typ[key];
+      tyt.str2typ[key]=val;
+      tyt.typ2str[val]=key;
+    }
+    tytc.tyt=cast(TypeTable*)([tyt].ptr);
+    //tytc=typetable_cell(cast(TypeTable*)([tyt].ptr));
+    env_put(env,"type_table",tytc);
+  }
   environment=env;
 }
 void set_env(Env* env) {

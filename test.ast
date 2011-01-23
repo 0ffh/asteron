@@ -1,7 +1,5 @@
 /*
 *** todo
- - make current environment global
- - type interning to be scoped
  - modules/namespaces
  - ternary dispatch
  - do static analysis

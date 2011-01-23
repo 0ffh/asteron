@@ -398,8 +398,8 @@ scope {
 };
 scope {
   start("structs (aliastype)");
-  aliastype at struct{a,int i,float f};
-  var at x;
+  aliastype t struct{a,int i,float f};
+  var t x;
   test("{a=any,i=0,f=0}",tostr(x));
   x.a="prlnx";
   test("prlnx",x.a);
@@ -442,11 +442,11 @@ scope {
 };
 scope {
   start("unions (deftype)");
-  deftype u union{a,int i,float f};
+  deftype t union{a,int i,float f};
   //test("(union (any a) (int i) (float f))",tostr(u));
-  defun set(u x,string idx,value) set(unpack(x),idx,value);
-  defun get(u x,string idx) return get(unpack(x),idx);
-  var u z;
+  defun set(t x,string idx,value) set(unpack(x),idx,value);
+  defun get(t x,string idx) return get(unpack(x),idx);
+  var t z;
   test("{a,i,f}",tostr(z));
   z.a="prlnz";
   test("prlnz",z.a);
