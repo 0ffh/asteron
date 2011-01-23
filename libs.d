@@ -264,7 +264,8 @@ Cell op_prenv(Cell[] args) {
   env_pr(environment);
   return assoc_cell(environment.inner);
 }
-void add_globals(Env* env) {
+void add_globals() {
+  Env* env=environment;
   assert(types_initialised);
   // lazy functions
   env_put(env,"=",lfun_cell(&op_assign));

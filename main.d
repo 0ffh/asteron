@@ -150,7 +150,7 @@ start:
 void ltest(string filename) {
   Cell c=lparse(cast(string)std.file.read(filename));
   c.show(true);
-  evalin(c,global_env);
+  eval(c);
 }
 void atest(string filename) {
   bool showflag=true;
@@ -159,7 +159,7 @@ void atest(string filename) {
   Cell c=token2cell(t);
   c.lst=sym_cell("seq")~c.lst;
   if (showflag) c.show(true);
-  evalin(c,global_env);
+  eval(c);
 }
 
 //----------------------------------------------------------------------
@@ -169,10 +169,10 @@ void atest(string filename) {
 //----------------
 
 void init() {
-  global_env=mk_env();
+  push_env(mk_env());
   init_hlparse();
-  init_types(global_env);
-  add_globals(global_env);
+  init_types();
+  add_globals();
 }
 
 void main(string[] args) {

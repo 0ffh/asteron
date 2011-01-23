@@ -6,7 +6,6 @@ import cells;
 import types;
 import signatures;
 
-Env* global_env;
 Env* environment;
 Env*[] envstack;
 
@@ -49,6 +48,7 @@ Cell env_put(Env* e,string key,Cell value) {
 }
 Cell env_get(Env* e,string key) {
   static if (debf) {debEnter("env_get('"~key~"')");scope (exit) debLeave();}
+//  env_pr(e);
   Cell* c=key in e.inner;
 //  printf("env_get %.*s -> %p\n",key,c);
 //  env_pr(e);

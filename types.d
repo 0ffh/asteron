@@ -22,6 +22,7 @@ Type TFtab;
 Type TFun;
 Type TLfun;
 Type TLambda;
+Type TTypeTable;
 
 const string id_sym="symbol";
 const string id_type="type";
@@ -37,9 +38,10 @@ const string id_funtab="funtab";
 const string id_fun="function";
 const string id_lfun="lfun";
 const string id_lambda="lambda";
+const string id_typetable="typetable";
 const string[] type_ids=[
   id_sym,id_type,id_any,id_shell,id_null,id_str,id_int,id_flt,id_env,
-  id_list,id_funtab,id_fun,id_lfun,id_lambda
+  id_list,id_funtab,id_fun,id_lfun,id_lambda,id_typetable
 ];
 
 //----------------------------------------------------------------------
@@ -49,8 +51,6 @@ const string[] type_ids=[
 //----------------
 
 // all types are interned so type pointers can be compared
-Type[string] intern_type;
-string[Type] intern_type_reverse;
 
 struct Type {
   Cell* cell;
@@ -63,11 +63,12 @@ void prln(Type t) {
 }
 Type prim_type(string typestring) {
   static if (debf) {debEnter("prim_type(string '"~typestring~"')");scope (exit) debLeave();}
-  if (typestring in intern_type) return intern_type[typestring];
+  TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
+  if (typestring in tyt.str2typ) return tyt.str2typ[typestring];
   Type t;
   t.cell=cast(Cell*)([sym_cell(typestring)].ptr);
-  intern_type[typestring]=t;
-  intern_type_reverse[t]=typestring;
+  tyt.str2typ[typestring]=t;
+  tyt.typ2str[t]=typestring;
   return t;
 }
 //----------------------------------------------------------------------
@@ -117,10 +118,11 @@ Type type_deftype(string name,Type t) {
   static if (debf) {debEnter("type_deftype(string,Cell)");scope (exit) debLeave();}
   //printf("*** defining type '%.*s'\n",name);
   //printf("*** typestring = %.*s\n",str(t));
-  if (name in intern_type) assert(false,"type "~name~" is already defined");
+  TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
+  if (name in tyt.str2typ) assert(false,"type "~name~" is already defined");
   t=def_type_from_subtype(t);
-  intern_type[name]=t;
-  intern_type_reverse[t]=name;
+  tyt.str2typ[name]=t;
+  tyt.typ2str[t]=name;
   return t;
 }
 //----------------------------------------------------------------------
@@ -144,10 +146,11 @@ Type type_aliastype(string name,Type t) {
   static if (debf) {debEnter("type_aliastype(string,Cell)");scope (exit) debLeave();}
   //printf("*** defining type '%.*s'\n",name);
   //printf("*** typestring = %.*s\n",str(t));
-  if (name in intern_type) assert(false,"type "~name~" is already defined");
+  TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
+  if (name in tyt.str2typ) assert(false,"type "~name~" is already defined");
   t=alias_type_from_subtype(t);
-  intern_type[name]=t;
-  intern_type_reverse[t]=name;
+  tyt.str2typ[name]=t;
+  tyt.typ2str[t]=name;
   return t;
 }
 //----------------------------------------------------------------------
@@ -182,9 +185,10 @@ Type type_supertype(string name,Type[] st) {
   static if (debf) {debEnter("type_supertype(string,Cell)");scope (exit) debLeave();}
   //printf("*** defining type '%.*s'\n",name);
   //printf("*** typestring = %.*s\n",str(t));
+  TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
   Type t;
-  if (name in intern_type) {
-    t=intern_type[name];
+  if (name in tyt.str2typ) {
+    t=tyt.str2typ[name];
     assert(is_super_type(t),"type "~name~" is already defined");
     super_type_extend_to_subtypes(t,st);
     return t;
@@ -195,8 +199,8 @@ Type type_supertype(string name,Type[] st) {
     foreach (ste;st) printf(" %.*s",str(ste));
     printf("\n");
   }
-  intern_type[name]=t;
-  intern_type_reverse[t]=name;
+  tyt.str2typ[name]=t;
+  tyt.typ2str[t]=name;
   return t;
 }
 //----------------------------------------------------------------------
@@ -312,18 +316,20 @@ Type type(string typestring) {
 Type type(Cell val) {
   static if (debf) {debEnter("type(Cell)");scope (exit) debLeave();}
   string typestring=cells.str(val);
-  if (typestring in intern_type) return intern_type[typestring];
+  TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
+  if (typestring in tyt.str2typ) return tyt.str2typ[typestring];
   Type t;
   t.cell=cast(Cell*)([val].ptr);
-  intern_type[typestring]=t;
-  intern_type_reverse[t]=typestring;
+  tyt.str2typ[typestring]=t;
+  tyt.typ2str[t]=typestring;
   return t;
 }
 Type type_of(Cell c) {
   return c.type;
 }
 string str(Type t) {
-  string* ps=(t in intern_type_reverse);
+  TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
+  string* ps=(t in tyt.typ2str);
   if (ps) return *ps;
   //assert(false); // temporary test
   return cells.str(*t.cell);
@@ -340,19 +346,32 @@ string str(Type[] ts) {
 //--------------------
 //-------------------- initialisation
 //--------------------
-void init_types(Env* env) {
+TypeTable* mk_typetable() {
+  TypeTable tyt;
+  return cast(TypeTable*)([tyt].ptr);
+}
+void init_types() {
   static if (debf) {debEnter("init_types");scope (exit) debLeave();}
+  TypeTable* tyt=mk_typetable();
   // make TSymbol and TType
   TSymbol.cell=cast(Cell*)([Cell()].ptr);
   TType.cell=cast(Cell*)([Cell()].ptr);
   TSymbol.cell.type=TType;
   TType.cell.type=TType;
-  intern_type[id_sym]=TSymbol;
-  intern_type[id_type]=TType;
-  intern_type_reverse[TSymbol]=id_sym;
-  intern_type_reverse[TType]=id_type;
+  tyt.str2typ[id_sym]=TSymbol;
+  tyt.str2typ[id_type]=TType;
+  tyt.typ2str[TSymbol]=id_sym;
+  tyt.typ2str[TType]=id_type;
   TSymbol.cell.typ=cast(Cell*)([sym_cell(id_sym)].ptr);
   TType.cell.typ=cast(Cell*)([sym_cell(id_type)].ptr);
+  //
+  TTypeTable.cell=cast(Cell*)([Cell()].ptr);
+  TTypeTable.cell.type=TType;
+  tyt.str2typ[id_typetable]=TTypeTable;
+  tyt.typ2str[TTypeTable]=id_typetable;
+  TType.cell.typ=cast(Cell*)([sym_cell(id_typetable)].ptr);
+  //
+  env_put(environment,"type_table",typetable_cell(tyt));
   // make other prim_types
   TAny=prim_type(id_any);
   TShell=prim_type(id_shell);
@@ -383,7 +402,7 @@ void init_types(Env* env) {
   assert(TFun==type(id_fun),"Type interning failure");
   assert(TLfun==type(id_lfun),"Type interning failure");
   assert(TLambda==type(id_lambda),"Type interning failure");
+  assert(TTypeTable==type(id_typetable),"Type interning failure");
   //
-  foreach (tid;type_ids) env_put(env,tid,type_cell(type(tid)));
-  //
+  foreach (tid;type_ids) env_put(environment,tid,type_cell(type(tid)));
 }

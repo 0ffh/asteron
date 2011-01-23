@@ -37,6 +37,10 @@ Lamb* mk_lamb(Cell exp,Cell[] par,Env* en) {
 alias Cell function(Cell[]) lfn_type;
 alias Cell function(Cell[]) fun_type;
 
+struct TypeTable {
+  Type[string] str2typ;
+  string[Type] typ2str;
+}
 struct Assoc {
   Cell[string] inner;
 }
@@ -110,6 +114,7 @@ struct Cell {
     lfn_type lfn;
     Lamb* lam;
     Env* env;
+    TypeTable* tyt;
   }
   void show(int style=0) {
     printf("%.*s\n",cells.str(*this,style));
@@ -175,6 +180,13 @@ Cell list_cell(Cell[] val=[]) {
   Cell c;
   c.type=TList;
   c.lst=val;
+  return c;
+}
+Cell typetable_cell(TypeTable* val) {
+  static if (debflag) {debEnter("typetable_cell(TypeTable*)");scope (exit) debLeave();}
+  Cell c;
+  c.type=TTypeTable;
+  c.tyt=val;
   return c;
 }
 Cell assoc_cell(Cell[string] inner) {
@@ -404,6 +416,10 @@ Ref* as_ref(Cell c) {
 Env* as_env(Cell c) {
   assert(c.type==TEnv,"as_env: Type error.");
   return c.env;
+}
+TypeTable* as_typetable(Cell c) {
+  assert(c.type==TTypeTable,"as_typetable: Type error.");
+  return c.tyt;
 }
 Type as_type(Cell c) {
   assert(c.type==TType,"as_type: Type error.");
