@@ -1,12 +1,12 @@
 /*
 *** todo
+ - make current environment global
  - type interning to be scoped
- - more on types: supertype, type literals
  - modules/namespaces
  - ternary dispatch
  - do static analysis
  - generate code
- - type families
+ - more on types: type literals (?)
 */
 supertype numeric int;
 defun foo(numeric a,numeric b) {
