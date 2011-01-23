@@ -34,7 +34,7 @@ Lamb* mk_lamb(Cell exp,Cell[] par,Env* en) {
 //---------------- Cell
 //----------------
 
-alias Cell function(Cell[],Env*) lfn_type;
+alias Cell function(Cell[]) lfn_type;
 alias Cell function(Cell[]) fun_type;
 
 struct Assoc {

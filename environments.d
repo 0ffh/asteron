@@ -6,6 +6,102 @@ import cells;
 import types;
 import signatures;
 
+Env* global_env;
+Env* environment;
+Env*[] envstack;
+
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
+//----------------
+//---------------- Env
+//----------------
+
+struct Env {
+  Env* outer;
+  Cell[string] inner;
+  void show() {
+    assoc_cell(this.inner).show();
+  }
+}
+void pop_env() {
+  assert(envstack.length);
+  environment=envstack[$-1];
+  envstack.length=envstack.length-1;
+}
+void push_env(Env* env=null) {
+  envstack~=environment;
+  if (!env) env=mk_env(environment);
+  environment=env;
+}
+void set_env(Env* env) {
+  environment=env;
+}
+Env* mk_env(Env* outer=null) {
+  static if (debf) {debEnter("mk_env()");scope (exit) debLeave();}
+  Env e;
+  e.outer=outer;
+  e.inner=e.inner.init;
+  return cast(Env*)([e].ptr);
+}
+Cell env_put(Env* e,string key,Cell value) {
+  static if (debf) {debEnter("env_put('"~key~"')");scope (exit) debLeave();}
+  return e.inner[key]=value;
+}
+Cell env_get(Env* e,string key) {
+  static if (debf) {debEnter("env_get('"~key~"')");scope (exit) debLeave();}
+  Cell* c=key in e.inner;
+//  printf("env_get %.*s -> %p\n",key,c);
+//  env_pr(e);
+  if (c !is null) return *c;
+  if (e.outer !is null) {
+//    printf("trying outer -> ");
+    return env_get(e.outer,key);
+  }
+  assert(false,"env_get: '"~key~"' not found!");
+}
+Env* env_find(Env* e,string key) {
+  static if (debf) {debEnter("env_find(Env*,"~key~")");scope (exit) debLeave();}
+  if ((key in e.inner) !is null) {
+    return e;
+  }
+  if (e.outer !is null) {
+    return env_find(e.outer,key);
+  }
+  return null;
+}
+Env* env_clone(Env* self) {
+  static if (debf) {debEnter("env_clone(Env*)");scope (exit) debLeave();}
+  Env* e=mk_env(self.outer);
+  foreach (key;self.inner.keys) env_put(e,key,env_get(self,key));
+  return e;
+}
+void env_pr(Env* env) {
+  foreach (key;env.inner.keys) {
+    printf("  %.*s -> %.*s\n",key,cells.str(env.inner[key]));
+  }
+}
+Cell env_putfun(Env* e,string key,Cell fun,Signature sig,Type ret) {
+  static if (debf) {debEnter("env_putfun(Env*,string,Cell,Type[])");scope (exit) debLeave();}
+  //-- read or generate function table
+  FTab* ft;
+  Cell* c=(key in e.inner);
+  if (c) {
+    if (!isa(*c,TFtab)) assert(false,"Trying to defun '"~key~"' over existing symbol.");
+    ft=c.ftab;
+  } else {
+    ft=mk_ftab();
+  }
+  //--
+  //printf("putfun %.*s%.*s\n",key,str(par));
+  ftab_add(ft,fun,sig,ret);
+  //
+  return e.inner[key]=ftab_cell(ft);
+}
+Cell env_putfun_sigstr(Env* e,string key,Cell fun,string sigstr,string retstr) {
+  static if (debf) {debEnter("env_putfun_sigstr(Env*,string,Cell,string,string)");scope (exit) debLeave();}
+  return env_putfun(e,key,fun,signature_string2signature(sigstr),type(retstr));
+}
+
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //----------------
@@ -94,81 +190,3 @@ FTabEntry* ftab_resolve(FTab *ft,Cell[] args,string id="") {
   return &((*ft)[bestk]);
 }
 
-//----------------------------------------------------------------------
-//----------------------------------------------------------------------
-//----------------
-//---------------- Env
-//----------------
-
-struct Env {
-  Env* outer;
-  Cell[string] inner;
-  void show() {
-    assoc_cell(this.inner).show();
-  }
-}
-Env* mk_env(Env* outer=null) {
-  static if (debf) {debEnter("mk_env()");scope (exit) debLeave();}
-  Env e;
-  e.outer=outer;
-  e.inner=e.inner.init;
-  return cast(Env*)([e].ptr);
-}
-Cell env_put(Env* e,string key,Cell value) {
-  static if (debf) {debEnter("env_put('"~key~"')");scope (exit) debLeave();}
-  return e.inner[key]=value;
-}
-Cell env_get(Env* e,string key) {
-  static if (debf) {debEnter("env_get('"~key~"')");scope (exit) debLeave();}
-  Cell* c=key in e.inner;
-//  printf("env_get %.*s -> %p\n",key,c);
-//  env_pr(e);
-  if (c !is null) return *c;
-  if (e.outer !is null) {
-//    printf("trying outer -> ");
-    return env_get(e.outer,key);
-  }
-  assert(false,"env_get: '"~key~"' not found!");
-}
-Env* env_find(Env* e,string key) {
-  static if (debf) {debEnter("env_find(Env*,"~key~")");scope (exit) debLeave();}
-  if ((key in e.inner) !is null) {
-    return e;
-  }
-  if (e.outer !is null) {
-    return env_find(e.outer,key);
-  }
-  return null;
-}
-Env* env_clone(Env* self) {
-  static if (debf) {debEnter("env_clone(Env*)");scope (exit) debLeave();}
-  Env* e=mk_env(self.outer);
-  foreach (key;self.inner.keys) env_put(e,key,env_get(self,key));
-  return e;
-}
-void env_pr(Env* env) {
-  foreach (key;env.inner.keys) {
-    printf("  %.*s -> %.*s\n",key,cells.str(env.inner[key]));
-  }
-}
-Cell env_putfun(Env* e,string key,Cell fun,Signature sig,Type ret) {
-  static if (debf) {debEnter("env_putfun(Env*,string,Cell,Type[])");scope (exit) debLeave();}
-  //-- read or generate function table
-  FTab* ft;
-  Cell* c=(key in e.inner);
-  if (c) {
-    if (!isa(*c,TFtab)) assert(false,"Trying to defun '"~key~"' over existing symbol.");
-    ft=c.ftab;
-  } else {
-    ft=mk_ftab();
-  }
-  //--
-  //printf("putfun %.*s%.*s\n",key,str(par));
-  ftab_add(ft,fun,sig,ret);
-  //
-  return e.inner[key]=ftab_cell(ft);
-}
-Cell env_putfun_sigstr(Env* e,string key,Cell fun,string sigstr,string retstr) {
-  static if (debf) {debEnter("env_putfun_sigstr(Env*,string,Cell,string,string)");scope (exit) debLeave();}
-  return env_putfun(e,key,fun,signature_string2signature(sigstr),type(retstr));
-}

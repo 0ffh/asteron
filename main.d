@@ -17,8 +17,6 @@ import std.file;
 import std.stdio;
 import std.string;
 
-Env* global_env;
-
 const bool require_declaration_before_use=true;
 
 struct State {
@@ -58,7 +56,7 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
     Cell arg=args[k];
     //-- handle untyped parameter declaration (name)
     if (isa(par,TSymbol)) {
-      env_put(lamenv,par.sym,eval(arg,env));
+      env_put(lamenv,par.sym,eval(arg));
       continue;
     }
     //-- handle typed parameter declaration (type name)
@@ -66,7 +64,7 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
       assert(par.lst.length>1);
       Cell t=par.lst[0];
       string n=as_symbol(par.lst[1]);
-      env_put(lamenv,n,eval(arg,env));
+      env_put(lamenv,n,eval(arg));
       continue;
     }
     //
@@ -77,8 +75,14 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
 int depth=0;
 int maxdepth=0;
 Cell evalcell;
-Cell eval(Cell x,Env* env) {
-  static if (debf) {debEnter("eval('%.*s',Env)",cells.str(x));scope (exit) debLeave();}
+Cell evalin(Cell x,Env* env) {
+  push_env(env);
+  x=eval(x);
+  pop_env();
+  return x;
+}
+Cell eval(Cell x) {
+  static if (debf) {debEnter("eval('%.*s')",cells.str(x));scope (exit) debLeave();}
   evalcell=x;
   static if (0) {
     maxdepth=max(maxdepth,++depth);
@@ -90,19 +94,19 @@ start:
     printf("%.*s\n",str(x));
   }
   if (state.ret||state.brk||state.cnt) return state.val;
-  if (isa(x,TSymbol)) return env_get(env,x.sym);
+  if (isa(x,TSymbol)) return env_get(environment,x.sym);
   if (!isa(x,TList)) return x;
   if (!x.lst.length) return x;
   Cell[] args=x.lst[1..$].dup; // !!! dup needed
   Cell help=x.lst[0];
-  Cell x0=eval(x.lst[0],env);
+  Cell x0=eval(x.lst[0]);
   if (isa(x0,TFtab)) {
     // !!! this is a mess and needs a cleanup
     // also, it fails if an FTab value in the current scope shadows
     // a value of a different type in one of the outer scopes
-    foreach (ref arg;args) arg=eval(arg,env);
+    foreach (ref arg;args) arg=eval(arg);
     FTabEntry* fte;
-    Env* e=env;
+    Env* e=environment;
     for (;;) {
       string name;
       if (isa(help,TSymbol)) name=help.sym;
@@ -110,7 +114,7 @@ start:
       if (fte) break;
       if (!e.outer) assert(false,"function lookup failed");
       e=e.outer;
-      x0=eval(x.lst[0],e);
+      x0=evalin(x.lst[0],e);
     }
     while (args.length<fte.sig.length) {
       args~=fte.sig[args.length].defv;
@@ -118,16 +122,16 @@ start:
     x0=fte.fun;
   }
   if (isa(x0,TLfun)) {
-    return x0.lfn(args,env);
+    return x0.lfn(args);
   }
   if (isa(x0,TFun)) {
-    foreach (ref arg;args) arg=eval(arg,env);
+    foreach (ref arg;args) arg=eval(arg);
     return x0.fun(args);
   }
   if (isa(x0,TLambda)) {
     Lamb* lam=as_lambda(x0);
-    Env* lamenv=mk_lambda_environment(lam,args,env);
-    Cell c=eval(lam.expr,lamenv);
+    Env* lamenv=mk_lambda_environment(lam,args,environment);
+    Cell c=evalin(lam.expr,lamenv);
     state.ret=0;
     return c;
   } else {
@@ -146,7 +150,7 @@ start:
 void ltest(string filename) {
   Cell c=lparse(cast(string)std.file.read(filename));
   c.show(true);
-  eval(c,global_env);
+  evalin(c,global_env);
 }
 void atest(string filename) {
   bool showflag=true;
@@ -155,7 +159,7 @@ void atest(string filename) {
   Cell c=token2cell(t);
   c.lst=sym_cell("seq")~c.lst;
   if (showflag) c.show(true);
-  eval(c,global_env);
+  evalin(c,global_env);
 }
 
 //----------------------------------------------------------------------

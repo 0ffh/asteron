@@ -15,93 +15,88 @@ import std.math;
 //---------------- core functions
 //----------------
 
-Cell op_if(Cell[] args,Env* env) {
+Cell op_if(Cell[] args) {
   static if (debf) {debEnter("[if]");scope (exit) debLeave();}
   if (args.length==2) {
-    return (istrue(eval(args[0],env)))?(eval(args[1],env)):(null_cell());
+    return (istrue(eval(args[0])))?(eval(args[1])):(null_cell());
   }
   if (args.length==3) {
-    return (istrue(eval(args[0],env)))?(eval(args[1],env)):(eval(args[2],env));
+    return (istrue(eval(args[0])))?(eval(args[1])):(eval(args[2]));
   }
   assert(false);
 }
-Cell op_switch(Cell[] args,Env* env) {
+Cell op_switch(Cell[] args) {
   static if (debf) {debEnter("[switch]");scope (exit) debLeave();}
-  Cell c=eval(args[0],env);
+  Cell c=eval(args[0]);
   int k=1;
   while ((k+1)<args.length) {
     Cell exp=list_cell([sym_cell("=="),c,args[k]]);
-    if (istrue(eval(exp,env))) break;
+    if (istrue(eval(exp))) break;
     k=k+2;
   }
   k=k+1;
   while (k<args.length) {
-    c=eval(args[k],env);
+    c=eval(args[k]);
     if (state.brk) break;
     k=k+2;
   }
   state.brk=0;
   return null_cell();
 }
-Cell op_for(Cell[] args,Env* env) {
+Cell op_for(Cell[] args) {
   static if (debf) {debEnter("[for]");scope (exit) debLeave();}
   assert(args.length==4);
-  env=mk_env(env); // we get our own scope
+  push_env(); // we get our own scope
   Cell c;
-  for (eval(args[0],env);istrue(eval(args[1],env));eval(args[2],env)) {
-    c=eval(args[3],env);
+  for (eval(args[0]);istrue(eval(args[1]));eval(args[2])) {
+    c=eval(args[3]);
     if (state.brk) {state.brk=0;break;}
     if (state.cnt) {state.cnt=0;continue;}
   }
+  pop_env();
   return c;
 }
-Cell op_while(Cell[] args,Env* env) {
+Cell op_while(Cell[] args) {
   static if (debf) {debEnter("[while]");scope (exit) debLeave();}
   assert(args.length==2);
-  env=mk_env(env); // we get our own scope
+  push_env(); // we get our own scope
   Cell c;
-  while (istrue(eval(args[0],env))) {
-    c=eval(args[1],env);
+  while (istrue(eval(args[0]))) {
+    c=eval(args[1]);
     if (state.brk) {state.brk=0;break;}
     if (state.cnt) {state.cnt=0;continue;}
   }
   state.brk=0;
+  pop_env();
   return c;
 }
-Cell op_dowhile(Cell[] args,Env* env) {
+Cell op_dowhile(Cell[] args) {
   static if (debf) {debEnter("[dowhile]");scope (exit) debLeave();}
   assert(args.length==2);
-  env=mk_env(env); // we get our own scope
+  push_env(); // we get our own scope
   Cell c;
   do {
-    c=eval(args[0],env);
+    c=eval(args[0]);
     if (state.brk) {state.brk=0;break;}
     if (state.cnt) {state.cnt=0;continue;}
-  } while (istrue(eval(args[1],env)));
+  } while (istrue(eval(args[1])));
   state.brk=0;
+  pop_env();
   return c;
 }
-Cell op_assign(Cell[] args,Env* env) {
+Cell op_assign(Cell[] args) {
   static if (debf) {debEnter("[set!]");scope (exit) debLeave();}
   assert(args.length==2);
   string id=as_symbol(args[0]);
-  Env* e=env_find(env,id);
+  Env* e=env_find(environment,id);
   static if (require_declaration_before_use) {
     assert(e !is null,"Undeclared identifier "~id);
   } else {
-    if (e is null) e=env; // lenient
+    if (e is null) e=environment; // lenient
   }
-  /*
-  Cell oldval=eval(args[0],env);
-  Cell newval=eval(args[1],env);
-  if (!type_matches(oldval.type,newval.type)) {
-    printf("old=%.*s new=%.*s\n",types.str(oldval.type),types.str(newval.type));
-    assert(false,"type mismatch assigning "~id);
-  }
-  */
-  return env_put(e,args[0].sym,eval(args[1],env));
+  return env_put(e,args[0].sym,eval(args[1]));
 }
-Cell op_def(Cell[] args,Env* env) {
+Cell op_def(Cell[] args) {
   static if (debf) {debEnter("[def]");scope (exit) debLeave();}
   //- cases:
   //   (def type name)
@@ -112,42 +107,42 @@ Cell op_def(Cell[] args,Env* env) {
   Cell value;
   assert(args.length>1);
   //args[0].show();
-  type=as_type(eval(args[0],env));
+  type=as_type(eval(args[0]));
   name=as_symbol(args[1]);
   if (args.length>2) {
     assert(args.length==3);
     //args[2].show();
-    value=eval(args[2],env);
+    value=eval(args[2]);
   } else {
 //    printf("new %.*s\n",types.str(type));
     value=new_cell(type);
   }
   //-
-  if (env_find(env,name)==env) {
+  if (env_find(environment,name)==environment) {
     printf("Error: Symbol '%.*s' is already defined in this scope!\n",name);
     assert(false);
   }
-  return env_put(env,name,value);
+  return env_put(environment,name,value);
 }
-Cell op_deftype(Cell[] args,Env* env) {
+Cell op_deftype(Cell[] args) {
   static if (debf) {debEnter("[deftype]");scope (exit) debLeave();}
   assert(args.length==2);
   string name=as_symbol(args[0]);
   Type typ=type_deftype(name,type(args[1]));
   Cell val=type_cell(typ);
   //printf("deftype %.*s / %.*s\n",name,types.str(type(args[1])));
-  return env_put(env,name,val);
+  return env_put(environment,name,val);
 }
-Cell op_aliastype(Cell[] args,Env* env) {
+Cell op_aliastype(Cell[] args) {
   static if (debf) {debEnter("[aliastype]");scope (exit) debLeave();}
   assert(args.length==2);
   string name=as_symbol(args[0]);
   Type typ=type_aliastype(name,type(args[1]));
   Cell val=type_cell(typ);
   //printf("deftype %.*s / %.*s\n",name,types.str(type(args[1])));
-  return env_put(env,name,val);
+  return env_put(environment,name,val);
 }
-Cell op_supertype(Cell[] args,Env* env) {
+Cell op_supertype(Cell[] args) {
   static if (debf) {debEnter("[supertype]");scope (exit) debLeave();}
   assert(args.length>=2);
   string name=as_symbol(args[0]);
@@ -156,22 +151,22 @@ Cell op_supertype(Cell[] args,Env* env) {
   Type typ=type_supertype(name,st);
   Cell val=type_cell(typ);
   //printf("deftype %.*s / %.*s\n",name,types.str(type(args[1])));
-  return env_put(env,name,val);
+  return env_put(environment,name,val);
 }
-Cell op_defun(Cell[] args,Env* env) {
+Cell op_defun(Cell[] args) {
   static if (debf) {debEnter("[defun]");scope (exit) debLeave();}
   assert(args.length>=2);
   string name=as_symbol(args[0]);
-  Cell val=eval(list_cell(sym_cell("function")~args[1..$]),env);
+  Cell val=eval(list_cell(sym_cell("function")~args[1..$]));
   Signature sig=parameter_cell2signature(args[1]);
-  return env_putfun(env,name,val,sig,TAny);
+  return env_putfun(environment,name,val,sig,TAny);
 }
-Cell op_quote(Cell[] args,Env* env) {
+Cell op_quote(Cell[] args) {
   static if (debf) {debEnter("[quote]");scope (exit) debLeave();}
   assert(args.length==1);
   return args[0];
 }
-Cell op_function(Cell[] args,Env* env) {
+Cell op_function(Cell[] args) {
   static if (debf) {debEnter("[fun]");scope (exit) debLeave();}
   assert(args.length>=2); // args[0]:vars args[1..$]:expressions
   // collect parameter names
@@ -179,44 +174,50 @@ Cell op_function(Cell[] args,Env* env) {
   // create and return lambda cell
   if (args.length>2) {
     // more than one expression -> implicit sequence
-    return lambda_cell(mk_lamb(list_cell(sym_cell("seq")~args[1..$]),pars,mk_env(env)));
+    return lambda_cell(mk_lamb(list_cell(sym_cell("seq")~args[1..$]),pars,mk_env(environment)));
   } else {
-    return lambda_cell(mk_lamb(args[1],pars,mk_env(env)));
+    return lambda_cell(mk_lamb(args[1],pars,mk_env(environment)));
   }
 }
-Cell op_seq(Cell[] args,Env* env) {
+Cell op_seq(Cell[] args) {
   static if (debf) {debEnter("[seq]");scope (exit) debLeave();}
   Cell res;
-  for (int k=0;k<args.length;++k) res=eval(args[k],env);
+  for (int k=0;k<args.length;++k) res=eval(args[k]);
   return res;
 }
-Cell op_scope(Cell[] args,Env* env) {
+Cell op_scope(Cell[] args) {
   static if (debf) {debEnter("[scope]");scope (exit) debLeave();}
   if (args.length==1) {
-    return op_seq(as_list(args[0]),mk_env(env)); // sequence in new environment
+    push_env(); // we get our own scope
+    Cell res=op_seq(as_list(args[0]));
+    pop_env();
+    return res;
   }
   if (args.length==2) {
-    Env* e=mk_env(env);
+    Env* e=mk_env(environment);
     Cell ce=env_cell(e);
-    env_put(env,as_symbol(args[0]),ce);
-    return op_seq(as_list(args[1]),e); // sequence in new environment
+    push_env(e); // we get our own scope
+    env_put(environment,as_symbol(args[0]),ce);
+    Cell res=op_seq(as_list(args[1])); // sequence in new environment
+    pop_env();
+    return res;
   }
   assert(false,"scope got unexpected number of arguments");
 }
-Cell op_break(Cell[] args,Env* env) {
+Cell op_break(Cell[] args) {
   static if (debf) {debEnter("[break]");scope (exit) debLeave();}
   state.brk=1;
   return null_cell();
 }
-Cell op_continue(Cell[] args,Env* env) {
+Cell op_continue(Cell[] args) {
   static if (debf) {debEnter("[continue]");scope (exit) debLeave();}
   state.cnt=1;
   return null_cell();
 }
-Cell op_return(Cell[] args,Env* env) {
+Cell op_return(Cell[] args) {
   static if (debf) {debEnter("[return]");scope (exit) debLeave();}
   if (args.length) {
-    Cell c=eval(args[0],env);
+    Cell c=eval(args[0]);
     state.ret=1;
     state.val=c;
     return c;
@@ -238,30 +239,30 @@ void show_env(Env* env) {
     assoc_cell(env.inner).show();
   }
 }
-Cell op_call(Cell[] args,Env* env) {
+Cell op_call(Cell[] args) {
   static if (debf) {debEnter("[call]");scope (exit) debLeave();}
   assert(args.length>1);
   //-- get object
-  Cell obj=eval(args[0],env);
+  Cell obj=eval(args[0]);
   assert(is_assoc_type(obj.type));
   //-- make object environment
-  Env* objenv=mk_env(env);
+  Env* objenv=mk_env(environment);
   objenv.inner=obj.asc.inner;
   objenv.inner["this"]=obj;
   //-- get lambda
-  Cell fun=eval(args[1],objenv);
+  Cell fun=evalin(args[1],objenv);
   assert(fun.type==TLambda);
   //-- make lambda environment
-  Env* lamenv=mk_lambda_environment(fun.lam,args[2..$],env);
+  Env* lamenv=mk_lambda_environment(fun.lam,args[2..$],environment);
   //-- relink environments
   objenv.outer=lamenv.outer;
   lamenv.outer=objenv;
   //-- eval lambda expression
-  return eval(fun.lam.expr,lamenv);
+  return evalin(fun.lam.expr,lamenv);
 }
-Cell op_prenv(Cell[] args,Env* env) {
-  env_pr(env);
-  return assoc_cell(env.inner);
+Cell op_prenv(Cell[] args) {
+  env_pr(environment);
+  return assoc_cell(environment.inner);
 }
 void add_globals(Env* env) {
   assert(types_initialised);
@@ -634,11 +635,11 @@ Cell op_pack(Cell[] args) {
   args[0].type=as_type(args[1]);
   return args[0];
 }
-Cell op_array(Cell[] args,Env* env) { // (array type) -> type
+Cell op_array(Cell[] args) { // (array type) -> type
   static if (debf) {debEnter("[array]");scope (exit) debLeave();}
   Type t;
   if (args.length) {
-    t=as_type(eval(args[0],env));
+    t=as_type(eval(args[0]));
   } else {
     t=TAny;
   }
@@ -652,12 +653,12 @@ Cell op_array(Cell[] args,Env* env) { // (array type) -> type
   //printf(" -> %.*s\n",types.str(t));
   return type_cell(t);
 }
-Cell op_struct(Cell[] args,Env* env) {
+Cell op_struct(Cell[] args) {
   static if (debf) {debEnter("[struct]");scope (exit) debLeave();}
   foreach (ref arg;args) {
 //    arg.show();
     assert(as_list(arg).length==2);
-    arg.lst[0]=eval(arg.lst[0],env);
+    arg.lst[0]=eval(arg.lst[0]);
     assert(isa(arg.lst[0],TType));
   }
   Type t=struct_type_from_fields(args);
@@ -678,11 +679,11 @@ Cell op_struct_set(Cell[] args) {
   struct_set(s,key,args[2]);
   return args[2];
 }
-Cell op_union(Cell[] args,Env* env) {
+Cell op_union(Cell[] args) {
   static if (debf) {debEnter("[union]");scope (exit) debLeave();}
   foreach (ref arg;args) {
     assert(as_list(arg).length==2);
-    arg.lst[0]=eval(arg.lst[0],env);
+    arg.lst[0]=eval(arg.lst[0]);
     assert(isa(arg.lst[0],TType));
   }
   Type t=union_type_from_fields(args);
@@ -703,24 +704,24 @@ Cell op_union_set(Cell[] args) {
   union_set(u,key,args[2]);
   return args[2];
 }
-Cell op_ref(Cell[] args,Env* env) {
+Cell op_ref(Cell[] args) {
   static if (debf) {debEnter("[ref]");scope (exit) debLeave();}
   assert(args.length==1);
   Type t;
   if (args.length) {
-    t=as_type(eval(args[0],env));
+    t=as_type(eval(args[0]));
   } else {
     t=TAny;
   }
   t=ref_type_from_subtype(t);
   return type_cell(t);
 }
-Cell op_getref(Cell[] args,Env* env) {
+Cell op_getref(Cell[] args) {
   static if (debf) {debEnter("[ref]");scope (exit) debLeave();}
   assert(args.length==1);
   Cell c=args[0];
   assert(isa(c,TSymbol),"Cannot get reference of non-symbol cells (yet)");
-  return ref_cell(env,as_symbol(c));
+  return ref_cell(environment,as_symbol(c));
 }
 Cell op_deref(Cell[] args) {
   static if (debf) {debEnter("[deref]");scope (exit) debLeave();}
@@ -728,7 +729,7 @@ Cell op_deref(Cell[] args) {
   Ref* r=as_ref(args[0]);
   assert(r.env,"Trying to deref null reference (env)");
   assert(r.id.length,"Trying to deref null reference (id)");
-  return eval(sym_cell(r.id),r.env);
+  return evalin(sym_cell(r.id),r.env);
 }
 Cell op_ref_set(Cell[] args) {
   static if (debf) {debEnter("[deref]");scope (exit) debLeave();}
