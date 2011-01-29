@@ -480,13 +480,13 @@ Token stmt(string s,Nudfun f) {
   x.std = f;
   return x;
 };
-Token block() {
+Token block(bool reduce=true) {
   static if (debflag) {debEnter("block");scope (exit) debLeave();}
   Token t = token;
   advance("{");
   if (!t.std) t.error("Std function expected");
   t=t.std(t);
-  t=arraytoken_reduce(t);
+  if (reduce) t=arraytoken_reduce(t);
   return t;
 };
 Token arraytoken_reduce(Token t) {
@@ -865,18 +865,16 @@ void init_symbols() {
   });
   stmt("scope", function Token(Token self) {
     static if (debflag) {debEnter("scope.std");scope (exit) debLeave();}
-    if (token.id=="(") {
-      advance();
+    if (token.id!="{") {
       if (token.arity != "name") {
         token.error("Expected name of scope.");
       }
       self.sub ~= token;
       skope.define(token);
       advance();
-      advance(")");
     }
     new_skope();
-    self.sub ~= block();
+    self.sub ~= block(false);
     self.arity = "statement";
     advance(";");
     skope.pop();

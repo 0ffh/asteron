@@ -221,12 +221,12 @@ scope {
   start("switch");
   var ok=0;
   switch (0) {
-    // mit blöcken
+    // with blocks...
     case 0: {ok=1;break;}
     case 1: {ok=0;break;}
   }
   switch (1) {
-    // oder ohne
+    // ...or without
     case 0: break;
     case 1: ok=ok+2;break;
   }
@@ -467,6 +467,18 @@ scope {
   test(tostr(ia),"[0 0 0 0]");
   for (var int k=0;k<4;k=k+1) ia[k]=k;
   test(tostr(ia),"[0 1 2 3]");
+  finish();
+};
+scope {
+  start("named scopes");
+  scope foo {
+    var x=1;
+  };
+  scope bar {
+    var x=2;
+  };
+  test(foo.x,1);
+  test(bar.x,2);
   finish();
 };
 

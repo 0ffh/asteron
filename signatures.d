@@ -10,7 +10,7 @@ import environments;
 const int exact_score=3;
 const int super_score=2;
 const int any_score=1;
-const int no_score=0;
+const int fail_score=0;
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -125,7 +125,7 @@ Signature types2signature(Type[] args) {
 }
 int fields_match_unordered(Cell[] pfs,Cell[] afs) {
   // okay this is slow, but simple & works!
-  if (pfs.length!=afs.length) return no_score;
+  if (pfs.length!=afs.length) return fail_score;
   Type[string] pfts,afts;
   for (int k;k<pfs.length;++k) {
     Cell pf=pfs[k];
@@ -135,34 +135,34 @@ int fields_match_unordered(Cell[] pfs,Cell[] afs) {
   }
   int worst_match=exact_score;
   foreach (key;pfts.keys) {
-    if (!(key in afts)) return no_score; // fail on missing field
+    if (!(key in afts)) return fail_score; // fail on missing field
     int match=type_matches(pfts[key],afts[key]);
-    if (!match) return no_score; // fail on submatch fail
+    if (!match) return fail_score; // fail on submatch fail
     if (match<worst_match) worst_match=match;
   }
   return worst_match;
 }
 int fields_match_ordered(Cell[] pfs,Cell[] afs) {
-  if (pfs.length!=afs.length) return no_score;
+  if (pfs.length!=afs.length) return fail_score;
   int worst_match=exact_score;
   for (int k;k<pfs.length;++k) {
     Cell pf=pfs[k];
     Cell af=afs[k];
-    if (as_symbol(as_list(pf)[1])!=as_symbol(as_list(af)[0])) return no_score; // fail on name mismatch
+    if (as_symbol(as_list(pf)[1])!=as_symbol(as_list(af)[0])) return fail_score; // fail on name mismatch
     int match=type_matches(type(as_list(pf)[1]),type(as_list(af)[0])); // check types
-    if (!match) return no_score; // fail on type mismatch
+    if (!match) return fail_score; // fail on type mismatch
     if (match<worst_match) worst_match=match;
   }
   return worst_match;
 }
 int types_match_ordered(Cell[] pfs,Cell[] afs) {
-  if (pfs.length!=afs.length) return no_score;
+  if (pfs.length!=afs.length) return fail_score;
   int worst_match=exact_score;
   for (int k;k<pfs.length;++k) {
     Cell pf=pfs[k];
     Cell af=afs[k];
     int match=type_matches(type(pf),type(af));
-    if (!match) return no_score; // fail on type mismatch
+    if (!match) return fail_score; // fail on type mismatch
     if (match<worst_match) worst_match=match;
   }
   return worst_match;
@@ -230,17 +230,17 @@ int type_matches(Type tp,Type ta) {
   if (is_ref_type(tp) && is_ref_type(ta)) return ref_type_matches(tp,ta);
   Cell cp=*tp.cell;
   Cell ca=*ta.cell;
-  if (cp.type!=ca.type) return no_score;
-  if (cp.type!=TList) return no_score;
+  if (cp.type!=ca.type) return fail_score;
+  if (cp.type!=TList) return fail_score;
   assert(isa(cp.lst[0],TSymbol)&&isa(ca.lst[0],TSymbol));
-  if (cp.lst[0].sym!=ca.lst[0].sym) return no_score;
+  if (cp.lst[0].sym!=ca.lst[0].sym) return fail_score;
   return type_matches(type(cp.lst[1]),type(ca.lst[1]));
 }
 int signature_matches(Signature sig,Type[] targ) {
   static if (debf) {debEnter("signature_matches(Signature,Type[])");scope (exit) debLeave();}
   const int verbose=!true;
   int p=1;
-  if (targ.length>sig.length) return no_score;
+  if (targ.length>sig.length) return fail_score;
   static if (verbose) printf("-- sig= %.*s\n",str(sig));
   static if (verbose) printf("-- arg= %.*s\n",str(types2signature(targ)));
   for (int k;k<targ.length;++k) {
@@ -254,11 +254,11 @@ int signature_matches(Signature sig,Type[] targ) {
       continue;
     }
     static if (verbose) printf("fail\n");
-    return no_score;
+    return fail_score;
   }
   for (int k=targ.length;k<sig.length;++k) {
 //    printf("default %.*s\n",cells.str(sig[k].defv));
-    if (sig[k].defv.type==TNull) return no_score;
+    if (sig[k].defv.type==TNull) return fail_score;
   }
   return p;
 }

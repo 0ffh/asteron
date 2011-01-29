@@ -196,8 +196,8 @@ Cell op_scope(Cell[] args) {
   if (args.length==2) {
     Env* e=mk_env(environment);
     Cell ce=env_cell(e);
-    push_env(e); // we get our own scope
     env_put(environment,as_symbol(args[0]),ce);
+    push_env(e); // we get our own scope
     Cell res=op_seq(as_list(args[1])); // sequence in new environment
     pop_env();
     return res;

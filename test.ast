@@ -5,6 +5,7 @@
  - generate code
  - more on types: type literals (?)
 */
+/*
 supertype numeric int,float;
 defun foo(numeric a,numeric b) {
   return tostr("numeric",a,b);
@@ -20,22 +21,20 @@ prln(foo(1.1,2));
 prln(foo(1,2.2));
 prln(foo(1.1,2.2));
 prln(foo(1.1,"x"));
-
-/*
-scope {
+*/
+scope s {
   var i=1;
-  prln("i =",i);
+//  prln("i =",i);
 };
-scope (s) {
+scope x {
   var i=2;
   prln("i =",i);
   defun foo(n) {return 2*n;}
 };
 prln("s =",s);
 prln("s.i =",s.i);
-var foo=s.foo;
+var foo=x.foo;
 prln("s.foo(2) =",foo(2));
-*/
 /*
 aliastype intarr int[];
 prln(intarr);
