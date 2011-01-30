@@ -480,13 +480,13 @@ Token stmt(string s,Nudfun f) {
   x.std = f;
   return x;
 };
-Token block(bool reduce=true) {
+Token block() {
   static if (debflag) {debEnter("block");scope (exit) debLeave();}
   Token t = token;
   advance("{");
   if (!t.std) t.error("Std function expected");
   t=t.std(t);
-  if (reduce) t=arraytoken_reduce(t);
+  t=arraytoken_reduce(t);
   return t;
 };
 Token arraytoken_reduce(Token t) {
@@ -874,7 +874,7 @@ void init_symbols() {
       advance();
     }
     new_skope();
-    self.sub ~= block(false);
+    self.sub ~= block();
     self.arity = "statement";
     advance(";");
     skope.pop();

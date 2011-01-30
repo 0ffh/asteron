@@ -132,8 +132,15 @@ Cell token2cell(Token t) {
     }
     if (t.sub.length==2) {
       assert(t.sub[0].arity=="name");
-      assert(t.sub[1].arity=="array");
-      return list_cell([sym_cell("scope"),sym_cell(t.sub[0].value),token2cell(t.sub[1])]);
+      if (t.sub[1].arity=="array") {
+        Cell code=token2cell(t.sub[1]);
+        code=list_cell(sym_cell("seq")~as_list(code));
+        return list_cell([sym_cell("scope"),sym_cell(t.sub[0].value),code]);
+      }
+      if (t.sub[1].arity=="statement") {
+        Cell code=token2cell(t.sub[1]);
+        return list_cell([sym_cell("scope"),sym_cell(t.sub[0].value),code]);
+      }
     }
     assert(false);
   }

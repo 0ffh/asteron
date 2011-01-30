@@ -88,7 +88,6 @@ Cell eval(Cell x) {
     maxdepth=max(maxdepth,++depth);
     scope (exit) --depth;
   }
-start:
   static if (0) {
     indent(depth);
     printf("%.*s\n",str(x));
@@ -98,9 +97,9 @@ start:
   if (!isa(x,TList)) return x;
   if (!x.lst.length) return x;
   Cell[] args=x.lst[1..$].dup; // !!! dup needed
-  Cell help=x.lst[0];
-  Cell x0=eval(x.lst[0]);
-  if (isa(x0,TFtab)) {
+  Cell x0=x.lst[0];
+  Cell ex0=eval(x0);
+  if (isa(ex0,TFtab)) {
     // !!! this is a mess and needs a cleanup
     // also, it fails if an FTab value in the current scope shadows
     // a value of a different type in one of the outer scopes
@@ -109,34 +108,34 @@ start:
     Env* e=environment;
     for (;;) {
       string name;
-      if (isa(help,TSymbol)) name=help.sym;
-      fte=ftab_resolve(x0.ftab,args,name);
+      if (isa(x0,TSymbol)) name=x0.sym;
+      fte=ftab_resolve(ex0.ftab,args,name);
       if (fte) break;
       if (!e.outer) assert(false,"function lookup failed");
       e=e.outer;
-      x0=evalin(x.lst[0],e);
+      ex0=evalin(x.lst[0],e);
     }
     while (args.length<fte.sig.length) {
       args~=fte.sig[args.length].defv;
     }
-    x0=fte.fun;
+    ex0=fte.fun;
   }
-  if (isa(x0,TLfun)) {
-    return x0.lfn(args);
+  if (isa(ex0,TLfun)) {
+    return ex0.lfn(args);
   }
-  if (isa(x0,TFun)) {
+  if (isa(ex0,TFun)) {
     foreach (ref arg;args) arg=eval(arg);
-    return x0.fun(args);
+    return ex0.fun(args);
   }
-  if (isa(x0,TLambda)) {
-    Lamb* lam=as_lambda(x0);
+  if (isa(ex0,TLambda)) {
+    Lamb* lam=as_lambda(ex0);
     Env* lamenv=mk_lambda_environment(lam,args,environment);
     Cell c=evalin(lam.expr,lamenv);
     state.ret=0;
     return c;
   } else {
-    printf("[unexpected type %i]\n",x0.type);
-    printf("[type name is %.*s]\n",types.str(x0.type));
+    printf("[unexpected type %i]\n",ex0.type);
+    printf("[type name is %.*s]\n",types.str(ex0.type));
     assert(false);
   }
 }
