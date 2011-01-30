@@ -261,6 +261,7 @@ Cell op_call(Cell[] args) {
     return evalin(fun.lam.expr,lamenv);
   }
   if (isa(obj,TEnv)) {
+    for (int k=2;k<args.length;++k) args[k]=eval(args[k]);
     return evalin(list_cell(args[1..$]),as_env(obj));
   }
   args[0]=args[1];
