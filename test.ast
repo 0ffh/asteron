@@ -1,27 +1,19 @@
 /*
 *** todo
- - ternary dispatch
  - do static analysis
  - generate code
  - more on types: type literals (?)
 */
-/*
-supertype numeric int,float;
-defun foo(numeric a,numeric b) {
-  return tostr("numeric",a,b);
-}
-defun foo(int a,int b) {
-  return tostr("int",a,b);
-}
-defun foo(a,b) {
-  return tostr("any",a,b);
-}
-prln(foo(1,2));
-prln(foo(1.1,2));
-prln(foo(1,2.2));
-prln(foo(1.1,2.2));
-prln(foo(1.1,"x"));
-*/
+scope foo {
+  defun fun(x) return "foo";
+};
+scope bar {
+  defun fun(x) return "bar";
+};
+foo.fun(1);
+bar.fun(2);
+var h=[0,1,2,3];
+h.tostr().typeof().prln();
 /*
 scope s {
   var i=1;

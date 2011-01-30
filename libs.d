@@ -244,21 +244,28 @@ Cell op_call(Cell[] args) {
   assert(args.length>1);
   //-- get object
   Cell obj=eval(args[0]);
-  assert(is_assoc_type(obj.type));
-  //-- make object environment
-  Env* objenv=mk_env(environment);
-  objenv.inner=obj.asc.inner;
-  objenv.inner["this"]=obj;
-  //-- get lambda
-  Cell fun=evalin(args[1],objenv);
-  assert(fun.type==TLambda);
-  //-- make lambda environment
-  Env* lamenv=mk_lambda_environment(fun.lam,args[2..$],environment);
-  //-- relink environments
-  objenv.outer=lamenv.outer;
-  lamenv.outer=objenv;
-  //-- eval lambda expression
-  return evalin(fun.lam.expr,lamenv);
+  if (is_assoc_type(obj.type)) {
+    //-- make object environment
+    Env* objenv=mk_env(environment);
+    objenv.inner=obj.asc.inner;
+    objenv.inner["this"]=obj;
+    //-- get lambda
+    Cell fun=evalin(args[1],objenv);
+    assert(fun.type==TLambda);
+    //-- make lambda environment
+    Env* lamenv=mk_lambda_environment(fun.lam,args[2..$],environment);
+    //-- relink environments
+    objenv.outer=lamenv.outer;
+    lamenv.outer=objenv;
+    //-- eval lambda expression
+    return evalin(fun.lam.expr,lamenv);
+  }
+  if (isa(obj,TEnv)) {
+    return evalin(list_cell(args[1..$]),as_env(obj));
+  }
+  args[0]=args[1];
+  args[1]=obj;
+  return eval(list_cell(args));
 }
 Cell op_prenv(Cell[] args) {
   env_pr(environment);

@@ -107,7 +107,11 @@ Cell eval(Cell x) {
     Env* e=environment;
     for (;;) {
       e=env_find(e,name);
-      if (!e) assert(false,"function '"~name~"' lookup failed");
+      if (!e) {
+//        assert(false,"function '"~name~"' lookup failed");
+        printf("*** Error: Function '%.*s' lookup failed!\n",name);
+        return null_cell();
+      }
       candidate=evalin(x0,e);
       if (!isa(candidate,TFtab)) break;
       if (!eargs.length) {
@@ -143,11 +147,10 @@ Cell eval(Cell x) {
     Cell c=evalin(lam.expr,lamenv);
     state.ret=0;
     return c;
-  } else {
-    printf("[unexpected type %i]\n",x0.type);
-    printf("[type name is %.*s]\n",types.str(x0.type));
-    assert(false);
   }
+  printf("[unexpected type %i]\n",x0.type);
+  printf("[type name is %.*s]\n",types.str(x0.type));
+  assert(false);
 }
 
 //----------------------------------------------------------------------

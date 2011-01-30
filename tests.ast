@@ -481,7 +481,22 @@ scope {
   test(bar.x,2);
   finish();
 };
-
+scope {
+  start("ternary dispatch");
+  scope foo {
+    defun fun(x) return "foo";
+  };
+  scope bar {
+    defun fun(x) return "bar";
+  };
+  test(foo.fun(),"foo");
+  test(bar.fun(),"bar");
+  var x=3;
+  test(x.tostr(),"3");
+  test(x.typeof().tostr(),"int");
+  test(x.typeof().tostr().typeof(),string);
+  finish();
+};
 //----------------------------------------------------------------------
 //--- summary
 summary();
