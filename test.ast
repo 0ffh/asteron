@@ -10,6 +10,8 @@ scope foo {
 scope bar {
   defun fun(x) return "bar";
 };
+prln(foo);
+prln(bar);
 foo.fun(1);
 bar.fun(2);
 var h=[0,1,2,3];

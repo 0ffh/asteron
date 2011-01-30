@@ -484,10 +484,10 @@ scope {
 scope {
   start("ternary dispatch");
   scope foo {
-    defun fun(x) return "foo";
+    defun fun() return "foo";
   };
   scope bar {
-    defun fun(x) return "bar";
+    defun fun() return "bar";
   };
   test(foo.fun(),"foo");
   test(bar.fun(),"bar");
