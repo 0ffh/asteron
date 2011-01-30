@@ -97,45 +97,55 @@ Cell eval(Cell x) {
   if (!isa(x,TList)) return x;
   if (!x.lst.length) return x;
   Cell[] args=x.lst[1..$].dup; // !!! dup needed
+  Cell[] eargs;
   Cell x0=x.lst[0];
-  Cell ex0=eval(x0);
-  if (isa(ex0,TFtab)) {
-    // !!! this is a mess and needs a cleanup
-    // also, it fails if an FTab value in the current scope shadows
-    // a value of a different type in one of the outer scopes
-    foreach (ref arg;args) arg=eval(arg);
-    FTabEntry* fte;
+  while (isa(x0,TList)) x0=eval(x0);
+  string name;
+  if (isa(x0,TSymbol)) {
+    Cell candidate;
+    name=x0.sym;
     Env* e=environment;
     for (;;) {
-      string name;
-      if (isa(x0,TSymbol)) name=x0.sym;
-      fte=ftab_resolve(ex0.ftab,args,name);
-      if (fte) break;
-      if (!e.outer) assert(false,"function lookup failed");
+      e=env_find(e,name);
+      if (!e) assert(false,"function '"~name~"' lookup failed");
+      candidate=evalin(x0,e);
+      if (!isa(candidate,TFtab)) break;
+      if (!eargs.length) {
+        eargs.length=args.length;
+        for (int k;k<args.length;++k) eargs[k]=eval(args[k]);
+      }
+      FTabEntry* fte=ftab_resolve(candidate.ftab,eargs,name);
+      if (fte) {
+        while (eargs.length<fte.sig.length) {
+          eargs~=fte.sig[eargs.length].defv;
+        }
+        args=eargs;
+        candidate=fte.fun;
+        break;
+      }
       e=e.outer;
-      ex0=evalin(x.lst[0],e);
     }
-    while (args.length<fte.sig.length) {
-      args~=fte.sig[args.length].defv;
+    x0=candidate;
+  }
+  if (isa(x0,TLfun)) {
+    return x0.lfn(args);
+  }
+  if (isa(x0,TFun)) {
+    if (!eargs.length) {
+      eargs.length=args.length;
+      for (int k;k<args.length;++k) eargs[k]=eval(args[k]);
     }
-    ex0=fte.fun;
+    return x0.fun(eargs);
   }
-  if (isa(ex0,TLfun)) {
-    return ex0.lfn(args);
-  }
-  if (isa(ex0,TFun)) {
-    foreach (ref arg;args) arg=eval(arg);
-    return ex0.fun(args);
-  }
-  if (isa(ex0,TLambda)) {
-    Lamb* lam=as_lambda(ex0);
+  if (isa(x0,TLambda)) {
+    Lamb* lam=as_lambda(x0);
     Env* lamenv=mk_lambda_environment(lam,args,environment);
     Cell c=evalin(lam.expr,lamenv);
     state.ret=0;
     return c;
   } else {
-    printf("[unexpected type %i]\n",ex0.type);
-    printf("[type name is %.*s]\n",types.str(ex0.type));
+    printf("[unexpected type %i]\n",x0.type);
+    printf("[type name is %.*s]\n",types.str(x0.type));
     assert(false);
   }
 }

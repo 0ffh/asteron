@@ -453,7 +453,7 @@ Token statement() {
     return n.std(n);
   }
   v = expression(0);
-  if ((!v.assignment) && (v.id != "(")) {
+  if ((!v.assignment) && (v.id != "(") && (v.id != "++") && (v.id != "--")) {
     v.error("Bad expression statement.");
   }
   advance(";");
@@ -674,9 +674,19 @@ void init_symbols() {
   infix("[", 80, function Token(Token self,Token left) {
     static if (debflag) {debEnter("'['.led");scope (exit) debLeave();}
     self.sub = [left];
-    self.sub ~= expression(0);
-    self.arity = "binary";
+    Token[] a;
+    if (token.id != "]") {
+      while (true) {
+        a ~= expression(0);
+        if (token.id != ",") {
+          break;
+        }
+        advance(",");
+      }
+    }
     advance("]");
+    self.sub ~= a;
+    self.arity = "binary";
     return self;
   });
   //---
@@ -689,14 +699,39 @@ void init_symbols() {
     self.arity = "unary";
     return self;
   });
-  //suffix("@");
-  //suffix("--");
-  //suffix("++");
+  infix("++", 80, function Token(Token self,Token left) {
+    static if (debflag) {debEnter("'++'.led");scope (exit) debLeave();}
+    self.value = "postincrement";
+    self.sub = [left];
+    self.arity = "unary";
+    return self;
+  });
+  infix("--", 80, function Token(Token self,Token left) {
+    static if (debflag) {debEnter("'--'.led");scope (exit) debLeave();}
+    self.value = "postdecrement";
+    self.sub = [left];
+    self.arity = "unary";
+    return self;
+  });
   //---
   prefix("-");
   prefix("+");
-  //prefix("--");
-  //prefix("++");
+  prefix("--", function Token(Token self) {
+    static if (debflag) {debEnter("'--'.nud");scope (exit) debLeave();}
+    skope.reserve(self);
+    self.value = "predecrement";
+    self.sub = [expression(70)];
+    self.arity = "unary";
+    return self;
+  });
+  prefix("++", function Token(Token self) {
+    static if (debflag) {debEnter("'++'.nud");scope (exit) debLeave();}
+    skope.reserve(self);
+    self.value = "preincrement";
+    self.sub = [expression(70)];
+    self.arity = "unary";
+    return self;
+  });
   prefix("!");
   prefix("&");
   prefix("typeof");
@@ -1090,17 +1125,8 @@ Token expression(int rbp) {
   static if (debflag) {debEnter("expression");scope (exit) debLeave();}
   Token left;
   Token t = token;
-  static if (0) {
-    if (skope.find(t.value).arity=="type") {
-      left = type_constructor();
-    } else {
-      advance();
-      left = t.nud(t);
-    }
-  } else {
-    advance();
-    left = t.nud(t);
-  }
+  advance();
+  left = t.nud(t);
   while (rbp < token.lbp) {
     t = token;
     advance();

@@ -234,11 +234,33 @@ Cell token2cell(Token t) {
   }
   if (tav(t,"binary","[")) {
     Cell c=list_cell();
-    c.lst~=sym_cell("get");
-    c.lst~=token2cell(t.sub[0]);
-    c.lst~=token2cell(t.sub[1]);
+    static if (0) {
+      // ugly hack for array type literals
+      if (t.sub.length==1) {
+        c.lst~=sym_cell("array");
+      } else {
+        c.lst~=sym_cell("get");
+      }
+    } else {
+      c.lst~=sym_cell("get");
+    }
+    for (int k;k<t.sub.length;++k) {
+      c.lst~=token2cell(t.sub[k]);
+    }
     return c;
   }
+/*  if (tav(t,"unary","preincrement")) {
+    assert(t.sub.length==1);
+    Cell id=token2cell(t.sub[0]);
+    Cell sum=list_cell([sym_cell("+"),id,int_cell(1)]);
+    return list_cell([sym_cell("="),id,sum]);
+  }
+  if (tav(t,"unary","predecrement")) {
+    assert(t.sub.length==1);
+    Cell id=token2cell(t.sub[0]);
+    Cell sum=list_cell([sym_cell("-"),id,int_cell(1)]);
+    return list_cell([sym_cell("="),id,sum]);
+  }*/
   if (tav(t,"binary")) {
     if (string* op=(t.value in opeq)) {
       // (?= a b) -> (= a (? a b))

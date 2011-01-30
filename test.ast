@@ -22,6 +22,7 @@ prln(foo(1,2.2));
 prln(foo(1.1,2.2));
 prln(foo(1.1,"x"));
 */
+/*
 scope s {
   var i=1;
 //  prln("i =",i);
@@ -35,6 +36,7 @@ prln("s =",s);
 prln("s.i =",s.i);
 var foo=x.foo;
 prln("s.foo(2) =",foo(2));
+*/
 /*
 aliastype intarr int[];
 prln(intarr);
