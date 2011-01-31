@@ -386,28 +386,28 @@ scope {
 scope {
   start("structs (anonymous)");
   var struct{a,int i,float f} x;
-  test("{a=any,i=0,f=0}",tostr(x));
+  test(tostr(x),"{a=any,i=0,f=0}");
   x.a="prlnx";
-  test("prlnx",x.a);
-  test("{a='prlnx',i=0,f=0}",tostr(x));
+  test(x.a,"prlnx");
+  test(tostr(x),"{a='prlnx',i=0,f=0}");
   x.i=1;
-  test(1,x.i);
+  test(x.i,1);
   x.f=2.0;
-  test("{a='prlnx',i=1,f=2}",tostr(x));
+  test(tostr(x),"{a='prlnx',i=1,f=2}");
   finish();
 };
 scope {
   start("structs (aliastype)");
   aliastype t struct{a,int i,float f};
   var t x;
-  test("{a=any,i=0,f=0}",tostr(x));
+  test(tostr(x),"{a=any,i=0,f=0}");
   x.a="prlnx";
-  test("prlnx",x.a);
-  test("{a='prlnx',i=0,f=0}",tostr(x));
+  test(x.a,"prlnx");
+  test(tostr(x),"{a='prlnx',i=0,f=0}");
   x.i=1;
-  test(1,x.i);
+  test(x.i,1);
   x.f=2.0;
-  test("{a='prlnx',i=1,f=2}",tostr(x));
+  test(tostr(x),"{a='prlnx',i=1,f=2}");
   finish();
 };
 scope {
@@ -417,27 +417,27 @@ scope {
   defun set(t x,string idx,value) set(unpack(x),idx,value);
   defun get(t x,string idx) return get(unpack(x),idx);
   var t y;
-  test("{a=any,i=0,f=0}",tostr(y));
+  test(tostr(y),"{a=any,i=0,f=0}");
   y.a="prlny";
-  test("prlny",y.a);
-  test("{a='prlny',i=0,f=0}",tostr(y));
+  test(y.a,"prlny");
+  test(tostr(y),"{a='prlny',i=0,f=0}");
   y.i=2;
-  test(2,y.i);
+  test(y.i,2);
   y.f=1.0;
-  test("{a='prlny',i=2,f=1}",tostr(y));
+  test(tostr(y),"{a='prlny',i=2,f=1}");
   finish();
 };
 scope {
   start("unions (anonymous)");
   var union{a,int i,float f} z;
-  test("{a,i,f}",tostr(z));
+  test(tostr(z),"{a,i,f}");
   z.a="prlnz";
-  test("prlnz",z.a);
-  test("{a='prlnz',i,f}",tostr(z));
+  test(z.a,"prlnz");
+  test(tostr(z),"{a='prlnz',i,f}");
   z.i=1;
-  test("{a,i=1,f}",tostr(z));
+  test(tostr(z),"{a,i=1,f}");
   z.f=2.0;
-  test("{a,i,f=2}",tostr(z));
+  test(tostr(z),"{a,i,f=2}");
   finish();
 };
 scope {
@@ -447,14 +447,14 @@ scope {
   defun set(t x,string idx,value) set(unpack(x),idx,value);
   defun get(t x,string idx) return get(unpack(x),idx);
   var t z;
-  test("{a,i,f}",tostr(z));
+  test(tostr(z),"{a,i,f}");
   z.a="prlnz";
-  test("prlnz",z.a);
-  test("{a='prlnz',i,f}",tostr(z));
+  test(z.a,"prlnz");
+  test(tostr(z),"{a='prlnz',i,f}");
   z.i=1;
-  test("{a,i=1,f}",tostr(z));
+  test(tostr(z),"{a,i=1,f}");
   z.f=2.0;
-  test("{a,i,f=2}",tostr(z));
+  test(tostr(z),"{a,i,f=2}");
   finish();
 };
 scope {
@@ -495,6 +495,16 @@ scope {
   test(x.tostr(),"3");
   test(x.typeof().tostr(),"int");
   test(x.typeof().tostr().typeof(),string);
+  finish();
+};
+scope {
+  start("ternary dispatch (2)");
+  var struct{int x} a;
+  var struct{float x} b;
+  defun foo(int x) return "int";
+  defun foo(float x) return "float";
+  test(a.x.foo(),"int");
+  test(b.x.foo(),"float");
   finish();
 };
 //----------------------------------------------------------------------
