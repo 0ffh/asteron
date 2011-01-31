@@ -106,10 +106,11 @@ Cell eval(Cell x) {
     name=x0.sym;
     Env* e=environment;
     for (;;) {
-      e=env_find(e,name);
+//      printf("looking up Function '%.*s' int environment %p\n",name,e);
+      if (e) e=env_find(e,name);
       if (!e) {
-//        assert(false,"function '"~name~"' lookup failed");
         printf("*** Error: Function '%.*s' lookup failed!\n",name);
+        assert(false);
         return null_cell();
       }
       candidate=evalin(x0,e);
