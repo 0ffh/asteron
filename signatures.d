@@ -243,7 +243,7 @@ int type_matches(Type tp,Type ta) {
 int signature_matches(Signature sig,Type[] targ) {
   static if (debf) {debEnter("signature_matches(Signature,Type[])");scope (exit) debLeave();}
   const int verbose=!true;
-  int p=1;
+  int p=2;
   if ((targ.length>sig.length) && (!is_open_signature(sig))) return fail_score;
   static if (verbose) printf("-- sig= %.*s\n",str(sig));
   static if (verbose) printf("-- arg= %.*s\n",str(types2signature(targ)));

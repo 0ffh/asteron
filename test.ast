@@ -4,9 +4,9 @@
  - generate code
  - more on types: type literals (?)
 */
-defun foo() prln("a");
-defun foo(x) prln("b");
-defun foo(x,...) {
+defun foo(x) prln("a");
+defun foo(x,y) prln("b");
+defun foo(...) {
   prln("c",ellipse.length(),ellipse);
 }
 foo();
