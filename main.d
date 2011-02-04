@@ -72,7 +72,7 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
   }
   return lamenv;
 }
-Cell resolve_function(Cell sym,Cell[] args,Cell[] eargs,Env* env) {
+Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
   Cell candidate;
   string name=sym.sym;
   Env* e=environment;
@@ -131,43 +131,8 @@ Cell eval(Cell x) {
   Cell[] eargs;
   Cell x0=x.lst[0];
   while (isa(x0,TList)) x0=eval(x0);
-  static if (1) {
-    string name;
-    if (isa(x0,TSymbol)) {
-      Cell candidate;
-      name=x0.sym;
-      Env* e=environment;
-      for (;;) {
-  //      printf("looking up Function '%.*s' int environment %p\n",name,e);
-        if (e) e=env_find(e,name);
-        if (!e) {
-          printf("*** Error: Function '%.*s' lookup failed!\n",name);
-          assert(false);
-          return null_cell();
-        }
-        candidate=evalin(x0,e);
-        if (!isa(candidate,TFtab)) break;
-        if (!eargs.length) {
-          eargs.length=args.length;
-          for (int k;k<args.length;++k) eargs[k]=eval(args[k]);
-        }
-        FTabEntry* fte=ftab_resolve(candidate.ftab,eargs,name);
-        if (fte) {
-          while (eargs.length<fte.sig.length) {
-            eargs~=fte.sig[eargs.length].defv;
-          }
-          args=eargs;
-          candidate=fte.fun;
-          break;
-        }
-        e=e.outer;
-      }
-      x0=candidate;
-    }
-  } else {
-    if (isa(x0,TSymbol)) {
-      x0=resolve_function(x0,args,eargs,environment);
-    }
+  if (isa(x0,TSymbol)) {
+    x0=resolve_function(x0,args,eargs);
   }
   if (isa(x0,TLfun)) {
     return x0.lfn(args);
