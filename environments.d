@@ -104,12 +104,14 @@ Cell env_putfun(Env* e,string key,Cell fun,Signature sig,Type ret) {
     ft=c.ftab;
   } else {
     ft=mk_ftab();
+    c=cast(Cell*)([ftab_cell(ft)].ptr);
+    e.inner[key]=*c;
   }
   //--
   //printf("putfun %.*s%.*s\n",key,str(par));
   ftab_add(ft,fun,sig,ret);
   //
-  return e.inner[key]=ftab_cell(ft);
+  return *c;
 }
 Cell env_putfun_sigstr(Env* e,string key,Cell fun,string sigstr,string retstr) {
   static if (debf) {debEnter("env_putfun_sigstr(Env*,string,Cell,string,string)");scope (exit) debLeave();}
@@ -127,14 +129,19 @@ struct FTabEntry {
   Type      ret;
   Cell      fun;
 }
-typedef FTabEntry[] FTab;
-FTab* mk_ftab() {
+struct FTab {
+  Env*        env;
+  FTabEntry[] dat;
+}
+FTab* mk_ftab(Env* e=null) {
+  if (!e) e=environment;
   FTab l;
+  l.env=e;
   return cast(FTab*)[l].ptr;
 }
 string str(FTab* ft) {
   string s;
-  foreach (FTabEntry e;*ft) {
+  foreach (FTabEntry e;ft.dat) {
     s~="("~signatures.str(e.sig)~" -> "~types.str(e.ret)~" "~cells.str(e.fun)~") ";
   }
   if (s.length) {
@@ -149,7 +156,7 @@ bool ftab_add(FTab* ft,Cell fun,Signature sig,Type ret) {
 //  printf("*** %.*s\n",str(tpar));
   Cell* now;// =ftab_find(ft,par);
   if (now !is null) return false;
-  (*ft)~=FTabEntry(sig,ret,fun);
+  ft.dat~=FTabEntry(sig,ret,fun);
   return true;
 }
 FTabEntry* ftab_resolve(FTab *ft,Cell[] args,string id="") {
@@ -175,8 +182,8 @@ FTabEntry* ftab_resolve(FTab *ft,Cell[] args,string id="") {
     }
   }
   int bestp=0,bestk=0,ambiguous=0;
-  for (int k=0;k<ft.length;++k) {
-    Signature sig=(*ft)[k].sig;
+  for (int k=0;k<ft.dat.length;++k) {
+    Signature sig=ft.dat[k].sig;
     int p=signature_matches(sig,targs);
     static if (show) {
       if (trace) {
@@ -193,14 +200,15 @@ FTabEntry* ftab_resolve(FTab *ft,Cell[] args,string id="") {
     }
   }
   if (!bestp) {
-    //printf("No match found for function signature %.*s!\n",types.str(targs));
+//    printf("No match found for function signature %.*s!\n",types.str(targs));
+//    assert(false);
     return null;
   }
   if (ambiguous) {
     printf("No unambiguous match found for function signature %.*s!\n",types.str(targs));
     assert(false);
+//    return null;
   }
-  //assert(false);
-  return &((*ft)[bestk]);
+  return &(ft.dat[bestk]);
 }
 
