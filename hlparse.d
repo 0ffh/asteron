@@ -42,9 +42,11 @@ Cell token2cell(Token t) {
     }
   }
   if (tav(t,"binary","type_name")) {
+//printf("##### type_name\n");
     return list_cell(tokens2cells(t.sub));
   }
   if (tav(t,"ternary","type_name_value")) {
+//printf("##### type_name_value\n");
     return list_cell(tokens2cells(t.sub));
   }
   if (tav(t,"unary","{")) {
