@@ -4,18 +4,15 @@
  - generate code
  - more on types: type literals (?)
 */
-scope foo {
-  defun fun(x) return "foo";
-};
-scope bar {
-  defun fun(x) return "bar";
-};
-prln(foo);
-prln(bar);
-foo.fun(1);
-bar.fun(2);
-var h=[0,1,2,3];
-h.tostr().typeof().prln();
+defun foo() prln("a");
+defun foo(x) prln("b");
+defun foo(x,...) {
+  prln("c",ellipse.length(),ellipse);
+}
+foo();
+foo(1);
+foo(1,2);
+foo(1,2,3);
 /*
 scope s {
   var i=1;

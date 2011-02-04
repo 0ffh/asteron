@@ -25,6 +25,10 @@ struct SigElement {
 }
 typedef SigElement[] Signature;
 
+int is_open_signature(Signature sig) {
+  if (!sig.length) return 0;
+  return sig[$-1].name=="...";
+}
 string str(Signature sig) {
   string s="(";
   for (int k;k<sig.length;++k) {
@@ -37,10 +41,10 @@ string str(Signature sig) {
 bool is_sym(Cell c,string s) {
   return ((c.type==TSymbol)&&(c.sym==s));
 }
-Signature argument_string2signature(string argstr) {
+/*Signature argument_string2signature(string argstr) {
   static if (debf) {debEnter("argument_string2signature(string)");scope (exit) debLeave();}
   return parameter_cell2signature(lparse(argstr));
-}
+}*/
 Signature signature_string2signature(string sigstr) {
   static if (debf) {debEnter("signature_string2signature(string)");scope (exit) debLeave();}
   return signature_cell2signature(lparse(sigstr));
@@ -107,7 +111,7 @@ Signature signature_cell2signature(Cell arg) {
   static if (verbose) printf("\n");
   return sig;
 }
-Signature types2signature(Type[] args) {
+/*Signature types2signature(Type[] args) {
   static if (debf) {debEnter("signature_cell2signature(Cell)");scope (exit) debLeave();}
   const int verbose=false;
   Signature sig;
@@ -122,7 +126,7 @@ Signature types2signature(Type[] args) {
   }
   static if (verbose) printf("\n");
   return sig;
-}
+}*/
 int fields_match_unordered(Cell[] pfs,Cell[] afs) {
   // okay this is slow, but simple & works!
   if (pfs.length!=afs.length) return fail_score;
@@ -240,10 +244,11 @@ int signature_matches(Signature sig,Type[] targ) {
   static if (debf) {debEnter("signature_matches(Signature,Type[])");scope (exit) debLeave();}
   const int verbose=!true;
   int p=1;
-  if (targ.length>sig.length) return fail_score;
+  if ((targ.length>sig.length) && (!is_open_signature(sig))) return fail_score;
   static if (verbose) printf("-- sig= %.*s\n",str(sig));
   static if (verbose) printf("-- arg= %.*s\n",str(types2signature(targ)));
   for (int k;k<targ.length;++k) {
+    if (sig[k].name=="...") return (p<<2)-1;
     Type tp=sig[k].type;
     Type ta=targ[k];
     p<<=2;
@@ -258,6 +263,7 @@ int signature_matches(Signature sig,Type[] targ) {
   }
   for (int k=targ.length;k<sig.length;++k) {
 //    printf("default %.*s\n",cells.str(sig[k].defv));
+    if (sig[k].name=="...") return p-1;
     if (sig[k].defv.type==TNull) return fail_score;
   }
   return p;

@@ -35,10 +35,30 @@ State state;
 Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
   Env* lamenv=env_clone(lam.env);
   //-- at least as much parameters as arguments (rest must be defaulted)
-  assert(lam.pars.length>=args.length);
+//  assert(lam.pars.length>=args.length);
   for (int k=0;k<lam.pars.length;++k) {
     //-- formal parameter
     Cell par=lam.pars[k];
+    //-- handle ellipse ((type ...))
+    if (k==(lam.pars.length-1)) {
+      string n;
+      if (isa(par,TSymbol)) {
+        n=par.sym;
+      }
+      if (isa(par,TList) && (par.lst.length==2)) {
+        n=as_symbol(par.lst[1]);
+      }
+      if (n=="...") {
+        Cell[] eargs;
+        for (int ka=k;ka<args.length;++ka) {
+          eargs~=eval(args[ka]);
+//          printf("### %.*s -> %.*s\n",cells.str(args[ka]),cells.str(eargs[$-1]));
+        }
+//        printf("### %i\n",eargs.length);
+        env_put(lamenv,"ellipse",array_cell(eargs));
+        break;
+      }
+    }
     //-- handle defaulted parameter declaration ((type name value))
     if (k>=args.length) {
       //- no argument for this parameter
@@ -62,7 +82,7 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
     //-- handle typed parameter declaration (type name)
     if (isa(par,TList)) {
       assert(par.lst.length>1);
-      Cell t=par.lst[0];
+//      Cell t=par.lst[0];
       string n=as_symbol(par.lst[1]);
       env_put(lamenv,n,eval(arg));
       continue;
@@ -93,6 +113,7 @@ Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
     FTabEntry* fte=ftab_resolve(candidate.ftab,eargs,name);
     if (fte) {
       while (eargs.length<fte.sig.length) {
+        if (fte.sig[eargs.length].name=="...") break;
         eargs~=fte.sig[eargs.length].defv;
       }
       args=eargs;
@@ -131,12 +152,15 @@ Cell eval(Cell x) {
   Cell[] eargs;
   Cell x0=x.lst[0];
   while (isa(x0,TList)) x0=eval(x0);
+//  printf("+++ A %i\n",args.length);
   if (isa(x0,TSymbol)) {
     x0=resolve_function(x0,args,eargs);
   }
+//  printf("+++ B %i\n",args.length);
   if (isa(x0,TLfun)) {
     return x0.lfn(args);
   }
+//  printf("+++ C %i\n",args.length);
   if (isa(x0,TFun)) {
     if (!eargs.length) {
       eargs.length=args.length;

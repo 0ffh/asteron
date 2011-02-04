@@ -830,7 +830,7 @@ void add_libs(Env* env) {
   env_putfun_sigstr(env,"unpack",fun_cell(&op_unpack),"(any)","any");
   env_putfun_sigstr(env,"pack",fun_cell(&op_pack),"(any type)","any");
 
-  env_putfun_sigstr(env,"tron",fun_cell(&op_tron),"()","any");
-  env_putfun_sigstr(env,"troff",fun_cell(&op_tron),"()","any");
+//  env_putfun_sigstr(env,"tron",fun_cell(&op_tron),"()","any");
+//  env_putfun_sigstr(env,"troff",fun_cell(&op_tron),"()","any");
 }
 

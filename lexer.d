@@ -106,6 +106,7 @@ Lextab mkAstLextab() {
       return m[1..$-1];
     });
   lt~=LextabEntry("operator",`(\+\+|--)`);
+  lt~=LextabEntry("name",`(\.\.\.)`);
   lt~=LextabEntry("operator",`[!*/<>&|=~^+-]*[=]`);
   lt~=LextabEntry("operator",`[!*/<>&|=~^+-][<>&|=]*`);
   lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*\.[_0-9]*([eE][+-]?[_0-9.]*)?`);

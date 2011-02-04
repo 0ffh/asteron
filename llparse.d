@@ -633,6 +633,7 @@ void init_symbols() {
   symbol("]");
   symbol("}");
   symbol("else");
+  symbol("...");
   symbol("(end)");
   symbol("(name)");
   symbol("(null)").arity="(null)";
