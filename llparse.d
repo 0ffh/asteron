@@ -642,6 +642,7 @@ void init_symbols() {
   infix("-", 50);
   infix("*", 60);
   infix("/", 60);
+  infix("~", 45);
   infix("===", 40);
   infix("!==", 40);
   infix("==", 40);
@@ -748,6 +749,7 @@ void init_symbols() {
   assignment("-=");
   assignment("*=");
   assignment("/=");
+  assignment("~=");
   //---
   constant("true", "true");
   constant("false", "false");

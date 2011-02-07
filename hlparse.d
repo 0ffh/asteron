@@ -16,6 +16,7 @@ void init_hlparse() {
   opeq["-="]="-";
   opeq["*="]="*";
   opeq["/="]="/";
+  opeq["~="]="~";
 }
 bool tav(Token t,string a,string v="") {
   // check token arity and value

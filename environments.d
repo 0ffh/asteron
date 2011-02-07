@@ -164,14 +164,18 @@ FTabEntry* ftab_resolve(FTab *ft,Cell[] args,string id="") {
   // parameters vs. arguments
   //   in definition: parameter
   //   at call site: argument
-  const bool show=!true;
-  bool trace=true;
-  //--
   Type[] targs;
   targs.length=args.length;
-  for (int k;k<targs.length;++k) {
-    targs[k]=args[k].type;
-  }
+  for (int k;k<targs.length;++k) targs[k]=args[k].type;
+  return ftab_resolve(ft,targs,id);
+}
+FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
+  static if (debf) {debEnter("ftab_resolve("~id~")");scope (exit) debLeave();}
+  // parameters vs. arguments
+  //   in definition: parameter
+  //   at call site: argument
+  const bool show=!true;
+  bool trace=true;
   //--
   static if (show) {
     if (trace) {
@@ -199,6 +203,7 @@ FTabEntry* ftab_resolve(FTab *ft,Cell[] args,string id="") {
       bestk=k;
     }
   }
+//  printf("best match for %.*s%.*s -> %i\n",id,types.str(targs),bestp);
   if (!bestp) {
 //    printf("No match found for function signature %.*s!\n",types.str(targs));
 //    assert(false);

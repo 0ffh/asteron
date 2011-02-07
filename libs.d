@@ -239,6 +239,27 @@ void show_env(Env* env) {
     assoc_cell(env.inner).show();
   }
 }
+Cell op_ftab_set(Cell[] args) {
+  static if (debf) {debEnter("[op_ftab_set]");scope (exit) debLeave();}
+  assert(false,"function table setter not implemented");
+  assert(args.length==3);
+  // set env key value
+  env_put(as_env(args[0]),as_str(args[1]),args[2]);
+  return args[2];
+}
+Cell op_ftab_get(Cell[] args) {
+  static if (debf) {debEnter("[op_ftab_get]");scope (exit) debLeave();}
+  assert(args.length);
+  // get env key
+  Type[] targs;
+  for (int k=1;k<args.length;++k) {
+    targs~=as_type(args[k]);
+  }
+  //return resolve_function(as_ftab(args[0]),targs);
+  FTabEntry* fte=ftab_resolve(as_ftab(args[0]),targs);
+  if (fte) return fte.fun;
+  return null_cell();
+}
 Cell op_call(Cell[] args) {
   static if (debf) {debEnter("[call]");scope (exit) debLeave();}
   assert(args.length>1);
@@ -409,15 +430,24 @@ Cell op_greater_equal(Cell[] args) {
   assert(args.length==2);
   return float_cell(as_number(args[0])>=as_number(args[1]));
 }
+int op_equal_sub(Cell a,Cell b) {
+  if (!type_equal(a.type,b.type)) return 0;
+  if (a.type==TInt) return (as_int(a)==as_int(b));
+  if (a.type==TFloat) return (as_float(a)==as_float(b));
+  if (a.type==TString) return (as_str(a)==as_str(b));
+  if (is_array_type(a.type)) {
+    if (a.arr.inner.length!=b.arr.inner.length) return 0;
+    for (int k=0;k<a.arr.inner.length;++k) {
+      if (!op_equal_sub(a.arr.inner[k],b.arr.inner[k])) return 0;
+    }
+    return 1;
+  }
+  return (a==b);
+}
 Cell op_equal(Cell[] args) {
   static if (debf) {debEnter("[==]");scope (exit) debLeave();}
   assert(args.length==2);
-  Cell a=args[0];
-  Cell b=args[1];
-  if (!type_equal(a.type,b.type)) return int_cell(0);
-  if (a.type==TFloat) return int_cell(as_float(a)==as_float(b));
-  if (a.type==TString) return int_cell(as_str(a)==as_str(b));
-  return int_cell(a==b);
+  return int_cell(op_equal_sub(args[0],args[1]));
 }
 Cell op_not_equal(Cell[] args) {
   static if (debf) {debEnter("[!=]");scope (exit) debLeave();}
@@ -582,6 +612,16 @@ Cell op_new_array(Cell[] args) {
   Cell c=array_cell();
   for (int k=0;k<args.length;++k) c.arr.inner~=args[k];
   return c;
+}
+Cell op_array_cat(Cell[] args) {
+  static if (debf) {debEnter("[array_cat]");scope (exit) debLeave();}
+  assert(args.length==2);
+  if (!is_array_type(args[0].type)) assert(false);
+  if (is_array_type(args[1].type)) {
+    return array_cell(args[0].arr.inner~args[1].arr.inner);
+  } else {
+    return array_cell(args[0].arr.inner~args[1]);
+  }
 }
 Cell op_array_get(Cell[] args) {
   static if (debf) {debEnter("[array_get]");scope (exit) debLeave();}
@@ -802,12 +842,16 @@ void add_libs(Env* env) {
   env_putfun_sigstr(env,"get",fun_cell(&op_env_get),"(env string)","any");
   env_putfun_sigstr(env,"set",fun_cell(&op_env_set),"(env string any)","any");
 
+  env_putfun_sigstr(env,"get",fun_cell(&op_ftab_get),"(funtab (... type))","any");
+  env_putfun_sigstr(env,"set",fun_cell(&op_ftab_set),"(funtab (... type))","any");
+
   env_put(env,"new_array",fun_cell(&op_new_array));
   env_put(env,"array",lfun_cell(&op_array));
 //  env_putfun_sigstr(env,"array",lfun_cell(&op_array),"(type = any)","type");
-  env_putfun_sigstr(env,"get",fun_cell(&op_array_get),"((array any) int)","any");
-  env_putfun_sigstr(env,"set",fun_cell(&op_array_set),"((array any) int any)","any");
+  env_putfun_sigstr(env,"get",fun_cell(&op_array_get),"((array) int)","any");
+  env_putfun_sigstr(env,"set",fun_cell(&op_array_set),"((array) int any)","any");
   env_putfun_sigstr(env,"resize",fun_cell(&op_array_resize),"((array any) int)","any");
+  env_putfun_sigstr(env,"~",fun_cell(&op_array_cat),"((array) any)","any");
 
   env_put(env,"struct",lfun_cell(&op_struct));
   env_putfun_sigstr(env,"get",fun_cell(&op_struct_get),"((struct) string)","any");

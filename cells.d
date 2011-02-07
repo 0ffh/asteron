@@ -533,10 +533,11 @@ string str(Cell c,int clothedString=clothedStringDefault,int rec=1) {
   if (c.type==TLfun) return "[TLfun]";
   if (c.type==TEnv) return str(assoc_cell(c.env.inner));
   if (c.type==TLambda) {
-    if (clothedString) {
-      string s="lambda( ";
+    if (clothedString||1) {
+      string s="lambda(";
       foreach (p;c.lam.pars) s~=str(p)~" ";
-      s~=")"~str(c.lam.expr,clothedString);
+      if (s[$-1]==' ') s.length=s.length-1;
+      s~=")"~str(c.lam.expr,1);
       return s;
     } else {
       return "[TLambda]";
@@ -594,6 +595,7 @@ Cell new_cell(Type t) {
     if (constructor=="ref") return cell_from_ref_type(t);
     if (constructor=="deftype") return cell_from_def_type(t);
     if (constructor=="aliastype") return cell_from_alias_type(t);
+//    if (constructor=="...") return cell_from_eli_type(t);
     assert(false,"unhandled compund type in new_cell");
   }
   printf("new_cell can't handle parameter %.*s\n",types.str(t));

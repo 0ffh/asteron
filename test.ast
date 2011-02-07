@@ -4,40 +4,15 @@
  - generate code
  - more on types: type literals (?)
 */
-defun foo(x) prln("a");
-defun foo(x,y) prln("b");
-defun foo(...) {
-  prln("c",ellipse.length(),ellipse);
+/*defun foo(...) {
+  for (var k=0;k<ellipse.length();k+=1) {
+    prln(k,":",ellipse[k]);
+  }
 }
-foo();
-foo(1);
-foo(1,2);
-foo(1,2,3);
-/*
-scope s {
-  var i=1;
-//  prln("i =",i);
-};
-scope x {
-  var i=2;
-  prln("i =",i);
-  defun foo(n) {return 2*n;}
-};
-prln("s =",s);
-prln("s.i =",s.i);
-var foo=x.foo;
-prln("s.foo(2) =",foo(2));
-*/
-/*
-aliastype intarr int[];
-prln(intarr);
-var intarr ia;
-prln(ia);
-resize(ia,4);
-prln(ia);
-for (var int k=0;k<4;k=k+1) {
-  prln(k);
-  ia[k]=k;
-}
-prln(ia);
-*/
+foo(1,2,3,"a",3.141,"z");*/
+var int[] a,int[] b;
+a=[1,2,3];
+b=[4,5];
+a~=b;
+prln(a);
+prln(a~6);

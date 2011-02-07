@@ -39,7 +39,7 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
   for (int k=0;k<lam.pars.length;++k) {
     //-- formal parameter
     Cell par=lam.pars[k];
-    //-- handle ellipse ((type ...))
+    //-- handle ellipse (...)
     if (k==(lam.pars.length-1)) {
       string n;
       if (isa(par,TSymbol)) {
@@ -91,6 +91,29 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
     assert(false,"Invokation error");
   }
   return lamenv;
+}
+Cell resolve_function(Cell sym,Type[] targs) {
+  Cell candidate;
+  string name=as_symbol(sym);
+  Env* e=environment;
+  for (;;) {
+//printf("looking up Function '%.*s' int environment %p\n",name,e);
+    if (e) e=env_find(e,name);
+    if (!e) {
+      printf("*** Error: Function '%.*s' lookup failed!\n",name);
+      assert(false);
+      return null_cell();
+    }
+    candidate=evalin(sym,e);
+    if (!isa(candidate,TFtab)) break;
+    FTabEntry* fte=ftab_resolve(candidate.ftab,targs,name);
+    if (fte) {
+      candidate=fte.fun;
+      break;
+    }
+    e=e.outer;
+  }
+  return candidate;
 }
 Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
   Cell candidate;

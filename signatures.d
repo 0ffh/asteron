@@ -7,9 +7,10 @@ import types;
 import llparse;
 import environments;
 
-const int exact_score=3;
-const int super_score=2;
-const int any_score=1;
+const int score_shift=3;
+const int exact_score=6;
+const int super_score=4;
+const int any_score=2;
 const int fail_score=0;
 
 //----------------------------------------------------------------------
@@ -27,7 +28,7 @@ typedef SigElement[] Signature;
 
 int is_open_signature(Signature sig) {
   if (!sig.length) return 0;
-  return sig[$-1].name=="...";
+  return is_eli_type(sig[$-1].type);
 }
 string str(Signature sig) {
   string s="(";
@@ -47,6 +48,7 @@ bool is_sym(Cell c,string s) {
 }*/
 Signature signature_string2signature(string sigstr) {
   static if (debf) {debEnter("signature_string2signature(string)");scope (exit) debLeave();}
+//  printf("x ");
   return signature_cell2signature(lparse(sigstr));
 }
 Signature parameter_cell2signature(Cell arg) {
@@ -83,7 +85,14 @@ Signature parameter_cell2signature(Cell arg) {
     }
     sig~=se;
   }
-  //printf("%.*s -> %.*s\n",cells.str(arg),str(sig));
+  if (sig.length) {
+    SigElement se=sig[$-1];
+    if (se.name=="...") {
+      se.type=eli_type_from_subtype(se.type);
+      sig[$-1]=se;
+    }
+  }
+//  printf("pc2s %.*s -> %.*s\n",cells.str(arg),str(sig));
   return sig;
 }
 Signature signature_cell2signature(Cell arg) {
@@ -98,24 +107,36 @@ Signature signature_cell2signature(Cell arg) {
     SigElement se;
     se.name=""; // there's never a parameter name
     Cell a=arg.lst[k];
-    if ((isa(a,TSymbol)) && (a.sym=="=")) {
-      a=arg.lst[++k];
-      sig[$-1].defv=a;
-      continue;
+    if (isa(a,TSymbol)) {
+      if (a.sym=="=") {
+        a=arg.lst[++k];
+        sig[$-1].defv=a;
+        continue;
+      }
+      if (a.sym=="...") {
+        se.name="...";
+        se.type=eli_type_from_subtype(type(a));
+        static if (verbose) printf(" %.*s",types.str(se.type));
+        se.defv=null_cell();
+        sig~=se;
+        continue;
+      }
     }
-    static if (verbose) printf(" %.*s",cells.str(a));
+    //static if (verbose) printf(" %.*s",cells.str(a));
     se.type=type(a);
+    static if (verbose) printf(" %.*s",types.str(se.type));
     se.defv=null_cell();
     sig~=se;
   }
   static if (verbose) printf("\n");
+//  printf("sc2s %.*s -> %.*s\n",cells.str(arg),str(sig));
   return sig;
 }
-/*Signature types2signature(Type[] args) {
-  static if (debf) {debEnter("signature_cell2signature(Cell)");scope (exit) debLeave();}
+Signature types2signature(Type[] args) {
+  static if (debf) {debEnter("types2signature(Cell)");scope (exit) debLeave();}
   const int verbose=false;
   Signature sig;
-  static if (verbose) printf("signature_cell2signature");
+  static if (verbose) printf("types2signature");
   for (int k;k<args.length;++k) {
     SigElement se;
     se.name=""; // there's never a parameter name
@@ -126,7 +147,7 @@ Signature signature_cell2signature(Cell arg) {
   }
   static if (verbose) printf("\n");
   return sig;
-}*/
+}
 int fields_match_unordered(Cell[] pfs,Cell[] afs) {
   // okay this is slow, but simple & works!
   if (pfs.length!=afs.length) return fail_score;
@@ -236,34 +257,54 @@ int type_matches(Type tp,Type ta) {
   Cell ca=*ta.cell;
   if (cp.type!=ca.type) return fail_score;
   if (cp.type!=TList) return fail_score;
+  assert(cp.lst.length && ca.lst.length);
   assert(isa(cp.lst[0],TSymbol)&&isa(ca.lst[0],TSymbol));
   if (cp.lst[0].sym!=ca.lst[0].sym) return fail_score;
+  if (cp.lst.length<2) return super_score;
+  assert((cp.lst.length==2) && (ca.lst.length==2));
   return type_matches(type(cp.lst[1]),type(ca.lst[1]));
 }
 int signature_matches(Signature sig,Type[] targ) {
   static if (debf) {debEnter("signature_matches(Signature,Type[])");scope (exit) debLeave();}
   const int verbose=!true;
-  int p=2;
+  int p=exact_score;
   if ((targ.length>sig.length) && (!is_open_signature(sig))) return fail_score;
   static if (verbose) printf("-- sig= %.*s\n",str(sig));
   static if (verbose) printf("-- arg= %.*s\n",str(types2signature(targ)));
-  for (int k;k<targ.length;++k) {
-    if (sig[k].name=="...") return (p<<2)-1;
-    Type tp=sig[k].type;
-    Type ta=targ[k];
-    p<<=2;
+  Type tp=TNull,ta=TNull;
+  int k=0;
+  for (;k<targ.length;++k) {
+    if (k>=sig.length) break;
+    tp=sig[k].type;
+    if (is_eli_type(tp)) break;
+    ta=targ[k];
     static if (verbose) printf("par= %.*s   arg= %.*s\n",types.str(tp),types.str(ta));
     int m=type_matches(tp,ta);
     if (m) {
-      p+=m;
+      p=(p<<score_shift)+m;
       continue;
     }
     static if (verbose) printf("fail\n");
     return fail_score;
   }
-  for (int k=targ.length;k<sig.length;++k) {
+  if (is_eli_type(tp)) {
+    tp=get_eli_subtype(tp);
+    for (;k<targ.length;++k) {
+      ta=targ[k];
+      static if (verbose) printf("par= %.*s   arg= %.*s\n",types.str(tp),types.str(ta));
+      int m=type_matches(tp,ta);
+      if (m) {
+        p=(p<<score_shift)+m;
+        continue;
+      }
+      static if (verbose) printf("fail\n");
+      return fail_score;
+    }
+    return p-1;
+  }
+  for (;k<sig.length;++k) {
 //    printf("default %.*s\n",cells.str(sig[k].defv));
-    if (sig[k].name=="...") return p-1;
+    if (is_eli_type(sig[k].type)) return p-1; // empty ellipse
     if (sig[k].defv.type==TNull) return fail_score;
   }
   return p;
