@@ -24,11 +24,22 @@ struct SigElement {
   Type   type; // parameter types
   Cell   defv; // parameter default values
 }
-typedef SigElement[] Signature;
-
-int is_open_signature(Signature sig) {
-  if (!sig.length) return 0;
-  return is_eli_type(sig[$-1].type);
+struct Signature {
+  SigElement[] ses;
+  Type         open;
+  int length() {
+    return ses.length;
+  }
+  SigElement opIndex(int idx) {
+    assert(ses.length>idx,"Index out of bounds");
+    return ses[idx];
+  }
+  SigElement[] opCatAssign(SigElement se) {
+    return ses~=se;
+  }
+  bool is_open() {
+    return (open.cell !is null);
+  }
 }
 string str(Signature sig) {
   string s="(";
@@ -83,13 +94,11 @@ Signature parameter_cell2signature(Cell arg) {
       se.name=as_symbol(a.lst[0]);
       se.type=TAny;
     }
-    sig~=se;
-  }
-  if (sig.length) {
-    SigElement se=sig[$-1];
     if (se.name=="...") {
-      se.type=eli_type_from_subtype(se.type);
-      sig[$-1]=se;
+      sig.open=se.type;
+      break;
+    } else {
+      sig~=se;
     }
   }
 //  printf("pc2s %.*s -> %.*s\n",cells.str(arg),str(sig));
@@ -110,16 +119,12 @@ Signature signature_cell2signature(Cell arg) {
     if (isa(a,TSymbol)) {
       if (a.sym=="=") {
         a=arg.lst[++k];
-        sig[$-1].defv=a;
+        sig[sig.length-1].defv=a;
         continue;
       }
       if (a.sym=="...") {
-        se.name="...";
-        se.type=eli_type_from_subtype(type(a));
-        static if (verbose) printf(" %.*s",types.str(se.type));
-        se.defv=null_cell();
-        sig~=se;
-        continue;
+        sig.open=type(a);
+        break;
       }
     }
     //static if (verbose) printf(" %.*s",cells.str(a));
@@ -268,7 +273,7 @@ int signature_matches(Signature sig,Type[] targ) {
   static if (debf) {debEnter("signature_matches(Signature,Type[])");scope (exit) debLeave();}
   const int verbose=!true;
   int p=exact_score;
-  if ((targ.length>sig.length) && (!is_open_signature(sig))) return fail_score;
+  if ((targ.length>sig.length) && (!sig.is_open())) return fail_score;
   static if (verbose) printf("-- sig= %.*s\n",str(sig));
   static if (verbose) printf("-- arg= %.*s\n",str(types2signature(targ)));
   Type tp=TNull,ta=TNull;
@@ -276,7 +281,6 @@ int signature_matches(Signature sig,Type[] targ) {
   for (;k<targ.length;++k) {
     if (k>=sig.length) break;
     tp=sig[k].type;
-    if (is_eli_type(tp)) break;
     ta=targ[k];
     static if (verbose) printf("par= %.*s   arg= %.*s\n",types.str(tp),types.str(ta));
     int m=type_matches(tp,ta);
@@ -287,8 +291,8 @@ int signature_matches(Signature sig,Type[] targ) {
     static if (verbose) printf("fail\n");
     return fail_score;
   }
-  if (is_eli_type(tp)) {
-    tp=get_eli_subtype(tp);
+  if (sig.is_open()) {
+    tp=sig.open;
     for (;k<targ.length;++k) {
       ta=targ[k];
       static if (verbose) printf("par= %.*s   arg= %.*s\n",types.str(tp),types.str(ta));
@@ -304,7 +308,7 @@ int signature_matches(Signature sig,Type[] targ) {
   }
   for (;k<sig.length;++k) {
 //    printf("default %.*s\n",cells.str(sig[k].defv));
-    if (is_eli_type(sig[k].type)) return p-1; // empty ellipse
+    if (sig.is_open()) return p-1; // empty ellipse
     if (sig[k].defv.type==TNull) return fail_score;
   }
   return p;

@@ -307,26 +307,6 @@ Type ref_type_from_subtype(Type subtyp) {
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //--------------------
-//-------------------- ellipse type
-//--------------------
-bool is_eli_type(Type t) {
-  return (get_compound_type_constructor(t)=="...");
-}
-Type get_eli_subtype(Type t) {
-  assert(is_eli_type(t));
-  if (t.cell.lst.length>1) {
-    return type(t.cell.lst[1]);
-  } else {
-    return TAny;
-  }
-}
-Type eli_type_from_subtype(Type subtyp) {
-  static if (debf) {debEnter("eli_type_from_subtype(Type)");scope (exit) debLeave();}
-  return type("(... "~str(subtyp)~")");
-}
-//----------------------------------------------------------------------
-//----------------------------------------------------------------------
-//--------------------
 //--------------------
 //--------------------
 Type type(string typestring) {
