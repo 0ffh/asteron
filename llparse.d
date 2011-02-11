@@ -352,6 +352,7 @@ Token advance(string id="") {
   token.lex = l;
   token.value = v;
   token.arity = a;
+  static if (debflag) token.show();
   return token;
 };
 Token infix(string id,int bp,Ledfun led=null) {
@@ -689,6 +690,35 @@ void init_symbols() {
     advance("]");
     self.sub ~= a;
     self.arity = "binary";
+    return self;
+  });
+  infix("(", 80, function Token(Token self,Token left) {
+    static if (debflag) {debEnter("'('.led");scope (exit) debLeave();}
+    Token[] a;
+    if (left.id == ".") {
+      self.arity = "ternary";
+      assert(left.sub.length==2,"Like, what?");
+      self.sub = [left.sub[0],left.sub[1]];
+    } else {
+      self.arity = "binary";
+      self.sub = [left];
+      if (((left.arity != "unary") || (left.id != "function")) &&
+           (left.arity != "name") && (left.id != "(") && (left.id != "[") &&
+           (left.id != "&&") && (left.id != "||") && (left.id != "?")) {
+        left.error("Expected a variable name.");
+      }
+    }
+    if (token.id != ")") {
+      while (true)  {
+        a ~= expression(0);
+        if (token.id != ",") {
+          break;
+        }
+        advance(",");
+      }
+    }
+    self.sub~=arraytoken(a);
+    advance(")");
     return self;
   });
   //---
@@ -1039,35 +1069,6 @@ void init_symbols() {
     advance("}");
     self.arity = "function";
     skope.pop();
-    return self;
-  });
-  infix("(", 80, function Token(Token self,Token left) {
-    static if (debflag) {debEnter("'('.led");scope (exit) debLeave();}
-    Token[] a;
-    if ((left.id == ".") || (left.id == "[")) {
-      self.arity = "ternary";
-      assert(left.sub.length==2);
-      self.sub = [left.sub[0],left.sub[1]];
-    } else {
-      self.arity = "binary";
-      self.sub = [left];
-      if (((left.arity != "unary") || (left.id != "function")) &&
-           (left.arity != "name") && (left.id != "(") &&
-           (left.id != "&&") && (left.id != "||") && (left.id != "?")) {
-        left.error("Expected a variable name.");
-      }
-    }
-    if (token.id != ")") {
-      while (true)  {
-        a ~= expression(0);
-        if (token.id != ",") {
-          break;
-        }
-        advance(",");
-      }
-    }
-    self.sub~=arraytoken(a);
-    advance(")");
     return self;
   });
   symbol("this").nud = function Token(Token self) {

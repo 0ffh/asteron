@@ -239,15 +239,10 @@ void init() {
 
 void main(string[] args) {
   init();
-  try {
-    if (args.length>1) {
-      atest(args[1]~".ast");
-    } else {
-      atest("test.ast");
-      //ltest("tests.l");
-    }
-  } catch (Exception e) {
-    printf("evalcell = %.*s\n",cells.str(evalcell));
-    throw(e);
+  if (args.length>1) {
+    atest(args[1]~".ast");
+  } else {
+    atest("test.ast");
+    //ltest("tests.l");
   }
 }

@@ -69,3 +69,11 @@ void debLeave() {
     }
   }
 }
+void my_ass(T)(T p,lazy char[] msg="Fail!") {
+  if (!p) {
+    string m=msg();
+//    printf("My ass in %.*s line %.*s: %.*s\n",__FILE__,__LINE__,m);
+    printf("My ass: %.*s\n",m);
+    assert(false,m);
+  }
+}

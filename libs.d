@@ -623,6 +623,12 @@ Cell op_array_cat(Cell[] args) {
     return array_cell(args[0].arr.inner~args[1]);
   }
 }
+Cell op_string_cat(Cell[] args) {
+  static if (debf) {debEnter("[string_cat]");scope (exit) debLeave();}
+  assert(args.length==2);
+  assert(isa(args[0],TString) && isa(args[1],TString));
+  return str_cell(args[0].str~args[1].str);
+}
 Cell op_array_get(Cell[] args) {
   static if (debf) {debEnter("[array_get]");scope (exit) debLeave();}
   assert(args.length==2);
@@ -852,6 +858,7 @@ void add_libs(Env* env) {
   env_putfun_sigstr(env,"set",fun_cell(&op_array_set),"((array) int any)","any");
   env_putfun_sigstr(env,"resize",fun_cell(&op_array_resize),"((array any) int)","any");
   env_putfun_sigstr(env,"~",fun_cell(&op_array_cat),"((array) any)","any");
+  env_putfun_sigstr(env,"~",fun_cell(&op_string_cat),"(string string)","string");
 
   env_put(env,"struct",lfun_cell(&op_struct));
   env_putfun_sigstr(env,"get",fun_cell(&op_struct_get),"((struct) string)","any");

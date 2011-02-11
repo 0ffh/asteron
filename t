@@ -1,7 +1,7 @@
 #!/usr/bin/lua
 --res=os.execute("gdc -O3 main.d environments.d types.d signatures.d libs.d llparse.d hlparse.d lexer.d cells.d utils.d debg.d -o main")
 --res=os.execute("dmd -O -inline main.d environments.d types.d signatures.d libs.d llparse.d hlparse.d lexer.d cells.d utils.d debg.d")
---res=os.execute("gdc main.d environments.d types.d signatures.d libs.d llparse.d hlparse.d lexer.d cells.d utils.d debg.d -o main")
+--res=os.execute("gdc -O0 main.d environments.d types.d signatures.d libs.d llparse.d hlparse.d lexer.d cells.d utils.d debg.d -o main")
 res=os.execute("dmd main.d environments.d types.d signatures.d libs.d llparse.d hlparse.d lexer.d cells.d utils.d debg.d")
 if res==0 then
   print("compiled okay, executing...")

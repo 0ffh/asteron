@@ -4,15 +4,47 @@
  - generate code
  - more on types: type literals (?)
 */
-/*defun foo(...) {
+/*
+defun foo(...) {
   for (var k=0;k<ellipse.length();k+=1) {
     prln(k,":",ellipse[k]);
   }
 }
-foo(1,2,3,"a",3.141,"z");*/
-var int[] a,int[] b;
-a=[1,2,3];
-b=[4,5];
-a~=b;
-prln(a);
-prln(a~6);
+foo(1,2,3,"a",3.141,"z");
+prln(foo);
+prln(foo[]);
+prln(foo[int]);
+prln(foo[string]);
+*/
+defun foo(...) {
+  var s="";
+  for (var k=0;k<ellipse.length();k+=1) {
+    s~=tostr(k,":",ellipse[k],"  ");
+  }
+  return s;
+}
+prln(foo[string,int]);
+prln(typeof(foo[string,int]));
+prln(foo[string,int](2,1,3));
+/*
+defun foo(int ...) return "(... int)";
+defun foo(int a) return "(int)";
+defun foo(int a,int b) return "(int,int)";
+prln(foo[int]);
+prln(foo[string]);
+prln(foo[int,int]);
+prln(foo[int,int,int]);
+prln(foo[string,int,int]);
+prln(foo[int,int,string]);
+prln(typeof(foo[int]));
+prln(typeof(foo[string]));
+prln(typeof(foo[int,int]));
+prln(typeof(foo[int,int,int]));
+prln(typeof(foo[string,int,int]));
+prln(typeof(foo[int,int,string]));
+
+var x=foo[string,int,int];
+prln(x);
+prln(x(2));
+*/
+
