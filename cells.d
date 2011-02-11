@@ -595,7 +595,6 @@ Cell new_cell(Type t) {
     if (constructor=="ref") return cell_from_ref_type(t);
     if (constructor=="deftype") return cell_from_def_type(t);
     if (constructor=="aliastype") return cell_from_alias_type(t);
-//    if (constructor=="...") return cell_from_eli_type(t);
     assert(false,"unhandled compund type in new_cell");
   }
   printf("new_cell can't handle parameter %.*s\n",types.str(t));
