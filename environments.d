@@ -192,7 +192,7 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
     static if (show) {
       if (trace) {
         printf(" ");
-        foreach (se;sig) printf(" %.*s",types.str(se.type));
+        printf(" %.*s",sig.str());
         printf(" -> %i\n",p);
       }
     }

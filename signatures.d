@@ -40,6 +40,9 @@ struct Signature {
   bool is_open() {
     return (open.cell !is null);
   }
+  string str() {
+    return signatures.str(*this);
+  }
 }
 string str(Signature sig) {
   string s="(";
@@ -47,7 +50,11 @@ string str(Signature sig) {
     s~=types.str(sig[k].type)~" ";
     if (sig[k].defv.type!=TNull) s~="[="~cells.str(sig[k].defv)~"] ";
   }
-  if (sig.length) s.length=s.length-1;
+  if (sig.open.cell) {
+    s~="(open "~types.str(sig.open)~")";
+  } else {
+    if (sig.length) s.length=s.length-1;
+  }
   return s~")";
 }
 bool is_sym(Cell c,string s) {
@@ -124,6 +131,17 @@ Signature signature_cell2signature(Cell arg) {
       }
       if (a.sym=="...") {
         sig.open=type(a);
+        break;
+      }
+    }
+    if (isa(a,TList)) {
+      Cell[] al=a.lst;
+      if ((al.length) && (isa(al[0],TSymbol)) && (al[0].sym=="...")) {
+        if ((al.length>1)) {
+          sig.open=type(al[1]);
+        } else {
+          sig.open=TAny;
+        }
         break;
       }
     }
