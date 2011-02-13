@@ -5,6 +5,7 @@ module main;
 
 import debg;
 import libs;
+import ablibs;
 import lexer;
 import cells;
 import types;
@@ -30,7 +31,7 @@ State state;
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //----------------
-//---------------- eval
+//---------------- eval helpers
 //----------------
 Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
   Env* lamenv=env_clone(lam.env);
@@ -92,32 +93,9 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
   }
   return lamenv;
 }
-Cell resolve_function(Cell sym,Type[] targs) {
-  Cell candidate;
-  string name=as_symbol(sym);
-  Env* e=environment;
-  for (;;) {
-//printf("looking up Function '%.*s' int environment %p\n",name,e);
-    if (e) e=env_find(e,name);
-    if (!e) {
-      printf("*** Error: Function '%.*s' lookup failed!\n",name);
-      assert(false);
-      return null_cell();
-    }
-    candidate=evalin(sym,e);
-    if (!isa(candidate,TFtab)) break;
-    FTabEntry* fte=ftab_resolve(candidate.ftab,targs,name);
-    if (fte) {
-      candidate=fte.fun;
-      break;
-    }
-    e=e.outer;
-  }
-  return candidate;
-}
 Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
   Cell candidate;
-  string name=sym.sym;
+  string name=as_symbol(sym);
   Env* e=environment;
   for (;;) {
 //printf("looking up Function '%.*s' int environment %p\n",name,e);
@@ -147,6 +125,11 @@ Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
   }
   return candidate;
 }
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
+//----------------
+//---------------- eval
+//----------------
 int depth=0;
 int maxdepth=0;
 Cell evalcell;
@@ -234,7 +217,7 @@ void init() {
   push_env(mk_env());
   init_hlparse();
   init_types();
-  add_globals();
+  add_abglobals();
 }
 
 void main(string[] args) {

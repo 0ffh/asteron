@@ -1,4 +1,4 @@
-module libs;
+module ablibs;
 
 import debg;
 import main;
@@ -18,26 +18,22 @@ import std.math;
 Cell op_if(Cell[] args) {
   static if (debf) {debEnter("[if]");scope (exit) debLeave();}
   if (args.length==2) {
-    return (istrue(eval(args[0])))?(eval(args[1])):(null_cell());
+    return eval(args[1]);
   }
   if (args.length==3) {
-    return (istrue(eval(args[0])))?(eval(args[1])):(eval(args[2]));
+    Cell e1=eval(args[1]);
+    Cell e2=eval(args[2]);
+    assert(e1.type==e2.type,"Type error");
+    return e1;
   }
   assert(false);
 }
 Cell op_switch(Cell[] args) {
   static if (debf) {debEnter("[switch]");scope (exit) debLeave();}
   Cell c=eval(args[0]);
-  int k=1;
-  while ((k+1)<args.length) {
-    Cell exp=list_cell([sym_cell("=="),c,args[k]]);
-    if (istrue(eval(exp))) break;
-    k=k+2;
-  }
-  k=k+1;
+  int k=2;
   while (k<args.length) {
     c=eval(args[k]);
-    if (state.brk) break;
     k=k+2;
   }
   state.brk=0;
@@ -47,12 +43,12 @@ Cell op_for(Cell[] args) {
   static if (debf) {debEnter("[for]");scope (exit) debLeave();}
   assert(args.length==4);
   push_env(); // we get our own scope
-  Cell c;
-  for (eval(args[0]);istrue(eval(args[1]));eval(args[2])) {
-    c=eval(args[3]);
-    if (state.brk) {state.brk=0;break;}
-    if (state.cnt) {state.cnt=0;continue;}
-  }
+  eval(args[0]);
+  eval(args[1]);
+  eval(args[2]);
+  Cell c=eval(args[3]);
+  state.brk=0;
+  state.cnt=0;
   pop_env();
   return c;
 }
@@ -60,13 +56,10 @@ Cell op_while(Cell[] args) {
   static if (debf) {debEnter("[while]");scope (exit) debLeave();}
   assert(args.length==2);
   push_env(); // we get our own scope
-  Cell c;
-  while (istrue(eval(args[0]))) {
-    c=eval(args[1]);
-    if (state.brk) {state.brk=0;break;}
-    if (state.cnt) {state.cnt=0;continue;}
-  }
+  eval(args[0]);
+  Cell c=eval(args[1]);
   state.brk=0;
+  state.cnt=0;
   pop_env();
   return c;
 }
@@ -74,12 +67,8 @@ Cell op_dowhile(Cell[] args) {
   static if (debf) {debEnter("[dowhile]");scope (exit) debLeave();}
   assert(args.length==2);
   push_env(); // we get our own scope
-  Cell c;
-  do {
-    c=eval(args[0]);
-    if (state.brk) {state.brk=0;break;}
-    if (state.cnt) {state.cnt=0;continue;}
-  } while (istrue(eval(args[1])));
+  Cell c=eval(args[0]);
+  eval(args[1]);
   state.brk=0;
   pop_env();
   return c;
@@ -89,12 +78,17 @@ Cell op_assign(Cell[] args) {
   assert(args.length==2);
   string id=as_symbol(args[0]);
   Env* e=env_find(environment,id);
-  static if (require_declaration_before_use) {
-    assert(e !is null,"Undeclared identifier "~id);
-  } else {
-    if (e is null) e=environment; // lenient
+  assert(e !is null,"Undeclared identifier "~id);
+  Cell oldv=env_get(e,id);
+  Cell newv=eval(args[1]);
+  if (!isa(oldv,TAny)) {
+    if (oldv.type!=newv.type) {
+      printf("%.*s %.*s\n",types.str(oldv.type),types.str(newv.type));
+      assert(false,"Type error");
+    }
   }
-  return env_put(e,id,eval(args[1]));
+  env_put(e,id,newv);
+  return newv;
 }
 Cell op_def(Cell[] args) {
   static if (debf) {debEnter("[def]");scope (exit) debLeave();}
@@ -279,7 +273,7 @@ Cell op_prenv(Cell[] args) {
   env_pr(environment);
   return assoc_cell(environment.inner);
 }
-void add_globals() {
+void add_abglobals() {
   Env* env=environment;
   assert(types_initialised);
   // lazy functions
@@ -323,127 +317,74 @@ Cell op_troff(Cell[] args) {
   trace=false;
   return null_cell();
 }
-Cell op_add_int_int(Cell[] args) {
-  static if (debf) {debEnter("[+]");scope (exit) debLeave();}
-  return int_cell(as_int(args[0])+as_int(args[1]));
+Cell op_math_int(Cell[] args) {
+  static if (debf) {debEnter("[+-*/]");scope (exit) debLeave();}
+  assert(isa(args[0],TInt));
+  return args[0];
 }
-Cell op_add_int_float(Cell[] args) {
-  static if (debf) {debEnter("[+]");scope (exit) debLeave();}
-  return float_cell(as_int(args[0])+as_float(args[1]));
+Cell op_math_float(Cell[] args) {
+  static if (debf) {debEnter("[+-*/]");scope (exit) debLeave();}
+  assert(isa(args[0],TFloat));
+  return args[0];
 }
-Cell op_add_float_int(Cell[] args) {
-  static if (debf) {debEnter("[+]");scope (exit) debLeave();}
-  return float_cell(as_float(args[0])+as_int(args[1]));
+Cell op_math_int_int(Cell[] args) {
+  static if (debf) {debEnter("[+-*/]");scope (exit) debLeave();}
+  assert(isa(args[0],TInt));
+  assert(isa(args[1],TInt));
+  return args[0];
 }
-Cell op_add_float_float(Cell[] args) {
-  static if (debf) {debEnter("[+]");scope (exit) debLeave();}
-  return float_cell(as_float(args[0])+as_float(args[1]));
+Cell op_math_int_float(Cell[] args) {
+  static if (debf) {debEnter("[+-*/]");scope (exit) debLeave();}
+  assert(isa(args[0],TInt));
+  assert(isa(args[1],TFloat));
+  return args[1];
 }
-Cell op_neg_int(Cell[] args) {
-  static if (debf) {debEnter("[-]");scope (exit) debLeave();}
-  return int_cell(-as_int(args[0]));
+Cell op_math_float_int(Cell[] args) {
+  static if (debf) {debEnter("[+-*/]");scope (exit) debLeave();}
+  assert(isa(args[0],TFloat));
+  assert(isa(args[1],TInt));
+  return args[0];
 }
-Cell op_neg_float(Cell[] args) {
-  static if (debf) {debEnter("[-]");scope (exit) debLeave();}
-  return float_cell(-as_float(args[0]));
+Cell op_math_float_float(Cell[] args) {
+  static if (debf) {debEnter("[+-*/]");scope (exit) debLeave();}
+  assert(isa(args[0],TFloat));
+  assert(isa(args[1],TFloat));
+  return args[0];
 }
-Cell op_sub_int_int(Cell[] args) {
-  static if (debf) {debEnter("[-]");scope (exit) debLeave();}
-  return int_cell(as_int(args[0])-as_int(args[1]));
-}
-Cell op_sub_int_float(Cell[] args) {
-  static if (debf) {debEnter("[-]");scope (exit) debLeave();}
-  return float_cell(as_int(args[0])-as_float(args[1]));
-}
-Cell op_sub_float_int(Cell[] args) {
-  static if (debf) {debEnter("[-]");scope (exit) debLeave();}
-  return float_cell(as_float(args[0])-as_int(args[1]));
-}
-Cell op_sub_float_float(Cell[] args) {
-  static if (debf) {debEnter("[-]");scope (exit) debLeave();}
-  return float_cell(as_float(args[0])-as_float(args[1]));
-}
-Cell op_mul_int_int(Cell[] args) {
-  static if (debf) {debEnter("[*]");scope (exit) debLeave();}
-  return int_cell(as_int(args[0])*as_int(args[1]));
-}
-Cell op_mul_int_float(Cell[] args) {
-  static if (debf) {debEnter("[*]");scope (exit) debLeave();}
-  return float_cell(as_int(args[0])*as_float(args[1]));
-}
-Cell op_mul_float_int(Cell[] args) {
-  static if (debf) {debEnter("[*]");scope (exit) debLeave();}
-  return float_cell(as_float(args[0])*as_int(args[1]));
-}
-Cell op_mul_float_float(Cell[] args) {
-  static if (debf) {debEnter("[*]");scope (exit) debLeave();}
-  return float_cell(as_float(args[0])*as_float(args[1]));
-}
-Cell op_div_int_int(Cell[] args) {
-  static if (debf) {debEnter("[/]");scope (exit) debLeave();}
-  return int_cell(as_int(args[0])/as_int(args[1]));
-}
-Cell op_div_int_float(Cell[] args) {
-  static if (debf) {debEnter("[/]");scope (exit) debLeave();}
-  return float_cell(as_int(args[0])/as_float(args[1]));
-}
-Cell op_div_float_int(Cell[] args) {
-  static if (debf) {debEnter("[/]");scope (exit) debLeave();}
-  return float_cell(as_float(args[0])/as_int(args[1]));
-}
-Cell op_div_float_float(Cell[] args) {
-  static if (debf) {debEnter("[/]");scope (exit) debLeave();}
-  return float_cell(as_float(args[0])/as_float(args[1]));
-}
-
 Cell op_less(Cell[] args) {
   static if (debf) {debEnter("[<]");scope (exit) debLeave();}
   assert(args.length==2);
-  return int_cell(as_number(args[0])<as_number(args[1]));
+  return int_cell(0);
 }
 Cell op_greater(Cell[] args) {
   static if (debf) {debEnter("[>]");scope (exit) debLeave();}
   assert(args.length==2);
-  return int_cell(as_number(args[0])>as_number(args[1]));
+  return int_cell(0);
 }
 Cell op_less_equal(Cell[] args) {
   static if (debf) {debEnter("[<=]");scope (exit) debLeave();}
   assert(args.length==2);
-  return int_cell(as_number(args[0])<=as_number(args[1]));
+  return int_cell(0);
 }
 Cell op_greater_equal(Cell[] args) {
   static if (debf) {debEnter("[>=]");scope (exit) debLeave();}
   assert(args.length==2);
-  return int_cell(as_number(args[0])>=as_number(args[1]));
-}
-int op_equal_sub(Cell a,Cell b) {
-  if (!type_equal(a.type,b.type)) return 0;
-  if (a.type==TInt) return (as_int(a)==as_int(b));
-  if (a.type==TFloat) return (as_float(a)==as_float(b));
-  if (a.type==TString) return (as_str(a)==as_str(b));
-  if (is_array_type(a.type)) {
-    if (a.arr.inner.length!=b.arr.inner.length) return 0;
-    for (int k=0;k<a.arr.inner.length;++k) {
-      if (!op_equal_sub(a.arr.inner[k],b.arr.inner[k])) return 0;
-    }
-    return 1;
-  }
-  return (a==b);
+  return int_cell(0);
 }
 Cell op_equal(Cell[] args) {
   static if (debf) {debEnter("[==]");scope (exit) debLeave();}
   assert(args.length==2);
-  return int_cell(op_equal_sub(args[0],args[1]));
+  return int_cell(0);
 }
 Cell op_not_equal(Cell[] args) {
   static if (debf) {debEnter("[!=]");scope (exit) debLeave();}
   assert(args.length==2);
-  return int_cell(!as_int(op_equal(args)));
+  return int_cell(0);
 }
 Cell op_sqrt(Cell[] args) {
   static if (debf) {debEnter("[sqrt]");scope (exit) debLeave();}
   assert(args.length==1);
-  return float_cell(sqrt(as_number(args[0])));
+  return float_cell(0);
 }
 Cell op_car(Cell[] args) {
   static if (debf) {debEnter("[car]");scope (exit) debLeave();}
@@ -462,16 +403,15 @@ Cell op_cdr(Cell[] args) {
 Cell op_cons(Cell[] args) {
   static if (debf) {debEnter("[cons]");scope (exit) debLeave();}
   assert(args.length==2);
-  if (isa(args[1],TList)) {
-    return list_cell([args[0]]~args[1].lst);
-  } else {
-    return list_cell([args[0]]~args[1]);
-  }
+  assert(isa(args[0],TList));
+  return args[0];
 }
 Cell op_append(Cell[] args) {
   static if (debf) {debEnter("[append]");scope (exit) debLeave();}
   assert(args.length==2);
-  return list_cell(as_list(args[0])~as_list(args[1]));
+  assert(isa(args[0],TList));
+  assert(isa(args[1],TList));
+  return args[0];
 }
 Cell op_list(Cell[] args) {
   static if (debf) {debEnter("[list]");scope (exit) debLeave();}
@@ -485,22 +425,6 @@ Cell op_listp(Cell[] args) {
 Cell op_length(Cell[] args) {
   static if (debf) {debEnter("[length]");scope (exit) debLeave();}
   assert(args.length==1);
-  Cell arg=args[0];
-  while (is_def_type(arg.type)) arg.type=get_def_subtype(arg.type);
-  if (arg.type==TList) return int_cell(arg.lst.length);
-  if (arg.type==TString) return int_cell(arg.str.length);
-  if (arg.type==TEnv) return int_cell(arg.env.inner.length);
-  if (is_assoc_type(arg.type)) return int_cell(arg.asc.inner.length);
-  if (is_array_type(arg.type)) return int_cell(arg.arr.inner.length);
-  /* -- all catched by default
-  if (arg.type==TFun) return int_cell(1);
-  if (arg.type==TLfun) return int_cell(1);
-  if (arg.type==TInt) return int_cell(1);
-  if (arg.type==TFloat) return int_cell(1);
-  if (arg.type==TSymbol) return int_cell(1);
-  if (arg.type==TNull) return int_cell(1);
-  if (arg.type==TLambda) return int_cell(1);
-  */
   return int_cell(1);
 }
 Cell op_symbolp(Cell[] args) {
@@ -515,137 +439,91 @@ Cell op_nullp(Cell[] args) {
 }
 Cell op_tostr(Cell[] args) {
   static if (debf) {debEnter("[tostr]");scope (exit) debLeave();}
-  if (!args.length) return str_cell("");
-  string s;
-  for (int k=0;k<args.length;++k) {
-    if (k) s~=" ";
-    if (isa(args[k],TList)) {
-      s~=cfrm("%.*s",cells.str(args[k],1));
-    } else {
-      s~=cfrm("%.*s",cells.str(args[k],0));
-    }
-  }
-  return str_cell(s);
+  return str_cell("");
 }
 Cell op_pr(Cell[] args) {
   static if (debf) {debEnter("[pr]");scope (exit) debLeave();}
-  if (!args.length) return int_cell(0);
-  for (int k=0;k<args.length;++k) {
-    if (k) printf(" ");
-    if (isa(args[k],TList)) {
-      printf("%.*s",cells.str(args[k],1));
-    } else {
-      printf("%.*s",cells.str(args[k],0));
-    }
-  }
-  return int_cell(args.length);
+  return int_cell(0);
 }
 Cell op_prln(Cell[] args) {
   static if (debf) {debEnter("[prln]");scope (exit) debLeave();}
-  Cell c=op_pr(args);
-  printf("\n");
-  return c;
+  return int_cell(0);
 }
 Cell op_tic(Cell[] args) {
   static if (debf) {debEnter("[tic]");scope (exit) debLeave();}
-  tic();
   return list_cell();
 }
 Cell op_toc(Cell[] args) {
   static if (debf) {debEnter("[toc]");scope (exit) debLeave();}
-  float t=toc();
-  printf("%.3fs\n",t);
-  return float_cell(t);
+  return float_cell(0);
 }
 Cell op_new_object(Cell[] args) {
   static if (debf) {debEnter("[new_object]");scope (exit) debLeave();}
   Cell c=assoc_cell_from_subtype(TAny);
-  for (int k=0;(k+1)<args.length;k+=2) c.asc.inner[as_str(args[k])]=args[k+1];
-//  c.asc.inner["this"]=c;
   return c;
 }
 Cell op_assoc_get(Cell[] args) {
   static if (debf) {debEnter("[op_assoc_get]");scope (exit) debLeave();}
   assert(args.length==2);
   // get assoc key
-  try {
-    return args[0].asc.inner[args[1].str];
-  } catch {
-    return null_cell();
-  }
+  return null_cell();
 }
 Cell op_assoc_set(Cell[] args) {
   static if (debf) {debEnter("[op_assoc_set]");scope (exit) debLeave();}
   assert(args.length==3);
   // put assoc key value
-  return args[0].asc.inner[args[1].str]=args[2];
+  return args[2];
 }
 Cell op_env_get(Cell[] args) {
   static if (debf) {debEnter("[op_env_get]");scope (exit) debLeave();}
   assert(args.length==2);
   // get env key
-  return env_get(as_env(args[0]),as_str(args[1]));
+  return null_cell();
 }
 Cell op_env_set(Cell[] args) {
   static if (debf) {debEnter("[op_env_set]");scope (exit) debLeave();}
   assert(args.length==3);
   // set env key value
-  env_put(as_env(args[0]),as_str(args[1]),args[2]);
   return args[2];
 }
 Cell op_new_array(Cell[] args) {
   static if (debf) {debEnter("[new_array]");scope (exit) debLeave();}
-  Cell c=array_cell();
-  for (int k=0;k<args.length;++k) c.arr.inner~=args[k];
-  return c;
+  return array_cell();
 }
 Cell op_array_cat(Cell[] args) {
   static if (debf) {debEnter("[array_cat]");scope (exit) debLeave();}
   assert(args.length==2);
   if (!is_array_type(args[0].type)) assert(false);
-  if (is_array_type(args[1].type)) {
-    return array_cell(args[0].arr.inner~args[1].arr.inner);
-  } else {
-    return array_cell(args[0].arr.inner~args[1]);
-  }
+  return args[0];
 }
 Cell op_string_cat(Cell[] args) {
   static if (debf) {debEnter("[string_cat]");scope (exit) debLeave();}
   assert(args.length==2);
   assert(isa(args[0],TString) && isa(args[1],TString));
-  return str_cell(args[0].str~args[1].str);
+  return args[0];
 }
 Cell op_array_get(Cell[] args) {
   static if (debf) {debEnter("[array_get]");scope (exit) debLeave();}
   assert(args.length==2);
   Cell arr=args[0];
-  if (!is_array_type(arr.type)) assert(false);
-  int idx=cast(int)(as_number(args[1]));
-  assert(arr.arr.inner.length>idx,"Array index out of bounds");
-  return arr.arr.inner[idx];
+  assert(is_array_type(arr.type));
+  assert(isa(args[1],TInt));
+  return new_cell(get_array_subtype(arr.type));
 }
 Cell op_array_set(Cell[] args) {
   static if (debf) {debEnter("[array_set]");scope (exit) debLeave();}
   assert(args.length==3);
   Cell arr=args[0];
-  if (!is_array_type(arr.type)) assert(false,"Variable is not an array");
+  assert(is_array_type(arr.type));
   if (!type_matches(get_array_subtype(arr.type),args[2].type)) assert(false,"Type error in element assignment");
-  int idx=cast(int)(as_number(args[1]));
-  assert(arr.arr.inner.length>idx,"Array index out of bounds");
-  return (arr.arr.inner[idx]=args[2]);
+  assert(isa(args[1],TInt));
+  return args[2];
 }
 // op_array_resize(array,int)
 Cell op_array_resize(Cell[] args) {
   static if (debf) {debEnter("[array_resize]");scope (exit) debLeave();}
   Cell arr=args[0];
-  if (!is_dynamic_array_type(arr.type)) assert(false,"Resize works on dynamic arrays only");
-  //printf("resize %.*s\n",types.str(arr.type));
-  Type subtyp=get_array_subtype(arr.type);
-  //printf("resize %.*s[]\n",types.str(subtyp));
-  int newlen=cast(int)(as_number(args[1]));
-  int oldlen=arr.arr.inner.length;
-  arr.arr.inner.length=newlen;
-  for (int k=oldlen;k<newlen;++k) arr.arr.inner[k]=new_cell(subtyp);
+  assert(is_dynamic_array_type(arr.type),"Resize works on dynamic arrays only");
   return arr;
 }
 Cell op_new__string(Cell[] args) {
@@ -783,24 +661,24 @@ Cell op_ref_set(Cell[] args) {
 }
 void add_libs(Env* env) {
   // normal functions
-  env_putfun_sigstr(env,"+",fun_cell(&op_add_int_int),"(int int)","int");
-  env_putfun_sigstr(env,"+",fun_cell(&op_add_int_float),"(int float)","float");
-  env_putfun_sigstr(env,"+",fun_cell(&op_add_float_int),"(float int)","float");
-  env_putfun_sigstr(env,"+",fun_cell(&op_add_float_float),"(float float)","float");
-  env_putfun_sigstr(env,"-",fun_cell(&op_neg_int),"(int)","int");
-  env_putfun_sigstr(env,"-",fun_cell(&op_neg_float),"(float)","float");
-  env_putfun_sigstr(env,"-",fun_cell(&op_sub_int_int),"(int int)","int");
-  env_putfun_sigstr(env,"-",fun_cell(&op_sub_int_float),"(int float)","float");
-  env_putfun_sigstr(env,"-",fun_cell(&op_sub_float_int),"(float int)","float");
-  env_putfun_sigstr(env,"-",fun_cell(&op_sub_float_float),"(float float)","float");
-  env_putfun_sigstr(env,"*",fun_cell(&op_mul_int_int),"(int int)","int");
-  env_putfun_sigstr(env,"*",fun_cell(&op_mul_int_float),"(int float)","float");
-  env_putfun_sigstr(env,"*",fun_cell(&op_mul_float_int),"(float int)","float");
-  env_putfun_sigstr(env,"*",fun_cell(&op_mul_float_float),"(float float)","float");
-  env_putfun_sigstr(env,"/",fun_cell(&op_div_int_int),"(int int)","int");
-  env_putfun_sigstr(env,"/",fun_cell(&op_div_int_float),"(int float)","float");
-  env_putfun_sigstr(env,"/",fun_cell(&op_div_float_int),"(float int)","float");
-  env_putfun_sigstr(env,"/",fun_cell(&op_div_float_float),"(float float)","float");
+  env_putfun_sigstr(env,"+",fun_cell(&op_math_int_int),"(int int)","int");
+  env_putfun_sigstr(env,"+",fun_cell(&op_math_int_float),"(int float)","float");
+  env_putfun_sigstr(env,"+",fun_cell(&op_math_float_int),"(float int)","float");
+  env_putfun_sigstr(env,"+",fun_cell(&op_math_float_float),"(float float)","float");
+  env_putfun_sigstr(env,"-",fun_cell(&op_math_int),"(int)","int");
+  env_putfun_sigstr(env,"-",fun_cell(&op_math_float),"(float)","float");
+  env_putfun_sigstr(env,"-",fun_cell(&op_math_int_int),"(int int)","int");
+  env_putfun_sigstr(env,"-",fun_cell(&op_math_int_float),"(int float)","float");
+  env_putfun_sigstr(env,"-",fun_cell(&op_math_float_int),"(float int)","float");
+  env_putfun_sigstr(env,"-",fun_cell(&op_math_float_float),"(float float)","float");
+  env_putfun_sigstr(env,"*",fun_cell(&op_math_int_int),"(int int)","int");
+  env_putfun_sigstr(env,"*",fun_cell(&op_math_int_float),"(int float)","float");
+  env_putfun_sigstr(env,"*",fun_cell(&op_math_float_int),"(float int)","float");
+  env_putfun_sigstr(env,"*",fun_cell(&op_math_float_float),"(float float)","float");
+  env_putfun_sigstr(env,"/",fun_cell(&op_math_int_int),"(int int)","int");
+  env_putfun_sigstr(env,"/",fun_cell(&op_math_int_float),"(int float)","float");
+  env_putfun_sigstr(env,"/",fun_cell(&op_math_float_int),"(float int)","float");
+  env_putfun_sigstr(env,"/",fun_cell(&op_math_float_float),"(float float)","float");
 
   env_put(env,"<",fun_cell(&op_less));
   env_put(env,">",fun_cell(&op_greater));

@@ -14,7 +14,6 @@ Env*[] envstack;
 //----------------
 //---------------- Env
 //----------------
-
 struct Env {
   Env* outer;
   Cell[string] inner;
