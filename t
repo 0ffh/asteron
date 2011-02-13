@@ -1,8 +1,33 @@
 #!/usr/bin/lua
---res=os.execute("gdc -O3 main.d environments.d types.d signatures.d libs.d llparse.d hlparse.d lexer.d cells.d utils.d debg.d -o main")
---res=os.execute("dmd -O -inline main.d environments.d types.d signatures.d libs.d llparse.d hlparse.d lexer.d cells.d utils.d debg.d")
---res=os.execute("gdc -O0 main.d environments.d types.d signatures.d libs.d llparse.d hlparse.d lexer.d cells.d utils.d debg.d -o main")
-res=os.execute("dmd main.d environments.d types.d signatures.d libs.d llparse.d hlparse.d lexer.d cells.d utils.d debg.d")
+-- options
+optimise=0
+dmd_not_gdc=1
+-- files
+files={"main",
+       "environments","signatures",
+       "types","cells","libs",
+       "llparse","hlparse",
+       "lexer","utils","debg"}
+--
+cstr=""
+for _,f in ipairs(files) do
+  cstr=cstr.." "..f..".d"
+end
+if dmd_not_gdc then
+  if (optimise>0) then
+    cstr="dmd -O -inline"..cstr
+  else
+    cstr="dmd"..cstr
+  end
+else
+  if (optimise>0) then
+    cstr="gdc -O3"..cstr
+  else
+    cstr="gdc -O0"..cstr
+  end
+  cstr=cstr.." -o main"
+end
+res=os.execute(cstr)
 if res==0 then
   print("compiled okay, executing...")
   if arg[1] then
