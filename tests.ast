@@ -59,7 +59,7 @@ scope {
   test(doubler(4),8);
   test(tripler(4),12);
   finish();
-};
+}
 scope {
   start("closures (1)");
   defun count_down_from(n) {
@@ -75,7 +75,7 @@ scope {
   test(count_down_from_4(),1);
   test(count_down_from_4(),0);
   finish();
-};
+}
 scope {
   start("closures (2)");
   var set_hidden,get_hidden;
@@ -89,7 +89,7 @@ scope {
   test(set_hidden(12),12);
   test(get_hidden(),12);
   finish();
-};
+}
 scope {
   start("fibonacci");
   defun fib(n) {
@@ -101,7 +101,7 @@ scope {
   }
   test(fib(fib_par),fib_res);
   finish();
-};
+}
 scope {
   start("fibonacci object");
   var o=new_object();
@@ -115,7 +115,7 @@ scope {
   prln(o);
   test(o.fib(fib_par),fib_res);
   finish();
-};
+}
 scope {
   start("object scoping");
   // base
@@ -133,7 +133,7 @@ scope {
   o.foo();
   //
   finish();
-};
+}
 scope {
   start("loops");
   var i=0;
@@ -167,7 +167,7 @@ scope {
   prln();
   //
   finish();
-};
+}
 scope {
   start("return");
   defun fib(n) {
@@ -176,7 +176,7 @@ scope {
   }
   test(fib(fib_par),fib_res);
   finish();
-};
+}
 scope {
   start("break");
   var i=0;
@@ -188,7 +188,7 @@ scope {
   }
   test(i,10);
   finish();
-};
+}
 scope {
   start("continue");
   var i=1;
@@ -200,7 +200,7 @@ scope {
   }
   test(ok,1);
   finish();
-};
+}
 scope {
   start("object literal");
   var ok=1;
@@ -217,7 +217,7 @@ scope {
   };
   o.foo();
   finish();
-};
+}
 scope {
   start("switch");
   var ok=0;
@@ -233,7 +233,7 @@ scope {
   }
   test(ok,3);
   finish();
-};
+}
 scope {
   start("return from switch");
   var ok=1;
@@ -248,7 +248,7 @@ scope {
   test(ok,1);
   test(foo(1),1);
   finish();
-};
+}
 scope {
   start("switch fallthrough");
   var ok=0;
@@ -259,7 +259,7 @@ scope {
   }
   test(ok,2);
   finish();
-};
+}
 scope {
   start("arrays");
   var k=0;
@@ -279,7 +279,7 @@ scope {
   a[2][1]="2.1";
   test(a[2][1],"2.1");
   finish();
-};
+}
 scope {
   start("references");
   var o={},a=[];
@@ -290,7 +290,7 @@ scope {
   test(oref.test,"foo");
   test(aref[0],"bar");
   finish();
-};
+}
 scope {
   start("signature dispatch");
   defun foo(a,b) {return "foo-any-any";}
@@ -305,7 +305,7 @@ scope {
   test(foo(1,2.0),"foo-int-any");
   test(foo(1,"2"),"foo-int-string");
   finish();
-};
+}
 scope {
   start("evil blockless constructs");
   var a=[0,1,2,3];
@@ -325,7 +325,7 @@ scope {
   defun foo(a,b) return a+b;
   test(foo(2,3),5);
   finish();
-};
+}
 scope {
   start("types (1)");
   var int i;
@@ -339,7 +339,7 @@ scope {
   test(foo(1.0),"foo-float");
   test(foo("2"),"foo-string");
   finish();
-};
+}
 scope {
   start("types (2)");
   deftype intvec int[];
@@ -375,7 +375,7 @@ scope {
   test(tostr(iv),"[0 5]");
   test(tostr(im),"[[0 5] [2 3]]");
   finish();
-};
+}
 scope {
   start("default arguments");
   defun foo(a,b=2) tostr([a,b]);
@@ -384,7 +384,7 @@ scope {
   test(typeof(new(array(int))),array(int));
   test(typeof(new(array())),array(any));
   finish();
-};
+}
 scope {
   start("structs (anonymous)");
   var struct{a,int i,float f} x;
@@ -397,7 +397,7 @@ scope {
   x.f=2.0;
   test(tostr(x),"{a='prlnx',i=1,f=2}");
   finish();
-};
+}
 scope {
   start("structs (aliastype)");
   aliastype t struct{a,int i,float f};
@@ -411,7 +411,7 @@ scope {
   x.f=2.0;
   test(tostr(x),"{a='prlnx',i=1,f=2}");
   finish();
-};
+}
 scope {
   start("structs (deftype)");
   deftype t struct{a,int i,float f};
@@ -428,7 +428,7 @@ scope {
   y.f=1.0;
   test(tostr(y),"{a='prlny',i=2,f=1}");
   finish();
-};
+}
 scope {
   start("unions (anonymous)");
   var union{a,int i,float f} z;
@@ -441,7 +441,7 @@ scope {
   z.f=2.0;
   test(tostr(z),"{a,i,f=2}");
   finish();
-};
+}
 scope {
   start("unions (deftype)");
   deftype t union{a,int i,float f};
@@ -458,7 +458,7 @@ scope {
   z.f=2.0;
   test(tostr(z),"{a,i,f=2}");
   finish();
-};
+}
 scope {
   start("aliastype");
   aliastype intarr int[];
@@ -470,27 +470,27 @@ scope {
   for (var int k=0;k<4;k=k+1) ia[k]=k;
   test(tostr(ia),"[0 1 2 3]");
   finish();
-};
+}
 scope {
   start("named scopes");
   scope foo {
     var x=1;
-  };
+  }
   scope bar {
     var x=2;
-  };
+  }
   test(foo.x,1);
   test(bar.x,2);
   finish();
-};
+}
 scope {
   start("ternary dispatch");
   scope foo {
     defun fun() return "foo";
-  };
+  }
   scope bar {
     defun fun() return "bar";
-  };
+  }
   test(foo.fun(),"foo");
   test(bar.fun(),"bar");
   var x=3;
@@ -498,7 +498,7 @@ scope {
   test(x.typeof().tostr(),"int");
   test(x.typeof().tostr().typeof(),string);
   finish();
-};
+}
 scope {
   start("ternary dispatch (2)");
   var struct{int x} a;
@@ -508,7 +508,7 @@ scope {
   test(a.x.foo(),"int");
   test(b.x.foo(),"float");
   finish();
-};
+}
 scope {
   start("variadic functions");
   scope {
@@ -519,7 +519,7 @@ scope {
     test(foo(0),["...",1,[0]]);
     test(foo(0,1),[2,[0,1]]);
     test(foo(0,1,2),["...",3,[0,1,2]]);
-  };
+  }
   scope {
     defun foo(...) return ["...",ellipse.length(),ellipse];
     defun foo(a) return [1,[a]];
@@ -528,7 +528,7 @@ scope {
     test(foo(0),[1,[0]]);
     test(foo(0,1),["...",2,[0,1]]);
     test(foo(0,1,2),[3,[0,1,2]]);
-  };
+  }
   scope {
     defun foo(...) return "(... any)";
     defun foo(int ...) return "(... int)";
@@ -540,9 +540,9 @@ scope {
     test(foo(1,2,3),"(... int)");
     test(foo("1",3,1),"(... any)");
     test(foo(3,1,"1"),"(... any)");
-  };
+  }
   finish();
-};
+}
 scope {
   start("array concatenation");
   var int[] a;
@@ -555,7 +555,7 @@ scope {
   a~=[3];
   test(a,[0,1,2,3]);
   finish();
-};
+}
 //----------------------------------------------------------------------
 //--- summary
 summary();

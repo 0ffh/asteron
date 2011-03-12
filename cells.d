@@ -442,7 +442,10 @@ bool isa(Cell c,Type t) {
 }
 string str(Cell c,int clothedString=clothedStringDefault,int rec=1) {
   static if (debflag) {debEnter("cells.str(Cell)");scope (exit) debLeave();}
-  assert(types_initialised);
+  if (!types_initialised) {
+    printf("Base types must be initialised before using cells.str!\n");
+    assert(false);
+  }
   if (c.type==TInt) {
     return cfrm("%li",c.fix);
   }

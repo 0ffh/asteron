@@ -130,10 +130,18 @@ Cell token2cell(Token t) {
   }
   if (tav(t,"statement","scope")) {
     if (t.sub.length==1) {
-      assert(t.sub[0].arity=="array");
-      return list_cell([sym_cell("scope"),token2cell(t.sub[0])]);
+      if (t.sub[0].arity=="array") {
+        Cell code=token2cell(t.sub[0]);
+        code=list_cell(sym_cell("seq")~as_list(code));
+        return list_cell([sym_cell("scope"),code]);
+      }
+      if (t.sub[0].arity=="statement") {
+        Cell code=token2cell(t.sub[0]);
+        return list_cell([sym_cell("scope"),code]);
+      }
     }
     if (t.sub.length==2) {
+      //t.show();
       assert(t.sub[0].arity=="name");
       if (t.sub[1].arity=="array") {
         Cell code=token2cell(t.sub[1]);
@@ -305,4 +313,12 @@ Cell token2cell(Token t) {
     return list_cell(tokens2cells(t.sub));
   }
   t.error("js-to-lisp error");
+}
+Cell parse_file_to_cell(string filename) {
+  Token t=parse_string_to_token(cast(string)std.file.read(filename));
+//  t.show();
+  Cell c=token2cell(t);
+  assert(isa(c,TList),"list cell expected");
+  c.lst=sym_cell("seq")~c.lst;
+  return c;
 }

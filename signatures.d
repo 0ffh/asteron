@@ -43,6 +43,11 @@ struct Signature {
   string str() {
     return signatures.str(*this);
   }
+  bool opEquals(Signature sig) {
+    if (ses.length!=sig.ses.length) return false;
+    for (int k;k<ses.length;++k) if (ses[k].type!=sig.ses[k].type) return false;
+    return true;
+  }
 }
 string str(Signature sig) {
   string s="(";
@@ -155,7 +160,7 @@ Signature signature_cell2signature(Cell arg) {
 //  printf("sc2s %.*s -> %.*s\n",cells.str(arg),str(sig));
   return sig;
 }
-Signature types2signature(Type[] args) {
+Signature types2signature(Type[] args,Type* open=null) {
   static if (debf) {debEnter("types2signature(Cell)");scope (exit) debLeave();}
   const int verbose=false;
   Signature sig;
@@ -168,6 +173,7 @@ Signature types2signature(Type[] args) {
     se.defv=null_cell();
     sig~=se;
   }
+  if (open) sig.open=*open;
   static if (verbose) printf("\n");
   return sig;
 }
@@ -285,7 +291,7 @@ int type_matches(Type tp,Type ta) {
   if (cp.lst[0].sym!=ca.lst[0].sym) return fail_score;
   if (cp.lst.length<2) return super_score;
   assert((cp.lst.length==2) && (ca.lst.length==2));
-  return type_matches(type(cp.lst[1]),type(ca.lst[1]));
+  return type_matches(type(cp.lst[1]),type(ca.lst[1]))-1;
 }
 int signature_matches(Signature sig,Type[] targ) {
   static if (debf) {debEnter("signature_matches(Signature,Type[])");scope (exit) debLeave();}

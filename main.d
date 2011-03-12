@@ -1,6 +1,14 @@
 
 //--  (w) Frank F. Hirsch (2011)
 
+/*
+*** todo
+ - do static analysis
+ - generate code
+ - type literals
+ - all types global (?)
+*/
+
 module main;
 
 import debg;
@@ -9,6 +17,7 @@ import ablibs;
 import lexer;
 import cells;
 import types;
+import trafo;
 import utils;
 import llparse;
 import hlparse;
@@ -27,6 +36,8 @@ struct State {
   int  cnt;
 }
 State state;
+
+Env* base_env;
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -94,11 +105,14 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
   return lamenv;
 }
 Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
+  FTabEntry* candidate_entry;
+  Signature candidate_sig;
   Cell candidate;
+  Cell[] teargs;
   string name=as_symbol(sym);
   Env* e=environment;
   for (;;) {
-//printf("looking up Function '%.*s' int environment %p\n",name,e);
+//printf("looking up Function '%.*s' in environment %p\n",name,e);
     if (e) e=env_find(e,name);
     if (!e) {
       printf("*** Error: Function '%.*s' lookup failed!\n",name);
@@ -106,24 +120,25 @@ Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
       return null_cell();
     }
     candidate=evalin(sym,e);
-    if (!isa(candidate,TFtab)) break;
+    if (!isa(candidate,TFtab)) return candidate;
     if (!eargs.length) {
       eargs.length=args.length;
       for (int k;k<args.length;++k) eargs[k]=eval(args[k]);
     }
-    FTabEntry* fte=ftab_resolve(candidate.ftab,eargs,name);
-    if (fte) {
-      while (eargs.length<fte.sig.length) {
-        if (fte.sig[eargs.length].name=="...") break;
-        eargs~=fte.sig[eargs.length].defv;
+    candidate_entry=ftab_resolve(candidate.ftab,eargs,name);
+    if (candidate_entry) {
+      candidate_sig=candidate_entry.sig;
+      teargs=eargs.dup;
+      while (eargs.length<candidate_sig.length) {
+        if (candidate_sig[eargs.length].name=="...") break;
+        eargs~=candidate_sig[eargs.length].defv;
       }
       args=eargs;
-      candidate=fte.fun;
       break;
     }
     e=e.outer;
   }
-  return candidate;
+  return candidate_entry.fun;
 }
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -199,12 +214,18 @@ void ltest(string filename) {
 }
 void atest(string filename) {
   bool showflag=true;
-  Token t=parse(cast(string)std.file.read(filename));
-  //if (showflag) t.show_short();
-  Cell c=token2cell(t);
-  c.lst=sym_cell("seq")~c.lst;
-  if (showflag) c.show(true);
+  bool reorder=!true;
+  Cell c=parse_file_to_cell(filename);
+//  if (showflag) c.show(true);
+  if (reorder) {
+    operators_to_front(c,["defun","def"]);
+    operator_to_front(c,"supertype");
+    operator_to_front(c,"typealias");
+    operator_to_front(c,"deftype");
+//    if (showflag) c.show(true);
+  }
   eval(c);
+//  if (showflag) c.show(true);
 }
 
 //----------------------------------------------------------------------
@@ -213,19 +234,37 @@ void atest(string filename) {
 //---------------- main
 //----------------
 
-void init() {
-  push_env(mk_env());
+Env* mk_base_env() {
+  Env* e=mk_env();
+  push_env(e);
   init_hlparse();
   init_types();
-  add_abglobals();
+  return e;
 }
 
+void dump_info() {
+//  env_pr(base_env);
+  env_pr(environment);
+}
+
+void exec(string fn) {
+  base_env=mk_base_env();
+  init_libs();
+  push_env();
+  //try {
+    atest(fn);
+  /*} catch (Exception e) {
+    //printf("[%.*s] ",cells.str(evalcell));
+    //printf("%.*s\n",e.toString());
+  }*/
+}
+void env_info() {
+  for (int k=0;k<envstack.length;++k) printf("%p ",envstack[k]);
+  printf("[%i] be=%p e=%p\n",envstack.length,base_env,environment);
+}
 void main(string[] args) {
-  init();
-  if (args.length>1) {
-    atest(args[1]~".ast");
-  } else {
-    atest("test.ast");
-    //ltest("tests.l");
-  }
+  string fn;
+  if (args.length>1) fn=args[1]~".ast";
+  else fn="test.ast";
+  exec(fn);
 }

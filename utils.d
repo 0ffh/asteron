@@ -60,8 +60,7 @@ string spaces(int n) {
   return s;
 }
 void indent(int n) {
-  while (n-->0)
-    printf("  ");
+  while (n-->0) printf("  ");
 }
 int sign(int i) {
   if (i>0) return +1;
@@ -94,4 +93,24 @@ char* dsz(string s) {
 }
 string str(int n) {
   return std.string.toString(n);
+}
+void swap_elements(T)(T[] list,int i0,int i1) {
+  T help=list[i0];
+  list[i0]=list[i1];
+  list[i1]=help;
+}
+void insert_element(T)(ref T[] list,int idx,T elem) {
+  if (!idx) {
+    list=elem~list;
+    return;
+  }
+  if (idx>=list.length) {
+    list~=elem;
+    return;
+  }
+  int l=list.length;
+  T[] tail=list[idx..$];
+  list.length=idx;
+  list~=elem~tail;
+  assert((l+1)==list.length,"boohoo");
 }

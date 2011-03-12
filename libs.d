@@ -85,7 +85,7 @@ Cell op_dowhile(Cell[] args) {
   return c;
 }
 Cell op_assign(Cell[] args) {
-  static if (debf) {debEnter("[set!]");scope (exit) debLeave();}
+  static if (debf) {debEnter("[assign]");scope (exit) debLeave();}
   assert(args.length==2);
   string id=as_symbol(args[0]);
   Env* e=env_find(environment,id);
@@ -150,7 +150,7 @@ Cell op_supertype(Cell[] args) {
   for (int k=1;k<args.length;++k) st~=type(args[k]);
   Type typ=type_supertype(name,st);
   Cell val=type_cell(typ);
-  //printf("deftype %.*s / %.*s\n",name,types.str(type(args[1])));
+  //printf("supertype %.*s / %.*s\n",name,types.str(type(args[1])));
   return env_put(environment,name,val);
 }
 Cell op_defun(Cell[] args) {
@@ -189,7 +189,7 @@ Cell op_scope(Cell[] args) {
   static if (debf) {debEnter("[scope]");scope (exit) debLeave();}
   if (args.length==1) {
     push_env(); // we get our own scope
-    Cell res=op_seq(as_list(args[0]));
+    Cell res=eval(args[0]);
     pop_env();
     return res;
   }
@@ -279,7 +279,7 @@ Cell op_prenv(Cell[] args) {
   env_pr(environment);
   return assoc_cell(environment.inner);
 }
-void add_globals() {
+void init_libs() {
   Env* env=environment;
   assert(types_initialised);
   // lazy functions
@@ -395,7 +395,6 @@ Cell op_div_float_float(Cell[] args) {
   static if (debf) {debEnter("[/]");scope (exit) debLeave();}
   return float_cell(as_float(args[0])/as_float(args[1]));
 }
-
 Cell op_less(Cell[] args) {
   static if (debf) {debEnter("[<]");scope (exit) debLeave();}
   assert(args.length==2);
@@ -597,6 +596,15 @@ Cell op_new_array(Cell[] args) {
   static if (debf) {debEnter("[new_array]");scope (exit) debLeave();}
   Cell c=array_cell();
   for (int k=0;k<args.length;++k) c.arr.inner~=args[k];
+  if (args.length) {
+    Type t=args[0].type;
+    for (int k=1;k<args.length;++k) if (args[k].type!=t) {
+      //printf("created %.*s %.*s\n",types.str(c.type),cells.str(c));
+      return c;
+    }
+    c.type=array_type_from_subtype(t);
+  }
+  //printf("created %.*s %.*s\n",types.str(c.type),cells.str(c));*/
   return c;
 }
 Cell op_array_cat(Cell[] args) {
@@ -629,7 +637,12 @@ Cell op_array_set(Cell[] args) {
   assert(args.length==3);
   Cell arr=args[0];
   if (!is_array_type(arr.type)) assert(false,"Variable is not an array");
-  if (!type_matches(get_array_subtype(arr.type),args[2].type)) assert(false,"Type error in element assignment");
+  /*
+  if (!type_matches(get_array_subtype(arr.type),args[2].type)) {
+    printf("[array]=%.*s [element]=%.*s\n",types.str(arr.type),types.str(args[2].type));
+    assert(false,"Type error in element assignment");
+  }
+  */
   int idx=cast(int)(as_number(args[1]));
   assert(arr.arr.inner.length>idx,"Array index out of bounds");
   return (arr.arr.inner[idx]=args[2]);

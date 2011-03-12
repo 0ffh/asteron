@@ -4,7 +4,7 @@ optimise=0
 dmd_not_gdc=1
 -- files
 files={"main",
-       "cells","types",
+       "cells","types","trafo",
        "environments","signatures",
        "libs","ablibs",
        "llparse","hlparse",

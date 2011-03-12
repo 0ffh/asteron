@@ -194,7 +194,7 @@ Type type_supertype(string name,Type[] st) {
     return t;
   }
   t=super_type_from_subtypes(st);
-  static if (1) {
+  static if (0) {
     printf("supertype %.*s",name);
     foreach (ste;st) printf(" %.*s",str(ste));
     printf("\n");

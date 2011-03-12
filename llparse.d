@@ -14,7 +14,7 @@ int max(int a,int b){return (a>b)?a:b;}
 alias Token function(Token self) Nudfun;
 alias Token function(Token self,Token left) Ledfun;
 
-const bool debflag=debf && true;
+const bool debflag=debf && !true;
 
 //------------------------------------------------------------
 //------------------------------------------------------------
@@ -199,6 +199,7 @@ class Token {
     t.led=this.led;
     t.reserved=this.reserved;
     t.skope=this.skope;
+    foreach (s;this.sub) t.sub~=s;
     return t;
   }
   void error(string s) {
@@ -802,13 +803,25 @@ void init_symbols() {
   });
   //---
   stmt("var", function Token(Token self) {
+    const bool verbose=false;
     static if (debflag) {debEnter("var.std");scope (exit) debLeave();}
     Token[] a;
     Token t;
     while (true) {
+      static if (verbose) printf("---\n");
       t = type_name_value();
       t.arity = "statement";
       t.value = "def";
+      if (t.sub.length==4) {
+        Token val=t.sub[2];
+        t.sub.length=3;
+        static if (verbose) t.show();
+        a~=t;
+        t=t.clone();
+        t.arity="binary";
+        t.value = "=";
+      }
+      static if (verbose) t.show();
       a ~= t;
       if (token.id != ",") {
         break;
@@ -937,14 +950,19 @@ void init_symbols() {
       if (token.arity != "name") {
         token.error("Expected name of scope.");
       }
-      self.sub ~= token;
+      self.sub = [token];
       skope.define(token);
       advance();
+      new_skope();
+      Token b=block();
+      self.sub ~= b;
+    } else {
+      new_skope();
+      Token b=block();
+      self.sub = [b];
     }
-    new_skope();
-    self.sub ~= block();
     self.arity = "statement";
-    advance(";");
+    //advance(";");
     skope.pop();
     return self;
   });
@@ -1182,8 +1200,12 @@ void init_tokens(string src) {
   init_skope();
   advance();
 }
-Token parse(string source) {
+Token parse_string_to_token(string source) {
   static if (debflag) {debEnter("parse");scope (exit) debLeave();}
+  if (!types_initialised) {
+    printf("Base types must be initialised before parsing!\n");
+    assert(false);
+  }
   init_symbols();
   init_tokens(source);
   Token t=arraytoken(statements());
@@ -1229,6 +1251,10 @@ Cell lparse(Lexeme[] tokens,ref int pos) {
   return atom(token);
 }
 Cell lparse(Lexeme[] tokens) {
+  if (!types_initialised) {
+    printf("Base types must be initialised before parsing!\n");
+    assert(false);
+  }
   int pos=0;
   return lparse(rm_whitespaces(tokens),pos);
 }

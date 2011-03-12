@@ -5,6 +5,15 @@
  - type literals
  - all types global (?)
 */
+
+defun foo(a,b) {
+  return a+b;
+}
+defun main(string[] args=[]) {
+  prln(foo(1,2));
+  prln(foo(1,2.1));
+}
+main();
 /*
 defun foo(...) {
   for (var k=0;k<ellipse.length();k+=1) {
@@ -16,7 +25,7 @@ prln(foo);
 prln(foo[]);
 prln(foo[int]);
 prln(foo[string]);
-*/
+prln("test");
 defun foo(...) {
   var s="";
   for (var k=0;k<ellipse.length();k+=1) {
