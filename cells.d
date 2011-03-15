@@ -440,6 +440,60 @@ int istrue(Cell c) {
 bool isa(Cell c,Type t) {
   return (c.type==t);
 }
+bool is_sym(Cell c,string s) {
+  return ((c.type==TSymbol)&&(c.sym==s));
+}
+Cell clone_cell(Cell self) {
+  if (self.type!=TList) return self;
+  Cell c;
+  c.type=TList;
+  c.lst.length=self.lst.length;
+  for (int k=self.lst.length;k--;) c.lst[k]=clone_cell(self.lst[k]);
+  return c;
+}
+void pr(Cell self) {
+  printf("%.*s",str(self));
+}
+void prln(Cell self) {
+  printf("%.*s\n",str(self));
+}
+Cell new_cell(string t) {
+  static if (debf) {debEnter("new_cell(string)");scope (exit) debLeave();}
+  return new_cell(type(t));
+}
+Cell new_cell(Type t) {
+  static if (debf) {debEnter("new_cell(Type)");scope (exit) debLeave();}
+  //printf("new called with parameter: %.*s\n",types.str(t));
+  if (t==TAny) return any_cell();
+//  if (t==TAny) return null_cell();
+  if (t==TNull) return null_cell();
+  if (t==TSymbol) return sym_cell("");
+  if (t==TNull) return null_cell();
+  if (t==TString) return str_cell("");
+  if (t==TInt) return int_cell(0);
+  if (t==TFloat) return float_cell(0.0);
+  if (t==TList) return list_cell([]);
+  if (t==TType) return type_cell(TAny);
+  //-- compound type
+  if (is_compound_type(t)) {
+    string constructor=get_compound_type_constructor(t);
+    if (constructor=="array") return cell_from_array_type(t);
+    if (constructor=="struct") return cell_from_struct_type(t);
+    if (constructor=="union") return cell_from_union_type(t);
+    if (constructor=="assoc") return cell_from_assoc_type(t);
+    if (constructor=="ref") return cell_from_ref_type(t);
+    if (constructor=="deftype") return cell_from_def_type(t);
+    if (constructor=="aliastype") return cell_from_alias_type(t);
+    assert(false,"unhandled compund type in new_cell");
+  }
+  printf("new_cell can't handle parameter %.*s\n",types.str(t));
+  assert(false,"new_cell failed");
+}
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
+//--------------------
+//-------------------- str
+//--------------------
 string str(Cell c,int clothedString=clothedStringDefault,int rec=1) {
   static if (debflag) {debEnter("cells.str(Cell)");scope (exit) debLeave();}
   if (!types_initialised) {
@@ -557,50 +611,157 @@ string str(Cell c,int clothedString=clothedStringDefault,int rec=1) {
   }
   return "["~types.str(c.type)~"]";
 }
-Cell clone_cell(Cell self) {
-  if (self.type!=TList) return self;
-  Cell c;
-  c.type=TList;
-  c.lst.length=self.lst.length;
-  for (int k=self.lst.length;k--;) c.lst[k]=clone_cell(self.lst[k]);
-  return c;
-}
-void pr(Cell self) {
-  printf("%.*s",str(self));
-}
-void prln(Cell self) {
-  printf("%.*s\n",str(self));
-}
-Cell new_cell(string t) {
-  static if (debf) {debEnter("new_cell(string)");scope (exit) debLeave();}
-  return new_cell(type(t));
-}
-Cell new_cell(Type t) {
-  static if (debf) {debEnter("new_cell(Type)");scope (exit) debLeave();}
-  //printf("new called with parameter: %.*s\n",types.str(t));
-  if (t==TAny) return any_cell();
-//  if (t==TAny) return null_cell();
-  if (t==TNull) return null_cell();
-  if (t==TSymbol) return sym_cell("");
-  if (t==TNull) return null_cell();
-  if (t==TString) return str_cell("");
-  if (t==TInt) return int_cell(0);
-  if (t==TFloat) return float_cell(0.0);
-  if (t==TList) return list_cell([]);
-  if (t==TType) return type_cell(TAny);
-  //-- compound type
-  if (is_compound_type(t)) {
-    string constructor=get_compound_type_constructor(t);
-    if (constructor=="array") return cell_from_array_type(t);
-    if (constructor=="struct") return cell_from_struct_type(t);
-    if (constructor=="union") return cell_from_union_type(t);
-    if (constructor=="assoc") return cell_from_assoc_type(t);
-    if (constructor=="ref") return cell_from_ref_type(t);
-    if (constructor=="deftype") return cell_from_def_type(t);
-    if (constructor=="aliastype") return cell_from_alias_type(t);
-    assert(false,"unhandled compund type in new_cell");
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
+//--------------------
+//-------------------- pretty_str
+//--------------------
+string pretty_str(Cell c,int ind) {
+  int clothedString=1;
+  int rec=1;
+  if (!types_initialised) {
+    printf("Base types must be initialised before using cells.str!\n");
+    assert(false);
   }
-  printf("new_cell can't handle parameter %.*s\n",types.str(t));
-  assert(false,"new_cell failed");
+  if (c.type==TInt) {
+    return cfrm("%li",c.fix);
+  }
+  if (c.type==TFloat) {
+    return cfrm("%g",cast(double)c.flt);
+  }
+  if (c.type==TList) {
+    string s;
+    if ((c.lst.length) && (is_sym(c.lst[0],"seq"))) {
+      static if (0) {
+        s~="\n"~spaces(ind+1);
+        s~="(";
+        for (int k=0;k<c.lst.length;++k) {
+          s~=pretty_str(c.lst[k],ind+2);
+          if (k+1<c.lst.length) s~="\n"~spaces(ind+2);
+        }
+        s~=")";
+      } else {
+        s~="\n"~spaces(ind+2);
+        for (int k=1;k<c.lst.length;++k) {
+          s~=pretty_str(c.lst[k],ind+2);
+          if (k+1<c.lst.length) s~="\n"~spaces(ind+2);
+        }
+      }
+    } else if ((c.lst.length) && (is_sym(c.lst[0],"switch"))) {
+        s~="(";
+        for (int k=0;k<c.lst.length;++k) {
+          s~=pretty_str(c.lst[k],ind+2);
+          if (k+1<c.lst.length) {
+            if (k&1) {
+              s~="\n"~spaces(ind+2);
+            } else {
+              s~=" ";
+            }
+          }
+        }
+        s~=")";
+    } else {
+      s="(";
+      for (int k;k<c.lst.length;++k) s~=pretty_str(c.lst[k],ind)~" ";
+      if (c.lst.length) s.length=s.length-1;
+      s~=")";
+    }
+    return s;
+  }
+  if (is_array_type(c.type)) {
+    string s;
+    s="[";
+    for (int k;k<c.arr.inner.length;++k) s~=pretty_str(c.arr.inner[k],ind)~" ";
+    if (s.length>1) s.length=s.length-1;
+    s~="]";
+    return s;
+  }
+  if (c.type==TSymbol) {
+    return c.sym;
+  }
+  if (c.type==TString) {
+    if (clothedString) {
+      return "'"~c.str~"'";
+    } else {
+      return c.str;
+    }
+  }
+  if (c.type==TAny) return "any";
+  if (c.type==TNull) return "null";
+  if (is_struct_type(c.type)) {
+    Struct struc=*as_struct(c);
+    string s="{";
+    for (int k;k<struc.key.length;++k) {
+//      s~=types.str(struc.typ[k])~" ";
+      string key=struc.key[k];
+      Cell val=struc.val[k];
+      s~=key~"="~pretty_str(val,ind)~",";
+    }
+    if (s[$-1]==',') {
+      s[$-1]='}';
+    } else {
+      s~="}";
+    }
+    return s;
+  }
+  if (is_union_type(c.type)) {
+    Union uni=*as_union(c);
+    string s="{";
+    for (int k;k<uni.key.length;++k) {
+//      s~=types.str(uni.typ[k])~" ";
+      string key=uni.key[k];
+      if (k==uni.tag) {
+        s~=key~"="~pretty_str(uni.val,ind)~",";
+      } else {
+        s~=key~",";
+      }
+    }
+    if (s[$-1]==',') {
+      s[$-1]='}';
+    } else {
+      s~="}";
+    }
+    return s;
+  }
+  if (is_assoc_type(c.type)) {
+    string s="{";
+    foreach (key;c.asc.inner.keys) {
+      if (is_assoc_type(c.asc.inner[key].type)) {
+        s~=key~":[TAssoc],";
+      } else {
+        s~=key~":"~pretty_str(c.asc.inner[key],ind)~",";
+      }
+    }
+    if (s[$-1]==',') {
+      s[$-1]='}';
+    } else {
+      s~="}";
+    }
+    return s;
+  }
+  if (c.type==TFtab) return "[TFtab "~environments.str(as_ftab(c))~"]";
+  if (c.type==TFun) return "[TFun]";
+  if (c.type==TLfun) return "[TLfun]";
+  if (c.type==TEnv) return pretty_str(assoc_cell(c.env.inner),ind);
+  if (c.type==TLambda) {
+    if (clothedString||1) {
+      string s="lambda(";
+      foreach (p;c.lam.pars) s~=cells.str(p)~" ";
+      if (s[$-1]==' ') s.length=s.length-1;
+      s~=")"~cells.str(c.lam.expr,1);
+      return s;
+    } else {
+      return "[TLambda]";
+    }
+  }
+  if (c.type==TType) {
+    Type t=as_type(c);
+    return types.str(t);
+  }
+  //
+  if (is_def_type(c.type)) {
+    c.type=get_def_subtype(c.type);
+    return cells.str(c);
+  }
+  return "["~types.str(c.type)~"]";
 }
-

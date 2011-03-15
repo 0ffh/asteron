@@ -10,6 +10,7 @@ defun foo(a,b) {
   return a+b;
 }
 defun main(string[] args=[]) {
+  prln("main");
   prln(foo(1,2));
   prln(foo(1,2.1));
 }

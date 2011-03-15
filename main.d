@@ -206,7 +206,6 @@ Cell eval(Cell x) {
 //----------------
 //---------------- test
 //----------------
-
 void ltest(string filename) {
   Cell c=lparse(cast(string)std.file.read(filename));
   c.show(true);
@@ -214,15 +213,16 @@ void ltest(string filename) {
 }
 void atest(string filename) {
   bool showflag=true;
-  bool reorder=!true;
+  bool reorder=true;
   Cell c=parse_file_to_cell(filename);
 //  if (showflag) c.show(true);
+  remove_seq_of_one(c);
   if (reorder) {
     operators_to_front(c,["defun","def"]);
     operator_to_front(c,"supertype");
-    operator_to_front(c,"typealias");
+    operator_to_front(c,"aliastype");
     operator_to_front(c,"deftype");
-//    if (showflag) c.show(true);
+    if (showflag) printf("%.*s\n",pretty_str(c,0));
   }
   eval(c);
 //  if (showflag) c.show(true);

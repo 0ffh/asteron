@@ -67,3 +67,15 @@ void operators_to_front(Cell c,bool[string] ops) {
     operators_to_front(c.lst[k],ops);
   }
 }
+void remove_seq_of_one(Cell* c) {
+  if (!isa(*c,TList)) return;
+  if (is_list_with_operator(*c,"seq") && (c.lst.length==2) && (isa(c.lst[1],TList))) {
+    c.lst=c.lst[1].lst;
+  }
+  for (int k=0;k<c.lst.length;++k) {
+    remove_seq_of_one(&(c.lst[k]));
+  }
+}
+void remove_seq_of_one(Cell c) {
+  remove_seq_of_one(&c);
+}

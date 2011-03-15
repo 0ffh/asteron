@@ -62,9 +62,6 @@ string str(Signature sig) {
   }
   return s~")";
 }
-bool is_sym(Cell c,string s) {
-  return ((c.type==TSymbol)&&(c.sym==s));
-}
 /*Signature argument_string2signature(string argstr) {
   static if (debf) {debEnter("argument_string2signature(string)");scope (exit) debLeave();}
   return parameter_cell2signature(lparse(argstr));
