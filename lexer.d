@@ -25,15 +25,29 @@ class Lexeme {
   int line() {
     return index_to_line(src,idxs);
   }
-  void show() {
-    printf("Lexeme\n");
-    printf("  type  = _%s_\n",tsz(type));
-    printf("  value = _%s_\n",tsz(val));
-    printf("  idx   = [%i..%i]\n",idxs,idxe);
+  string str() {
+    string s="Lexeme\n";
+    s~=cfrm("  type  = _%s_\n",tsz(type));
+    s~=cfrm("  value = _%s_\n",tsz(val));
+    s~=cfrm("  idx   = [%i..%i]\n",idxs,idxe);
+    return s;
   }
-  void error(string s) {
-    this.show();
-    printf("%.*s\n",s=cfrm("Error around line %i: %.*s\n",line(),s));
+  void show() {
+    printf("%s",str());
+  }
+  string error_string(string s) {
+    return str()~cfrm("Error around line %i: %.*s\n",line(),s);
+  }
+  void error(string s,string f="",long l=0) {
+    s=error_string(s);
+    if (f.length) {
+      if (l) {
+        s="["~f~":"~cfrm("%lu",l)~"] "~s;
+      } else {
+        s="["~f~"] "~s;
+      }
+    }
+    printf("%.*s\n",s);
     assert(false,s);
   }
   this(string val,string type="") {
