@@ -216,41 +216,6 @@ class Token {
     assert(false,s);
   }
 };
-Token advance(string id="") {
-  static if (debflag) {debEnter("advance");scope (exit) debLeave();}
-  if (lexeme_nr >= lexemes.length) {
-    return token=symbol_table["(end)"];
-  }
-  if (id.length && (lexeme.val != id)) {
-    lexeme.error("Expected '"~id~"'.");
-  }
-  Lexeme l=lexemes[lexeme_nr];
-  lexeme_nr += 1;
-  string v=l.val;
-  string a=l.type;
-  Token* o;
-  if (a == "name") {
-    o=cast(Token*)[skope.find(v)].ptr;
-  } else if (a == "operator") {
-    o=(v in symbol_table);
-    if (!o) {
-      l.error("Unknown operator.");
-    }
-  } else if ((a == "string") || (a ==  "number")) {
-//    a="literal";
-    o=("(literal)" in symbol_table);
-  } else {
-    l.error("Unexpected token.");
-  }
-  lexeme=l;
-  token=o.clone();
-  token.lex=l;
-  token.value=v;
-  token.arity=a;
-  static if (debflag) token.show();
-  return token;
-};
-/*
 void token_from_lexeme(Lexeme l) {
   const bool verbose=!true;
   string v=l.val;
@@ -275,48 +240,13 @@ void token_from_lexeme(Lexeme l) {
   lexeme=l;
   token=o.clone();
   token.lex=l;
-  if (token.arity!="type") {
+  //if (token.arity!="type") {
     token.value=v;
     token.arity=a;
-  }
+  //}
   static if (verbose) token.show();
   static if (verbose) printf("--- token_from_lexeme end\n");
 }
-/*
-Token advance(string id="") {
-  static if (debflag) {debEnter("advance");scope (exit) debLeave();}
-  if (lexeme_nr >= lexemes.length) {
-    return token=symbol_table["(end)"];
-  }
-  if (id.length && (lexeme.val != id)) {
-    lexeme.error("Expected '"~id~"'.",__FILE__,__LINE__);
-  }
-  Lexeme l=lexemes[lexeme_nr];
-  lexeme_nr += 1;
-  string v=l.val;
-  string a=l.type;
-  Token* o;
-  if (a == "name") {
-    o=cast(Token*)[skope.find(v)].ptr;
-  } else if (a == "operator") {
-    o=(v in symbol_table);
-    if (!o) {
-      l.error("Unknown operator.",__FILE__,__LINE__);
-    }
-  } else if ((a == "string") || (a ==  "number")) {
-//    a="literal";
-    o=("(literal)" in symbol_table);
-  } else {
-    l.error("Unexpected token.",__FILE__,__LINE__);
-  }
-  lexeme=l;
-  token=o.clone();
-  token.lex=l;
-  token.value=v;
-  token.arity=a;
-  static if (debflag) token.show();
-  return token;
-};
 Token advance(string id="") {
   static if (debflag) {debEnter("advance");scope (exit) debLeave();}
   if (lexeme_nr >= lexemes.length) {
@@ -341,7 +271,6 @@ Token retreat(string id="") {
   static if (debflag) token.show();
   return token;
 };
-*/
 //------------------------------------------------------------
 //------------------------------------------------------------
 //--------------------
