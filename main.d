@@ -47,7 +47,6 @@ Env* base_env;
 Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
   Env* lamenv=env_clone(lam.env);
   //-- at least as much parameters as arguments (rest must be defaulted)
-//  assert(lam.pars.length>=args.length);
   for (int k=0;k<lam.pars.length;++k) {
     //-- formal parameter
     Cell par=lam.pars[k];
@@ -108,7 +107,6 @@ Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
   FTabEntry* candidate_entry;
   Signature candidate_sig;
   Cell candidate;
-  Cell[] teargs;
   string name=as_symbol(sym);
   Env* e=environment;
   for (;;) {
@@ -119,7 +117,7 @@ Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
       assert(false);
       return null_cell();
     }
-    candidate=evalin(sym,e);
+    candidate=env_get(e,name);
     if (!isa(candidate,TFtab)) return candidate;
     if (!eargs.length) {
       eargs.length=args.length;
@@ -128,7 +126,6 @@ Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
     candidate_entry=ftab_resolve(candidate.ftab,eargs,name);
     if (candidate_entry) {
       candidate_sig=candidate_entry.sig;
-      teargs=eargs.dup;
       while (eargs.length<candidate_sig.length) {
         if (candidate_sig[eargs.length].name=="...") break;
         eargs~=candidate_sig[eargs.length].defv;
@@ -173,15 +170,12 @@ Cell eval(Cell x) {
   Cell[] eargs;
   Cell x0=x.lst[0];
   while (isa(x0,TList)) x0=eval(x0);
-//  printf("+++ A %i\n",args.length);
   if (isa(x0,TSymbol)) {
     x0=resolve_function(x0,args,eargs);
   }
-//  printf("+++ B %i\n",args.length);
   if (isa(x0,TLfun)) {
     return x0.lfn(args);
   }
-//  printf("+++ C %i\n",args.length);
   if (isa(x0,TFun)) {
     if (!eargs.length) {
       eargs.length=args.length;
@@ -200,18 +194,71 @@ Cell eval(Cell x) {
   printf("[type name is %.*s]\n",types.str(x0.type));
   assert(false);
 }
-
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
+//----------------
+//---------------- abstract eval
+//----------------
+Cell avalin(Cell x,Env* env) {
+  push_env(env);
+  x=aval(x);
+  pop_env();
+  return x;
+}
+Cell aval(Cell x) {
+  static if (debf) {debEnter("aval('%.*s')",cells.str(x));scope (exit) debLeave();}
+  evalcell=x;
+  static if (0) {
+    maxdepth=max(maxdepth,++depth);
+    scope (exit) --depth;
+  }
+  static if (0) {
+    indent(depth);
+    printf("%.*s\n",str(x));
+  }
+  if (state.ret||state.brk||state.cnt) return state.val;
+  if (isa(x,TSymbol)) return env_get(environment,x.sym);
+  if (!isa(x,TList)) return x;
+  if (!x.lst.length) return x;
+  Cell[] args=x.lst[1..$].dup; // !!! dup needed
+  Cell[] eargs;
+  Cell x0=x.lst[0];
+  while (isa(x0,TList)) x0=aval(x0);
+  if (isa(x0,TSymbol)) {
+    x0=resolve_function(x0,args,eargs);
+  }
+  if (isa(x0,TLfun)) {
+    return x0.lfn(args);
+  }
+  if (isa(x0,TFun)) {
+    if (!eargs.length) {
+      eargs.length=args.length;
+      for (int k;k<args.length;++k) eargs[k]=aval(args[k]);
+    }
+    return x0.fun(eargs);
+  }
+  if (isa(x0,TLambda)) {
+    Lamb* lam=as_lambda(x0);
+    Env* lamenv=mk_lambda_environment(lam,args,environment);
+    Cell c=avalin(lam.expr,lamenv);
+    state.ret=0;
+    return c;
+  }
+  printf("[unexpected type %i]\n",x0.type);
+  printf("[type name is %.*s]\n",types.str(x0.type));
+  assert(false);
+}
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //----------------
 //---------------- test
 //----------------
-void lexec(string filename) {
+void exec_l(string filename) {
   Cell c=lparse(cast(string)std.file.read(filename));
   c.show(true);
   eval(c);
 }
-void aexec(string filename) {
+void exec_ast(string filename) {
   bool showflag=true;
   bool reorder=true;
   Cell c=parse_file_to_cell(filename);
@@ -225,6 +272,22 @@ void aexec(string filename) {
     if (showflag) printf("%.*s\n",pretty_str(c,0));
   }
   eval(c);
+//  if (showflag) c.show(true);
+}
+void abs_exec_ast(string filename) {
+  bool showflag=true;
+  bool reorder=true;
+  Cell c=parse_file_to_cell(filename);
+//  if (showflag) c.show(true);
+  reduce_seq_of_one(&c);
+  if (reorder) {
+    operators_to_front(c,["defun","def"]);
+    operator_to_front(c,"supertype");
+    operator_to_front(c,"aliastype");
+    operator_to_front(c,"deftype");
+    if (showflag) printf("%.*s\n",pretty_str(c,0));
+  }
+  aval(c);
 //  if (showflag) c.show(true);
 }
 
@@ -241,22 +304,20 @@ Env* mk_base_env() {
   init_types();
   return e;
 }
-
 void dump_info() {
-//  env_pr(base_env);
   env_pr(environment);
 }
-
 void exec(string fn) {
   base_env=mk_base_env();
   init_libs();
   push_env();
-  //try {
-    aexec(fn);
-  /*} catch (Exception e) {
-    //printf("[%.*s] ",cells.str(evalcell));
-    //printf("%.*s\n",e.toString());
-  }*/
+  exec_ast(fn);
+}
+void abs_exec(string fn) {
+  base_env=mk_base_env();
+  init_abs_libs();
+  push_env();
+  abs_exec_ast(fn);
 }
 void env_info() {
   for (int k=0;k<envstack.length;++k) printf("%p ",envstack[k]);
@@ -266,5 +327,9 @@ void main(string[] args) {
   string fn;
   if (args.length>1) fn=args[1]~".ast";
   else fn="test.ast";
-  exec(fn);
+  if (0) {
+    exec(fn);
+  } else {
+    abs_exec(fn);
+  }
 }
