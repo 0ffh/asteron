@@ -197,16 +197,114 @@ Cell eval(Cell x) {
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //----------------
+//---------------- abs_eval helpers
+//----------------
+Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
+  Env* lamenv=env_clone(lam.env);
+  //-- at least as much parameters as arguments (rest must be defaulted)
+  for (int k=0;k<lam.pars.length;++k) {
+    //-- formal parameter
+    Cell par=lam.pars[k];
+    //-- handle ellipse (...)
+    if (k==(lam.pars.length-1)) {
+      string n;
+      if (isa(par,TSymbol)) {
+        n=par.sym;
+      }
+      if (isa(par,TList) && (par.lst.length==2)) {
+        n=as_symbol(par.lst[1]);
+      }
+      if (n=="...") {
+        Cell[] eargs;
+        for (int ka=k;ka<args.length;++ka) {
+          eargs~=abs_eval(args[ka]);
+//          printf("### %.*s -> %.*s\n",cells.str(args[ka]),cells.str(eargs[$-1]));
+        }
+//        printf("### %i\n",eargs.length);
+        env_put(lamenv,"ellipse",array_cell(eargs));
+        break;
+      }
+    }
+    //-- handle defaulted parameter declaration ((type name value))
+    if (k>=args.length) {
+      //- no argument for this parameter
+      if (isa(par,TList) && (par.lst.length==3)) {
+        //- default argument available
+        Cell t=par.lst[0];
+        string n=as_symbol(par.lst[1]);
+        env_put(lamenv,n,par.lst[2]);
+        continue;
+      }
+      //- no default argument
+      assert(false,"Missing invokation argument(s)");
+    }
+    //-- call argument
+    Cell arg=args[k];
+    //-- handle untyped parameter declaration (name)
+    if (isa(par,TSymbol)) {
+      env_put(lamenv,par.sym,abs_eval(arg));
+      continue;
+    }
+    //-- handle typed parameter declaration (type name)
+    if (isa(par,TList)) {
+      assert(par.lst.length>1);
+//      Cell t=par.lst[0];
+      string n=as_symbol(par.lst[1]);
+      env_put(lamenv,n,abs_eval(arg));
+      continue;
+    }
+    //
+    assert(false,"Invokation error");
+  }
+  return lamenv;
+}
+Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
+  FTabEntry* candidate_entry;
+  Signature candidate_sig;
+  Cell candidate;
+  string name=as_symbol(sym);
+  Env* e=environment;
+  for (;;) {
+//printf("looking up Function '%.*s' in environment %p\n",name,e);
+    if (e) e=env_find(e,name);
+    if (!e) {
+      printf("*** Error: Function '%.*s' lookup failed!\n",name);
+      assert(false);
+      return null_cell();
+    }
+    candidate=env_get(e,name);
+    if (!isa(candidate,TFtab)) return candidate;
+    if (!eargs.length) {
+      eargs.length=args.length;
+      for (int k;k<args.length;++k) eargs[k]=abs_eval(args[k]);
+    }
+    candidate_entry=ftab_resolve(candidate.ftab,eargs,name);
+    if (candidate_entry) {
+      candidate_sig=candidate_entry.sig;
+      while (eargs.length<candidate_sig.length) {
+        if (candidate_sig[eargs.length].name=="...") break;
+        eargs~=candidate_sig[eargs.length].defv;
+      }
+      args=eargs;
+      break;
+    }
+    e=e.outer;
+  }
+  return candidate_entry.fun;
+}
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
+//----------------
 //---------------- abstract eval
 //----------------
-Cell avalin(Cell x,Env* env) {
+Cell abs_evalin(Cell x,Env* env) {
   push_env(env);
-  x=aval(x);
+  x=abs_eval(x);
   pop_env();
   return x;
 }
-Cell aval(Cell x) {
-  static if (debf) {debEnter("aval('%.*s')",cells.str(x));scope (exit) debLeave();}
+Cell abs_eval(Cell x) {
+  static if (debf) {debEnter("abs_eval('%.*s')",cells.str(x));scope (exit) debLeave();}
   evalcell=x;
   static if (0) {
     maxdepth=max(maxdepth,++depth);
@@ -223,9 +321,9 @@ Cell aval(Cell x) {
   Cell[] args=x.lst[1..$].dup; // !!! dup needed
   Cell[] eargs;
   Cell x0=x.lst[0];
-  while (isa(x0,TList)) x0=aval(x0);
+  while (isa(x0,TList)) x0=abs_eval(x0);
   if (isa(x0,TSymbol)) {
-    x0=resolve_function(x0,args,eargs);
+    x0=abs_resolve_function(x0,args,eargs);
   }
   if (isa(x0,TLfun)) {
     return x0.lfn(args);
@@ -233,14 +331,14 @@ Cell aval(Cell x) {
   if (isa(x0,TFun)) {
     if (!eargs.length) {
       eargs.length=args.length;
-      for (int k;k<args.length;++k) eargs[k]=aval(args[k]);
+      for (int k;k<args.length;++k) eargs[k]=abs_eval(args[k]);
     }
     return x0.fun(eargs);
   }
   if (isa(x0,TLambda)) {
     Lamb* lam=as_lambda(x0);
-    Env* lamenv=mk_lambda_environment(lam,args,environment);
-    Cell c=avalin(lam.expr,lamenv);
+    Env* lamenv=abs_mk_lambda_environment(lam,args,environment);
+    Cell c=abs_evalin(lam.expr,lamenv);
     state.ret=0;
     return c;
   }
@@ -287,7 +385,7 @@ void abs_exec_ast(string filename) {
     operator_to_front(c,"deftype");
     if (showflag) printf("%.*s\n",pretty_str(c,0));
   }
-  aval(c);
+  abs_eval(c);
 //  if (showflag) c.show(true);
 }
 

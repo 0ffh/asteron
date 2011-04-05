@@ -85,7 +85,7 @@ Env* env_find(Env* e,string key) {
 Env* env_clone(Env* self) {
   static if (debf) {debEnter("env_clone(Env*)");scope (exit) debLeave();}
   Env* e=mk_env(self.outer);
-  foreach (key;self.inner.keys) env_put(e,key,env_get(self,key));
+  foreach (key;self.inner.keys) env_put(e,key,self.inner[key]);
   return e;
 }
 void env_pr(Env* env) {
