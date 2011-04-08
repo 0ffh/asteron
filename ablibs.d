@@ -15,16 +15,42 @@ import std.math;
 //---------------- core functions
 //----------------
 
+Cell call_all(Cell[] exps) {
+  Cell[] ress;
+  printf("### exps:%i\n",exps.length);
+  for (int k;k<exps.length;++k) {
+    printf("### exps[%i]\n",k);
+    Cell exp=exps[k];
+    Cell res=abs_eval(exp);
+    if (state.code==StC.ret) {
+      printf("### exps[%i] -> recursion\n",k);
+      state.code=StC.run;
+    } else {
+      printf("### exps[%i] -> result\n",k);
+      ress~=res;
+    }
+  }
+  printf("### ress:%i\n",ress.length);
+  assert(ress.length>0,"Internal humbug error.");
+  for (int k=1;k<ress.length;++k) {
+    assert(ress[0].type==ress[k].type,"Type error");
+  }
+  if (ress.length<exps.length) {
+    state.code=StC.ret;
+    state.val=list_cell(exps);
+    return state.val;
+  }
+//  printf("***** exps:%i ress:%i\n",exps.length,ress.length);
+  return ress[0];
+}
 Cell op_if(Cell[] args) {
   static if (debf) {debEnter("[if]");scope (exit) debLeave();}
+  abs_eval(args[0]);
   if (args.length==2) {
     return abs_eval(args[1]);
   }
   if (args.length==3) {
-    Cell e1=abs_eval(args[1]);
-    Cell e2=abs_eval(args[2]);
-    assert(e1.type==e2.type,"Type error");
-    return e1;
+    return call_all(args[1..$]);
   }
   assert(false);
 }
@@ -36,7 +62,7 @@ Cell op_switch(Cell[] args) {
     c=abs_eval(args[k]);
     k=k+2;
   }
-  state.brk=0;
+//  state.brk=0;
   return null_cell();
 }
 Cell op_for(Cell[] args) {
@@ -47,8 +73,8 @@ Cell op_for(Cell[] args) {
   abs_eval(args[1]);
   abs_eval(args[2]);
   Cell c=abs_eval(args[3]);
-  state.brk=0;
-  state.cnt=0;
+//  state.brk=0;
+//  state.cnt=0;
   pop_env();
   return c;
 }
@@ -58,8 +84,8 @@ Cell op_while(Cell[] args) {
   push_env(); // we get our own scope
   abs_eval(args[0]);
   Cell c=abs_eval(args[1]);
-  state.brk=0;
-  state.cnt=0;
+//  state.brk=0;
+//  state.cnt=0;
   pop_env();
   return c;
 }
@@ -69,7 +95,7 @@ Cell op_dowhile(Cell[] args) {
   push_env(); // we get our own scope
   Cell c=abs_eval(args[0]);
   abs_eval(args[1]);
-  state.brk=0;
+//  state.brk=0;
   pop_env();
   return c;
 }
@@ -200,20 +226,20 @@ Cell op_scope(Cell[] args) {
 }
 Cell op_break(Cell[] args) {
   static if (debf) {debEnter("[break]");scope (exit) debLeave();}
-  state.brk=1;
+//  state.brk=1;
   return null_cell();
 }
 Cell op_continue(Cell[] args) {
   static if (debf) {debEnter("[continue]");scope (exit) debLeave();}
-  state.cnt=1;
+//  state.cnt=1;
   return null_cell();
 }
 Cell op_return(Cell[] args) {
   static if (debf) {debEnter("[return]");scope (exit) debLeave();}
   if (args.length) {
     Cell c=abs_eval(args[0]);
-    state.ret=1;
-    state.val=c;
+//    state.ret=1;
+//    state.val=c;
     return c;
   } else {
     return null_cell();
@@ -659,6 +685,11 @@ Cell op_ref_set(Cell[] args) {
   env_put(r.env,r.id,args[1]);
   return args[1];
 }
+Cell op_result(Cell[] args) {
+  static if (debf) {debEnter("[$result]");scope (exit) debLeave();}
+  assert(args.length==1);
+  return args[1];
+}
 void add_abs_libs(Env* env) {
   // normal functions
   env_putfun_sigstr(env,"+",fun_cell(&op_math_int_int),"(int int)","int");
@@ -747,5 +778,7 @@ void add_abs_libs(Env* env) {
 
 //  env_putfun_sigstr(env,"tron",fun_cell(&op_tron),"()","any");
 //  env_putfun_sigstr(env,"troff",fun_cell(&op_tron),"()","any");
+
+  env_put(env,"$result",fun_cell(&op_result));
 }
 

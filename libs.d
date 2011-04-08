@@ -37,10 +37,13 @@ Cell op_switch(Cell[] args) {
   k=k+1;
   while (k<args.length) {
     c=eval(args[k]);
-    if (state.brk) break;
+    if (state.code==StC.brk) {
+      state.code=StC.run;
+      break;
+    }
     k=k+2;
   }
-  state.brk=0;
+//  state.code=StC.run;
   return null_cell();
 }
 Cell op_for(Cell[] args) {
@@ -50,8 +53,8 @@ Cell op_for(Cell[] args) {
   Cell c;
   for (eval(args[0]);istrue(eval(args[1]));eval(args[2])) {
     c=eval(args[3]);
-    if (state.brk) {state.brk=0;break;}
-    if (state.cnt) {state.cnt=0;continue;}
+    if (state.code==StC.brk) {state.code=StC.run;break;}
+    if (state.code==StC.cnt) {state.code=StC.run;continue;}
   }
   pop_env();
   return c;
@@ -63,10 +66,10 @@ Cell op_while(Cell[] args) {
   Cell c;
   while (istrue(eval(args[0]))) {
     c=eval(args[1]);
-    if (state.brk) {state.brk=0;break;}
-    if (state.cnt) {state.cnt=0;continue;}
+    if (state.code==StC.brk) {state.code=StC.run;break;}
+    if (state.code==StC.cnt) {state.code=StC.run;continue;}
   }
-  state.brk=0;
+  //state.brk=0;
   pop_env();
   return c;
 }
@@ -77,10 +80,10 @@ Cell op_dowhile(Cell[] args) {
   Cell c;
   do {
     c=eval(args[0]);
-    if (state.brk) {state.brk=0;break;}
-    if (state.cnt) {state.cnt=0;continue;}
+    if (state.code==StC.brk) {state.code=StC.run;break;}
+    if (state.code==StC.cnt) {state.code=StC.run;continue;}
   } while (istrue(eval(args[1])));
-  state.brk=0;
+//  state.brk=0;
   pop_env();
   return c;
 }
@@ -206,19 +209,19 @@ Cell op_scope(Cell[] args) {
 }
 Cell op_break(Cell[] args) {
   static if (debf) {debEnter("[break]");scope (exit) debLeave();}
-  state.brk=1;
+  state.code=StC.brk;
   return null_cell();
 }
 Cell op_continue(Cell[] args) {
   static if (debf) {debEnter("[continue]");scope (exit) debLeave();}
-  state.cnt=1;
+  state.code=StC.cnt;
   return null_cell();
 }
 Cell op_return(Cell[] args) {
   static if (debf) {debEnter("[return]");scope (exit) debLeave();}
   if (args.length) {
     Cell c=eval(args[0]);
-    state.ret=1;
+    state.code=StC.ret;
     state.val=c;
     return c;
   } else {
@@ -794,6 +797,11 @@ Cell op_ref_set(Cell[] args) {
   env_put(r.env,r.id,args[1]);
   return args[1];
 }
+/*Cell op_result(Cell[] args) {
+  static if (debf) {debEnter("[$result]");scope (exit) debLeave();}
+  assert(args.length==1);
+  return args[1];
+}*/
 void add_libs(Env* env) {
   // normal functions
   env_putfun_sigstr(env,"+",fun_cell(&op_add_int_int),"(int int)","int");
@@ -882,5 +890,6 @@ void add_libs(Env* env) {
 
 //  env_putfun_sigstr(env,"tron",fun_cell(&op_tron),"()","any");
 //  env_putfun_sigstr(env,"troff",fun_cell(&op_tron),"()","any");
+//  env_put(env,"$result",fun_cell(&op_result));
 }
 

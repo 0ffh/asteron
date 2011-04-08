@@ -27,6 +27,14 @@ Lamb* mk_lamb(Cell exp,Cell[] par,Env* en) {
   l.env=en;
   return cast(Lamb*)[l].ptr;
 }
+Lamb* clone(Lamb* s) {
+  Lamb d;
+  d.expr=clone_cell(s.expr);
+  d.pars.length=s.pars.length;
+  for (int k;k<d.pars.length;++k) d.pars[k]=clone_cell(s.pars[k]);
+  d.env=s.env;
+  return cast(Lamb*)[d].ptr;
+}
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -444,12 +452,20 @@ bool is_sym(Cell c,string s) {
   return ((c.type==TSymbol)&&(c.sym==s));
 }
 Cell clone_cell(Cell self) {
-  if (self.type!=TList) return self;
-  Cell c;
-  c.type=TList;
-  c.lst.length=self.lst.length;
-  for (int k=self.lst.length;k--;) c.lst[k]=clone_cell(self.lst[k]);
-  return c;
+  if (self.type==TList) {
+    Cell c;
+    c.type=TList;
+    c.lst.length=self.lst.length;
+    for (int k=self.lst.length;k--;) c.lst[k]=clone_cell(self.lst[k]);
+    return c;
+  }
+  if (self.type==TLambda) {
+    Cell c;
+    c.type=TLambda;
+    c.lam=clone(self.lam);
+    return c;
+  }
+  return self;
 }
 void pr(Cell self) {
   printf("%.*s",str(self));

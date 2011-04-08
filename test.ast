@@ -5,14 +5,26 @@
  - type literals
  - all types global (?)
 */
-
-defun foo(a,b) {
-  return a+b;
+defun fib(n) {
+  if (n<2) return n;
+  else return fib(n-2)+fib(n-1);
 }
+fib(3);
+/*
+defun foo(x) {return (x+x);}
+defun bar(x) {return foo(x);}
+defun fib(n) {
+  if (n<2) return n;
+  else return fib(n-2)+fib(n-1);
+}
+
 defun main(string[] args=[]) {
   prln("main");
-  prln(foo(1,2));
-  prln(foo(1,2.1));
+  prln(foo(1));
+  prln(foo(1.1));
+  prln(bar(1));
+  prln(bar(1.1));
+  prln(fib(3));
 }
 main();
 /*

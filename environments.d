@@ -73,7 +73,7 @@ Cell env_get(Env* e,string key) {
   assert(false,"env_get: '"~key~"' not found!");
 }
 Env* env_find(Env* e,string key) {
-  static if (debf) {debEnter("env_find(Env*,"~key~")");scope (exit) debLeave();}
+  static if (debf) {debEnter("env_find(Env*,'"~key~"')");scope (exit) debLeave();}
   if ((key in e.inner) !is null) {
     return e;
   }
@@ -159,7 +159,7 @@ bool ftab_add(FTab* ft,Cell fun,Signature sig,Type ret) {
   return true;
 }
 FTabEntry* ftab_resolve(FTab *ft,Cell[] args,string id="") {
-  static if (debf) {debEnter("ftab_resolve("~id~")");scope (exit) debLeave();}
+  //static if (debf) {debEnter("ftab_resolve('"~id~")'");scope (exit) debLeave();}
   // parameters vs. arguments
   //   in definition: parameter
   //   at call site: argument
@@ -169,7 +169,7 @@ FTabEntry* ftab_resolve(FTab *ft,Cell[] args,string id="") {
   return ftab_resolve(ft,targs,id);
 }
 FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
-  static if (debf) {debEnter("ftab_resolve("~id~")");scope (exit) debLeave();}
+  static if (debf) {debEnter("ftab_resolve('"~id~"')");scope (exit) debLeave();}
   // parameters vs. arguments
   //   in definition: parameter
   //   at call site: argument
