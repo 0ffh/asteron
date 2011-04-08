@@ -32,10 +32,16 @@ const bool require_declaration_before_use=true;
 enum StC {run=0,ret,brk,cnt};
 
 struct State {
-  StC  code;
-  Cell val;
+  StC    code;
+  Cell   val;
 }
 State state;
+/*struct AbsRec {
+  int    code;
+  Cell[] exps;
+}
+AbsRec abs_rec;*/
+bool abs_recursion_retry;
 
 Env* base_env;
 
@@ -205,7 +211,7 @@ Cell eval(Cell x) {
 //----------------
 //---------------- abstract eval helpers
 //----------------
-struct FunListEntry {
+class FunListEntry {
   string     nam;
   FTabEntry* fte;
   Cell[]     par; // parameters
@@ -213,7 +219,7 @@ struct FunListEntry {
   Cell       res; // result value
   bool       rec; // recursion
   static FunListEntry opCall(string nam,FTabEntry* fte,Cell[] par,Cell fun) {
-    FunListEntry fle;
+    FunListEntry fle=new FunListEntry();
     fle.nam=nam;
     fle.fte=fte;
     fle.par=par;
@@ -230,14 +236,14 @@ void show_fun_list() {
     printf("%.*s\n",pretty_str(fle.fun,0));
   }
 }
-FunListEntry* find_in_fun_list(FTabEntry* fte,Cell[] par) {
+FunListEntry find_in_fun_list(FTabEntry* fte,Cell[] par) {
   for (int kfl;kfl<fun_list.length;++kfl) {
     FunListEntry fle=fun_list[kfl];
     if (fte!=fle.fte) continue;
     if (par.length!=fle.par.length) continue;
     for (int k;k<par.length;++k) {
       if (par[k].type!=fle.par[k].type) break;
-      if (k==par.length-1) return &(fun_list[kfl]);
+      if (k==par.length-1) return fun_list[kfl];
     }
   }
   return null;
@@ -250,9 +256,7 @@ Cell abs_get_result_from_fun_list(string name) {
   }
   assert(false);
 }
-string abs_resolve_name;
-//Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
-Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
+Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
   static if (debf) {debEnter("abs_resolve_function('"~sym.sym~"')");scope (exit) debLeave();}
   FTabEntry* candidate_entry;
   Signature candidate_sig;
@@ -260,9 +264,6 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
   string name=as_symbol(sym);
   Env* e=environment;
   Cell[] args_bak;
-  abs_resolve_name="";
-//  px0.sym="LOLOL";
-//    e.show();
   for (;;) {
 //printf("looking up Function '%.*s' in environment %p\n",name,e);
     if (e) e=env_find(e,name);
@@ -293,33 +294,40 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
     }
     e=e.outer;
   }
-  FunListEntry* fle=find_in_fun_list(candidate_entry,args);
-  if (!fle) {
+  FunListEntry fle=find_in_fun_list(candidate_entry,args);
+  if (fle is null) {
     printf("!FLE:%.*s\n",name);
     name=cfrm("$%.*s_%d",name,fun_list.length);
-    fun_list~=FunListEntry(name,candidate_entry,args,candidate_entry.fun);
-    fle=&(fun_list[$-1]);
-    //px0.sym=name;
+    fle=FunListEntry(name,candidate_entry,args,candidate_entry.fun);
+    fun_list~=fle;
+    px0.sym=fle.nam;
+    printf("+++++++ Activating recursion test for %.*s\n",fle.nam);
     fle.rec=true;
     fle.res=abs_eval(list_cell([fle.fun]~args));
+    printf("+++++++ Deactivating recursion test for %.*s\n",fle.nam);
     fle.rec=false;
-    if (state.code==StC.ret) {
-      printf("%%% Premature return due to recursion!\n",name);
+    if (abs_recursion_retry) {
+      printf("+++ Premature return due to recursion!\n");
+      abs_recursion_retry=false;
+      Cell res=abs_eval(list_cell([fle.fun]~args));
+      if (res.type!=fle.res.type) {
+        printf("types : %.*s / %.*s\n",types.str(res.type),types.str(fle.res.type));
+        assert(false,"Recursion type mismatch.");
+      }
     }
   } else {
-    printf("FLE:%.*s\n",name);
-    if (fle.rec) {
-      printf("%%% recursion\n",name);
-      //assert(false,"How to untie recursion?");
-      //throw new Exception("Recursion error");
-      state.code=StC.ret;
-      state.val=null_cell();
-      return list_cell([state.val]);
-    }
+    printf("FLE:%.*s (%.*s)\n",name,fle.nam);
     name=fle.nam;
-    //px0.sym=name;
+    px0.sym=name;
+    if (fle.rec) {
+      printf("+++++++ Recursion tested positive for %.*s\n",fle.nam);
+      state.code=StC.ret;
+      state.val=fle.res;
+      return list_cell([fle.res]);
+    }
+    printf("+++ A\n");
   }
-  abs_resolve_name=name;
+  printf("+++ B\n");
   return list_cell([fle.res]);
 }
 Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
@@ -407,13 +415,7 @@ Cell abs_eval(Cell x) {
   }
   if (isa(x0,TSymbol)) {
     if (x0.sym[0]=='$') return abs_get_result_from_fun_list(x0.sym);
-//    x0=abs_resolve_function(x0,args,eargs,px0);
-    x0=abs_resolve_function(x0,args,eargs);
-    if (abs_resolve_name.length) {
-      if (isa(*px0,TSymbol)) {
-        (*px0).sym=abs_resolve_name;
-      }
-    }
+    x0=abs_resolve_function(x0,args,eargs,px0);
     if (isa(x0,TList)) return x0.lst[0]; // result packed in list
   }
   if (isa(x0,TLfun)) {
@@ -521,7 +523,7 @@ void main(string[] args) {
   if (args.length>1) fn=args[1]~".ast";
   else fn="test.ast";
 //  state.code=StC.run;
-  if (1) {
+  if (0) {
     exec(fn);
   } else {
     abs_exec(fn);

@@ -15,18 +15,19 @@ import std.math;
 //---------------- core functions
 //----------------
 
-Cell call_all(Cell[] exps) {
+Cell abs_eval_all(Cell[] exps) {
   Cell[] ress;
   printf("### exps:%i\n",exps.length);
   for (int k;k<exps.length;++k) {
     printf("### exps[%i]\n",k);
     Cell exp=exps[k];
+    printf("### %.*s\n",cells.str(exp));
     Cell res=abs_eval(exp);
     if (state.code==StC.ret) {
       printf("### exps[%i] -> recursion\n",k);
       state.code=StC.run;
     } else {
-      printf("### exps[%i] -> result\n",k);
+      printf("### exps[%i] -> result: %.*s\n",k,types.str(res.type));
       ress~=res;
     }
   }
@@ -36,11 +37,11 @@ Cell call_all(Cell[] exps) {
     assert(ress[0].type==ress[k].type,"Type error");
   }
   if (ress.length<exps.length) {
-    state.code=StC.ret;
-    state.val=list_cell(exps);
-    return state.val;
+    printf("### abs_recursion_retry:=true\n");
+    abs_recursion_retry=true;
   }
 //  printf("***** exps:%i ress:%i\n",exps.length,ress.length);
+  printf("### abs_eval_all: %.*s\n",types.str(ress[0].type));
   return ress[0];
 }
 Cell op_if(Cell[] args) {
@@ -50,7 +51,7 @@ Cell op_if(Cell[] args) {
     return abs_eval(args[1]);
   }
   if (args.length==3) {
-    return call_all(args[1..$]);
+    return abs_eval_all(args[1..$]);
   }
   assert(false);
 }
