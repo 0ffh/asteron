@@ -4,7 +4,7 @@ import utils;
 import std.c.string;
 
 bool trace=false;
-const bool debflag=!true;
+const bool debflag=true;
 
 void delegate() testfun;
 const bool debEnable=debflag;
@@ -54,7 +54,7 @@ void debEnter(string fs,...) {
     if (testfun !is null) testfun();
   }
 }
-void debLeave() {
+void debLeave(String lmsg="") {
   static if (debEnable) {
     // ensure stack is nonempty
     assert(debStringStack.length>0,"debug stack empty!");
@@ -64,7 +64,11 @@ void debLeave() {
     debStringStack.length=debStringStack.length-1;
     static if (debVerbose) {
       indent(debStringStack.length);
-      printf("}\n");
+      if (lmsg.length) {
+        printf("} [%.*s]",lmsg);
+      } else {
+        printf("}\n");
+      }
       flush();
     }
   }
