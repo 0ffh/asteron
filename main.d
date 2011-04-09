@@ -117,7 +117,6 @@ Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
     if (!e) {
       printf("*** Error: Function '%.*s' lookup failed!\n",name);
       assert(false);
-      return null_cell();
     }
     candidate=env_get(e,name);
     if (!isa(candidate,TFtab)) return candidate;
@@ -220,7 +219,7 @@ class FunListEntry {
     fle.fte=fte;
     fle.par=par;
     fle.fun=clone_cell(fun);
-    fle.res=null_cell();
+    fle.res=any_cell();
     fle.abt=false;
     return fle;
   }
@@ -268,7 +267,11 @@ Cell abs_get_result_from_fun_list(string name) {
   assert(false);
 }
 Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
-  static if (debf) {debEnter("abs_resolve_function('"~sym.sym~"')");scope (exit) debLeave();}
+  string lmsg;
+  static if (debf) {
+    debEnter("abs_resolve_function('"~sym.sym~"')");
+    scope (exit) debLeave(cfrm("%.*s / %i",lmsg,state.code));
+  }
   FTabEntry* candidate_entry;
   Signature candidate_sig;
   Cell candidate;
@@ -280,7 +283,6 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
     if (!e) {
       printf("*** Error: Function '%.*s' lookup failed!\n",name);
       assert(false);
-      return null_cell();
     }
     candidate=env_get(e,name);
     if (!isa(candidate,TFtab)) {
@@ -290,14 +292,12 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
       eargs.length=args.length;
       for (int k;k<args.length;++k) eargs[k]=abs_eval(args[k]);
       if (state.code) {
+        lmsg="Parameter abort";
         eargs.length=0;
         return list_cell([state.val]);
       }
     }
     args_bak=eargs.dup;
-    for (int k;k<eargs.length;++k) {
-      Cell a=eargs[k];
-    }
     candidate_entry=ftab_resolve(candidate.ftab,eargs,name);
     if (candidate_entry) {
       candidate_sig=candidate_entry.sig;
@@ -318,30 +318,26 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
     fle=FunListEntry(name,candidate_entry,args,candidate_entry.fun);
     fun_list~=fle;
     call_stack_push(fle);
-    fle.res=abs_eval(list_cell([fle.fun]~args));
+    Cell h=abs_eval(list_cell([fle.fun]~args));
+    if (!isa(h,TNull)) fle.res=h;
     while (fle.abt) {
       fle.abt=false;
-      Cell res=abs_eval(list_cell([fle.fun]~args));
-      if ((fle.res.type!=TNull) && (res.type!=TNull)) {
-        if (res.type!=fle.res.type) {
-          printf("types : %.*s / %.*s\n",types.str(res.type),types.str(fle.res.type));
-          assert(false,"Recursion type mismatch.");
-        }
-        break;
-      }
+      Cell r=abs_eval(list_cell([fle.fun]~args));
+      if (!isa(r,TNull)) fle.res=r;
     }
     call_stack_pop();
   } else {
     //printf("FLE:%.*s (%.*s)\n",name,fle.nam);
     name=fle.nam;
     px0.sym=name;
-    if (fle.res.type==TNull) {
-      //printf("+++++++ Recursion return type unavailable for %.*s\n",fle.nam);
+    if (fle.res.type==TAny) {
+      printf("+++++++ Recursion return type unavailable for %.*s\n",fle.nam);
       fle.abt=true;
       state.code=StC.abt;
       state.val=fle.res;
     }
   }
+  lmsg=cfrm("%.*s",types.str(fle.res.type));
   return list_cell([fle.res]);
 }
 Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {

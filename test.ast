@@ -13,6 +13,17 @@ fib0(3);
 fib1(3);
 fib2(3);
 fib3(3);
+//--- all error modes
+//defun dfib(n) {if (n<2) return "n"; else return dfib(n-2)+dfib(n-1);} // defect
+//defun dfib(n) {if (n<2) return n; else return dfib("n-2)+dfib(n-1");} // defect
+//defun dfib(n) {if (n<2) return "n";      return dfib(n-2)+dfib(n-1);} // defect
+//defun dfib(n) {if (n<2) return n;      return dfib("n-2)+dfib(n-1");} // defect
+//defun dfib(n) {if (n>1) return dfib("n-2)+dfib(n-1"); else return n;} // defect
+//defun dfib(n) {if (n>1) return dfib(n-2)+dfib(n-1); else return "n";} // defect
+//defun dfib(n) {if (n>1) return dfib("n-2)+dfib(n-1");      return n;} // defect
+//defun dfib(n) {if (n>1) return dfib(n-2)+dfib(n-1);      return "n";} // defect
+//dfib(2);
+
 /*
 //----------------------------------------------------------------------
 //--- minimal testing framework

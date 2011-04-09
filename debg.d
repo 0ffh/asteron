@@ -4,7 +4,7 @@ import utils;
 import std.c.string;
 
 bool trace=false;
-const bool debflag=true;
+const bool debflag=!true;
 
 void delegate() testfun;
 const bool debEnable=debflag;

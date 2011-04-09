@@ -22,6 +22,7 @@ Cell[] abs_eval_all(Cell[] exps) {
   for (int k;k<exps.length;++k) {
     Cell exp=exps[k];
     Cell res=abs_eval(exp);
+    printf("abs_eval_all %i/%i: %i / %.*s\n",k,exps.length,state.code,types.str(res.type));
     if (state.code==StC.abt) {
       state.code=StC.run;
     } else {
@@ -214,16 +215,18 @@ Cell op_continue(Cell[] args) {
 Cell op_return(Cell[] args) {
   static if (debf) {debEnter("[return]");scope (exit) debLeave();}
   FunListEntry tocs=call_stack_top();
+  Cell c;
   if (args.length) {
-    Cell c=abs_eval(args[0]);
-    if (isa(tocs.res,TNull)) {
-      tocs.res=c;
-    } else {
-      printf("tocs.res.type=%.*s c.type=%.*s\n",types.str(tocs.res.type),types.str(c.type));
-      assert(isa(c,TNull) || (tocs.res.type==c.type),"Return type mismatch");
-    }
+    assert(args.length==1,"Paranoia error.");
+    c=abs_eval(args[0]);
   } else {
-    tocs.res=null_cell();
+    c=null_cell();
+  }
+  if (isa(tocs.res,TAny)) {
+    tocs.res=c;
+  } else {
+    printf("tocs.res.type=%.*s c.type=%.*s\n",types.str(tocs.res.type),types.str(c.type));
+    assert(isa(c,TAny) || (tocs.res.type==c.type),"Return type mismatch");
   }
   printf("***** Returning %.*s\n",types.str(tocs.res.type));
   return tocs.res;
