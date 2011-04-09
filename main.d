@@ -219,7 +219,7 @@ class FunListEntry {
     fle.fte=fte;
     fle.par=par;
     fle.fun=clone_cell(fun);
-    fle.res=any_cell();
+    fle.res=null_cell();
     fle.abt=false;
     return fle;
   }
@@ -272,6 +272,7 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
     debEnter("abs_resolve_function('"~sym.sym~"')");
     scope (exit) debLeave(cfrm("%.*s / %i",lmsg,state.code));
   }
+  printf("abs_resolve_function('%.*s')\n",sym.sym);
   FTabEntry* candidate_entry;
   Signature candidate_sig;
   Cell candidate;
@@ -294,7 +295,7 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
       if (state.code) {
         lmsg="Parameter abort";
         eargs.length=0;
-        return list_cell([state.val]);
+        return list_cell([any_cell()]);
       }
     }
     args_bak=eargs.dup;
@@ -330,8 +331,8 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
     //printf("FLE:%.*s (%.*s)\n",name,fle.nam);
     name=fle.nam;
     px0.sym=name;
-    if (fle.res.type==TAny) {
-      printf("+++++++ Recursion return type unavailable for %.*s\n",fle.nam);
+    if ((fle.res.type==TAny) || (fle.res.type==TNull)) {
+      //printf("+++++++ Recursion return type unavailable for %.*s\n",fle.nam);
       fle.abt=true;
       state.code=StC.abt;
       state.val=fle.res;

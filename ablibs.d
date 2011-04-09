@@ -23,13 +23,12 @@ Cell[] abs_eval_all(Cell[] exps) {
     Cell exp=exps[k];
     Cell res=abs_eval(exp);
     printf("abs_eval_all %i/%i: %i / %.*s\n",k,exps.length,state.code,types.str(res.type));
-    if (state.code==StC.abt) {
-      state.code=StC.run;
-    } else {
-      ress~=res;
-    }
+    if (state.code==StC.abt) state.code=StC.run;
+    if (!isa(res,TAny)) ress~=res;
   }
-  assert(ress.length>0,"Internal humbug error.");
+  if (!ress.length) {
+    assert(false,cfrm("Internal humbug error #ress=%i.",ress.length));
+  }
   return ress;
 }
 Cell op_if(Cell[] args) {
@@ -85,7 +84,7 @@ Cell op_assign(Cell[] args) {
   assert(e !is null,"Undeclared identifier "~id);
   Cell oldv=env_get(e,id);
   Cell newv=abs_eval(args[1]);
-  if (!isa(oldv,TAny)) {
+  if (! (isa(oldv,TAny) || isa(newv,TAny))) {
     if (oldv.type!=newv.type) {
       printf("%.*s %.*s\n",types.str(oldv.type),types.str(newv.type));
       assert(false,"Type error");
@@ -222,13 +221,13 @@ Cell op_return(Cell[] args) {
   } else {
     c=null_cell();
   }
-  if (isa(tocs.res,TAny)) {
+  if ((isa(tocs.res,TNull)) || (isa(tocs.res,TAny))) {
     tocs.res=c;
   } else {
-    printf("tocs.res.type=%.*s c.type=%.*s\n",types.str(tocs.res.type),types.str(c.type));
+    //printf("tocs.res.type=%.*s c.type=%.*s\n",types.str(tocs.res.type),types.str(c.type));
     assert(isa(c,TAny) || (tocs.res.type==c.type),"Return type mismatch");
   }
-  printf("***** Returning %.*s\n",types.str(tocs.res.type));
+  //printf("***** Returning %.*s\n",types.str(tocs.res.type));
   return tocs.res;
 }
 Cell op_ftab_set(Cell[] args) {
@@ -500,7 +499,19 @@ Cell op_env_set(Cell[] args) {
 }
 Cell op_new_array(Cell[] args) {
   static if (debf) {debEnter("[new_array]");scope (exit) debLeave();}
-  return array_cell();
+  Cell c=array_cell();
+  for (int k=0;k<args.length;++k) c.arr.inner~=args[k];
+  if (args.length) {
+    Type t=args[0].type;
+    for (int k=1;k<args.length;++k) if (args[k].type!=t) {
+      //printf("created %.*s %.*s\n",types.str(c.type),cells.str(c));
+      assert(false,"Cannot compile mixed-type array literals.");
+      return c;
+    }
+    c.type=array_type_from_subtype(t);
+  }
+  //printf("created %.*s %.*s\n",types.str(c.type),cells.str(c));*/
+  return c;
 }
 Cell op_array_cat(Cell[] args) {
   static if (debf) {debEnter("[array_cat]");scope (exit) debLeave();}
