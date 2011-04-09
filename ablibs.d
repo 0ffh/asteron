@@ -17,31 +17,31 @@ import std.math;
 
 Cell abs_eval_all(Cell[] exps) {
   Cell[] ress;
-  printf("### exps:%i\n",exps.length);
+  //printf("### exps:%i\n",exps.length);
   for (int k;k<exps.length;++k) {
-    printf("### exps[%i]\n",k);
+    //printf("### exps[%i]\n",k);
     Cell exp=exps[k];
-    printf("### %.*s\n",cells.str(exp));
+    //printf("### %.*s\n",cells.str(exp));
     Cell res=abs_eval(exp);
     if (state.code==StC.ret) {
-      printf("### exps[%i] -> recursion\n",k);
+      //printf("### exps[%i] -> recursion\n",k);
       state.code=StC.run;
     } else {
-      printf("### exps[%i] -> result: %.*s\n",k,types.str(res.type));
+      //printf("### exps[%i] -> result: %.*s\n",k,types.str(res.type));
       ress~=res;
     }
   }
-  printf("### ress:%i\n",ress.length);
+  //printf("### ress:%i\n",ress.length);
   assert(ress.length>0,"Internal humbug error.");
   for (int k=1;k<ress.length;++k) {
-    assert(ress[0].type==ress[k].type,"Type error");
+    assert(ress[0].type==ress[k].type,"Type error in recursion!");
   }
   if (ress.length<exps.length) {
-    printf("### abs_recursion_retry:=true\n");
+    //printf("### abs_recursion_retry:=true\n");
     abs_recursion_retry=true;
   }
 //  printf("***** exps:%i ress:%i\n",exps.length,ress.length);
-  printf("### abs_eval_all: %.*s\n",types.str(ress[0].type));
+  //printf("### abs_eval_all: %.*s\n",types.str(ress[0].type));
   return ress[0];
 }
 Cell op_if(Cell[] args) {
@@ -57,13 +57,16 @@ Cell op_if(Cell[] args) {
 }
 Cell op_switch(Cell[] args) {
   static if (debf) {debEnter("[switch]");scope (exit) debLeave();}
+  /*
   Cell c=abs_eval(args[0]);
   int k=2;
   while (k<args.length) {
     c=abs_eval(args[k]);
     k=k+2;
   }
+  */
 //  state.brk=0;
+  abs_eval_all(args);
   return null_cell();
 }
 Cell op_for(Cell[] args) {
@@ -239,6 +242,7 @@ Cell op_return(Cell[] args) {
   static if (debf) {debEnter("[return]");scope (exit) debLeave();}
   if (args.length) {
     Cell c=abs_eval(args[0]);
+    call_stack[$-1].res=c;
 //    state.ret=1;
 //    state.val=c;
     return c;

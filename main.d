@@ -36,12 +36,6 @@ struct State {
   Cell   val;
 }
 State state;
-/*struct AbsRec {
-  int    code;
-  Cell[] exps;
-}
-AbsRec abs_rec;*/
-bool abs_recursion_retry;
 
 Env* base_env;
 
@@ -211,6 +205,12 @@ Cell eval(Cell x) {
 //----------------
 //---------------- abstract eval helpers
 //----------------
+/*struct AbsRec {
+  int    code;
+  Cell[] exps;
+}
+AbsRec abs_rec;*/
+bool abs_recursion_retry;
 class FunListEntry {
   string     nam;
   FTabEntry* fte;
@@ -224,10 +224,13 @@ class FunListEntry {
     fle.fte=fte;
     fle.par=par;
     fle.fun=clone_cell(fun);
+    fle.res=null_cell();
     return fle;
   }
 }
 FunListEntry[] fun_list;
+FunListEntry[] call_stack;
+
 int[string] fun_name_cnt;
 void show_fun_list() {
   for (int kfl;kfl<fun_list.length;++kfl) {
@@ -279,10 +282,21 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
     if (!eargs.length) {
       eargs.length=args.length;
       for (int k;k<args.length;++k) eargs[k]=abs_eval(args[k]);
-      if (state.code) return list_cell([state.val]);
+      if (state.code) {
+        eargs.length=0;
+        return list_cell([state.val]);
+      }
     }
     args_bak=eargs.dup;
+    printf("XXXXXXX 0\n");
+    for (int k;k<eargs.length;++k) {
+      Cell a=eargs[k];
+      printf("XXXXXXX %i/%i\n",k,eargs.length);
+      printf("XXXXXXX n %.*s\n",cells.str(a));
+      printf("XXXXXXX t %.*s\n",types.str(a.type));
+    }
     candidate_entry=ftab_resolve(candidate.ftab,eargs,name);
+    printf("XXXXXXX 1\n");
     if (candidate_entry) {
       candidate_sig=candidate_entry.sig;
       while (eargs.length<candidate_sig.length) {
@@ -296,10 +310,11 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
   }
   FunListEntry fle=find_in_fun_list(candidate_entry,args);
   if (fle is null) {
-    printf("!FLE:%.*s\n",name);
+    //printf("!FLE:%.*s\n",name);
     name=cfrm("$%.*s_%d",name,fun_list.length);
     fle=FunListEntry(name,candidate_entry,args,candidate_entry.fun);
     fun_list~=fle;
+    call_stack~=fle;
     px0.sym=fle.nam;
     printf("+++++++ Activating recursion test for %.*s\n",fle.nam);
     fle.rec=true;
@@ -307,16 +322,33 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
     printf("+++++++ Deactivating recursion test for %.*s\n",fle.nam);
     fle.rec=false;
     if (abs_recursion_retry) {
-      printf("+++ Premature return due to recursion!\n");
+      printf("+++++++ Premature return due to recursion!\n");
       abs_recursion_retry=false;
       Cell res=abs_eval(list_cell([fle.fun]~args));
       if (res.type!=fle.res.type) {
         printf("types : %.*s / %.*s\n",types.str(res.type),types.str(fle.res.type));
         assert(false,"Recursion type mismatch.");
       }
-    }
+    } else if (state.code==StC.ret) {
+      printf("state.code==StC.ret\n");
+      if (call_stack.length) {
+        printf("res = %.*s\n",cells.str(call_stack[$-1].res));
+      } else {
+        assert(false,"Abstract interpreter internal error: Call stack empty\n");
+      }
+      //assert(false,"whut now???");
+      state.code=StC.run;
+      Cell res=abs_eval(list_cell([fle.fun]~args));
+      if (res.type!=fle.res.type) {
+        printf("types : %.*s / %.*s\n",types.str(res.type),types.str(fle.res.type));
+        assert(false,"Recursion type mismatch.");
+      }
+    }/* else {
+      assert(false,"Abstract interpreter internal error");
+    }*/
+    call_stack.length=call_stack.length-1;
   } else {
-    printf("FLE:%.*s (%.*s)\n",name,fle.nam);
+    //printf("FLE:%.*s (%.*s)\n",name,fle.nam);
     name=fle.nam;
     px0.sym=name;
     if (fle.rec) {
@@ -325,9 +357,9 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
       state.val=fle.res;
       return list_cell([fle.res]);
     }
-    printf("+++ A\n");
+    //printf("+++ A\n");
   }
-  printf("+++ B\n");
+  //printf("+++ B\n");
   return list_cell([fle.res]);
 }
 Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
@@ -402,7 +434,7 @@ Cell abs_evalin(Cell x,Env* env) {
 }
 Cell abs_eval(Cell x) {
   static if (debf) {debEnter("abs_eval('%.*s')",cells.str(x));scope (exit) debLeave();}
-  if (state.code) return state.val;
+  if (state.code) {printf("!!! state.code is %i\n",state.code);return state.val;}
   if (isa(x,TSymbol)) return env_get(environment,x.sym);
   if (!isa(x,TList)) return x;
   if (!x.lst.length) return x;
