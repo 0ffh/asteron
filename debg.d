@@ -54,7 +54,7 @@ void debEnter(string fs,...) {
     if (testfun !is null) testfun();
   }
 }
-void debLeave(String lmsg="") {
+void debLeave(string lmsg="") {
   static if (debEnable) {
     // ensure stack is nonempty
     assert(debStringStack.length>0,"debug stack empty!");
@@ -65,7 +65,7 @@ void debLeave(String lmsg="") {
     static if (debVerbose) {
       indent(debStringStack.length);
       if (lmsg.length) {
-        printf("} [%.*s]",lmsg);
+        printf("} [%.*s]\n",lmsg);
       } else {
         printf("}\n");
       }
