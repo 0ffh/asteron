@@ -27,6 +27,8 @@ import std.file;
 import std.stdio;
 import std.string;
 
+const bool debf=debflag;
+
 const bool require_declaration_before_use=true;
 
 enum StC {run=0,ret,brk,cnt,abt};

@@ -7,7 +7,8 @@ import environments;
 import std.string;
 
 int clothedStringDefault=0;
-const bool debflag=debf && false;
+
+const bool debf=debflag && 0;
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -129,86 +130,86 @@ struct Cell {
   }
 }
 Cell any_cell() {
-  static if (debflag) {debEnter("any_cell()");scope (exit) debLeave();}
+  static if (debf) {debEnter("any_cell()");scope (exit) debLeave();}
   Cell c;
   c.type=TAny;
   return c;
 }
 Cell null_cell() {
-  static if (debflag) {debEnter("null_cell()");scope (exit) debLeave();}
+  static if (debf) {debEnter("null_cell()");scope (exit) debLeave();}
   Cell c;
   c.type=TNull;
   return c;
 }
 Cell shell_cell(Cell v) {
-  static if (debflag) {debEnter("shell_cell(Cell)");scope (exit) debLeave();}
+  static if (debf) {debEnter("shell_cell(Cell)");scope (exit) debLeave();}
   Cell c;
   c.type=TShell;
   c.cel=cast(Cell*)([v].ptr);
   return c;
 }
 Cell sym_cell(string val) {
-  static if (debflag) {debEnter("sym_cell(string)");scope (exit) debLeave();}
+  static if (debf) {debEnter("sym_cell(string)");scope (exit) debLeave();}
   Cell c;
   c.type=TSymbol;
   c.sym=val;
   return c;
 }
 Cell str_cell(string val) {
-  static if (debflag) {debEnter("str_cell(string)");scope (exit) debLeave();}
+  static if (debf) {debEnter("str_cell(string)");scope (exit) debLeave();}
   Cell c;
   c.type=TString;
   c.str=val;
   return c;
 }
 Cell float_cell(float val) {
-  static if (debflag) {debEnter("float_cell(float)");scope (exit) debLeave();}
+  static if (debf) {debEnter("float_cell(float)");scope (exit) debLeave();}
   Cell c;
   c.type=TFloat;
   c.flt=val;
   return c;
 }
 Cell int_cell(int val) {
-  static if (debflag) {debEnter("int_cell(int)");scope (exit) debLeave();}
+  static if (debf) {debEnter("int_cell(int)");scope (exit) debLeave();}
   Cell c;
   c.type=TInt;
   c.fix=val;
   return c;
 }
 Cell float_cell(string val) {
-  static if (debflag) {debEnter("float_cell(string)");scope (exit) debLeave();}
+  static if (debf) {debEnter("float_cell(string)");scope (exit) debLeave();}
   return float_cell(atof(val));
 }
 Cell int_cell(string val) {
-  static if (debflag) {debEnter("int_cell(string)");scope (exit) debLeave();}
+  static if (debf) {debEnter("int_cell(string)");scope (exit) debLeave();}
   return int_cell(atoi(val));
 }
 Cell list_cell(Cell[] val=[]) {
-  static if (debflag) {debEnter("list_cell(Cell[])");scope (exit) debLeave();}
+  static if (debf) {debEnter("list_cell(Cell[])");scope (exit) debLeave();}
   Cell c;
   c.type=TList;
   c.lst=val;
   return c;
 }
 Cell typetable_cell(TypeTable* val) {
-  static if (debflag) {debEnter("typetable_cell(TypeTable*)");scope (exit) debLeave();}
+  static if (debf) {debEnter("typetable_cell(TypeTable*)");scope (exit) debLeave();}
   Cell c;
   c.type=TTypeTable;
   c.tyt=val;
   return c;
 }
 Cell assoc_cell(Cell[string] inner) {
-  static if (debflag) {debEnter("assoc_cell(Cell[])");scope (exit) debLeave();}
+  static if (debf) {debEnter("assoc_cell(Cell[])");scope (exit) debLeave();}
   Cell c=assoc_cell_from_subtype(TAny);
   c.asc.inner=inner;
   return c;
 }
 Cell assoc_cell_from_subtype(Type typ) {
-  static if (debflag) {debEnter("assoc_cell_from_subtype(Type)");scope (exit) debLeave();}
+  static if (debf) {debEnter("assoc_cell_from_subtype(Type)");scope (exit) debLeave();}
   return cell_from_assoc_type(assoc_type_from_subtype(typ));
 }
 Cell cell_from_assoc_type(Type typ) {
-  static if (debflag) {debEnter("cell_from_assoc_type(Type)");scope (exit) debLeave();}
+  static if (debf) {debEnter("cell_from_assoc_type(Type)");scope (exit) debLeave();}
   Cell c;
   Assoc val;
   c.type=typ;
@@ -216,13 +217,13 @@ Cell cell_from_assoc_type(Type typ) {
   return c;
 }
 Cell array_cell(Cell[] inner=[]) {
-  static if (debflag) {debEnter("array_cell(Cell[])");scope (exit) debLeave();}
+  static if (debf) {debEnter("array_cell(Cell[])");scope (exit) debLeave();}
   Cell c=cell_from_array_type(array_type_from_subtype(TAny));
   c.arr.inner=inner;
   return c;
 }
 Cell cell_from_array_type(Type typ) {
-  static if (debflag) {debEnter("cell_from_array_type(Type,Cell[])");scope (exit) debLeave();}
+  static if (debf) {debEnter("cell_from_array_type(Type,Cell[])");scope (exit) debLeave();}
   Array a;
   if (is_static_array_type(typ)) {
     Type subtype=get_array_subtype(typ);
@@ -276,13 +277,13 @@ Cell cell_from_union_type(Type t) {
   return c;
 }
 Cell cell_from_def_type(Type typ) {
-  static if (debflag) {debEnter("deftype_cell_from_type(Type,Cell[])");scope (exit) debLeave();}
+  static if (debf) {debEnter("deftype_cell_from_type(Type,Cell[])");scope (exit) debLeave();}
   Cell c=new_cell(get_def_subtype(typ));
   c.type=typ;
   return c;
 }
 Cell cell_from_ref_type(Type typ) {
-  static if (debflag) {debEnter("cell_from_ref_type(Type,Cell[])");scope (exit) debLeave();}
+  static if (debf) {debEnter("cell_from_ref_type(Type,Cell[])");scope (exit) debLeave();}
   Ref r;
   Cell c;
   c.type=typ;
@@ -291,7 +292,7 @@ Cell cell_from_ref_type(Type typ) {
   return c;
 }
 Cell ref_cell(Env* env,string id) {
-  static if (debflag) {debEnter("ref_cell(Env*,string)");scope (exit) debLeave();}
+  static if (debf) {debEnter("ref_cell(Env*,string)");scope (exit) debLeave();}
   Ref r;
   r.env=env;
   r.id=id;
@@ -301,7 +302,7 @@ Cell ref_cell(Env* env,string id) {
   return c;
 }
 Cell ref_cell_on_heap(Cell v) {
-  static if (debflag) {debEnter("ref_cell(Env*,string)");scope (exit) debLeave();}
+  static if (debf) {debEnter("ref_cell(Env*,string)");scope (exit) debLeave();}
   Type t=ref_type_from_subtype(v.type);
   Cell c=cell_from_ref_type(t);
   Ref* r=c.ptr;
@@ -321,28 +322,28 @@ Cell ftab_cell(FTab* ft) {
   return c;
 }
 Cell lambda_cell(Lamb* val) {
-  static if (debflag) {debEnter("lambda_cell(Lamb)");scope (exit) debLeave();}
+  static if (debf) {debEnter("lambda_cell(Lamb)");scope (exit) debLeave();}
   Cell c;
   c.type=TLambda;
   c.lam=val;
   return c;
 }
 Cell fun_cell(fun_type val) {
-  static if (debflag) {debEnter("fun_cell(fun_type)");scope (exit) debLeave();}
+  static if (debf) {debEnter("fun_cell(fun_type)");scope (exit) debLeave();}
   Cell c;
   c.type=TFun;
   c.fun=val;
   return c;
 }
 Cell lfun_cell(lfn_type val) {
-  static if (debflag) {debEnter("lfun_cell(lfn_type)");scope (exit) debLeave();}
+  static if (debf) {debEnter("lfun_cell(lfn_type)");scope (exit) debLeave();}
   Cell c;
   c.type=TLfun;
   c.lfn=val;
   return c;
 }
 Cell env_cell(Env* val) {
-  static if (debflag) {debEnter("env_cell(Env*)");scope (exit) debLeave();}
+  static if (debf) {debEnter("env_cell(Env*)");scope (exit) debLeave();}
   Cell c;
   c.type=TEnv;
   c.env=val;
@@ -350,7 +351,7 @@ Cell env_cell(Env* val) {
   return c;
 }
 Cell type_cell(Type t) {
-  static if (debflag) {debEnter("type_cell(Type)");scope (exit) debLeave();}
+  static if (debf) {debEnter("type_cell(Type)");scope (exit) debLeave();}
   Cell c;
   c.type=TType;
   c.typ=t.cell;
@@ -511,7 +512,7 @@ Cell new_cell(Type t) {
 //-------------------- str
 //--------------------
 string str(Cell c,int clothedString=clothedStringDefault,int rec=1) {
-  static if (debflag) {debEnter("cells.str(Cell)");scope (exit) debLeave();}
+  static if (debf) {debEnter("cells.str(Cell)");scope (exit) debLeave();}
   if (!types_initialised) {
     printf("Base types must be initialised before using cells.str!\n");
     assert(false);

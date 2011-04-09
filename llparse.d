@@ -9,12 +9,12 @@ import utils;
 import std.conv;
 import std.string;
 
+const bool debf=debflag && 0;
+
 int max(int a,int b){return (a>b)?a:b;}
 
 alias Token function(Token self) Nudfun;
 alias Token function(Token self,Token left) Ledfun;
-
-const bool debflag=debf && !true;
 
 //------------------------------------------------------------
 //------------------------------------------------------------
@@ -39,12 +39,12 @@ Token itself(Token self) {
   return self;
 }
 Token null_nud(Token self) {
-  static if (debflag) {debEnter("null_nud");scope (exit) debLeave();}
+  static if (debf) {debEnter("null_nud");scope (exit) debLeave();}
 //  self.error("NUD: Not implemented",__FILE__,__LINE__);
   return self;
 }
 Token null_led(Token self,Token left) {
-  static if (debflag) {debEnter("null_led");scope (exit) debLeave();}
+  static if (debf) {debEnter("null_led");scope (exit) debLeave();}
   self.error("LED: Not implemented",__FILE__,__LINE__);
   return self;
 }
@@ -248,7 +248,7 @@ void token_from_lexeme(Lexeme l) {
   static if (verbose) printf("--- token_from_lexeme end\n");
 }
 Token advance(string id="") {
-  static if (debflag) {debEnter("advance");scope (exit) debLeave();}
+  static if (debf) {debEnter("advance");scope (exit) debLeave();}
   if (lexeme_nr >= lexemes.length) {
     return token=symbol_table["(end)"];
   }
@@ -256,11 +256,11 @@ Token advance(string id="") {
     lexeme.error("Expected '"~id~"'.",__FILE__,__LINE__);
   }
   token_from_lexeme(lexemes[lexeme_nr++]);
-  static if (debflag) token.show();
+  static if (debf) token.show();
   return token;
 };
 Token retreat(string id="") {
-  static if (debflag) {debEnter("retreat");scope (exit) debLeave();}
+  static if (debf) {debEnter("retreat");scope (exit) debLeave();}
   if (lexeme_nr <= 0) {
     throw new Exception("llparse retreat beyond origin");
   }
@@ -268,7 +268,7 @@ Token retreat(string id="") {
   if (id.length && (lexeme.val != id)) {
     lexeme.error("Expected '"~id~"'.",__FILE__,__LINE__);
   }
-  static if (debflag) token.show();
+  static if (debf) token.show();
   return token;
 };
 //------------------------------------------------------------
@@ -281,11 +281,11 @@ class Scope {
   Scope parent;
   Token[string] def;
   void pop() {
-    static if (debflag) {debEnter("Scope.pop");scope (exit) debLeave();}
+    static if (debf) {debEnter("Scope.pop");scope (exit) debLeave();}
     skope=this.parent;
   }
   Token define(Token n) {
-    static if (debflag) {debEnter("Scope.define");scope (exit) debLeave();}
+    static if (debf) {debEnter("Scope.define");scope (exit) debLeave();}
     Token* t=(n.value in def);
     if (t) {
       if (t.reserved) {
@@ -304,7 +304,7 @@ class Scope {
     return n;
   }
   int exist(string n) {
-    static if (debflag) {debEnter("Scope.exist");scope (exit) debLeave();}
+    static if (debf) {debEnter("Scope.exist");scope (exit) debLeave();}
     Scope e=this;
     Token* o;
     while (true) {
@@ -318,7 +318,7 @@ class Scope {
     }
   }
   Token find(string n) {
-    static if (debflag) {debEnter("Scope.find");scope (exit) debLeave();}
+    static if (debf) {debEnter("Scope.find");scope (exit) debLeave();}
     Scope e=this;
     Token* o;
     while (true) {
@@ -332,7 +332,7 @@ class Scope {
     }
   }
   void reserve(Token n) {
-    static if (debflag) {debEnter("Scope.reserve");scope (exit) debLeave();}
+    static if (debf) {debEnter("Scope.reserve");scope (exit) debLeave();}
     if (n.arity != "name" || n.reserved) {
       return;
     }
@@ -364,7 +364,7 @@ Scope new_skope() {
 
 Token tt_std(Token self) {
   const bool verbose=!true;
-  static if (debflag) {debEnter("type.std");scope (exit) debLeave();}
+  static if (debf) {debEnter("type.std");scope (exit) debLeave();}
   static if (verbose) printf("------- tt\n");
   lexeme_nr-=2;
   advance();
@@ -398,7 +398,7 @@ Token type_token(string tn) {
   return new Token("(name)","type",tn);
 }
 Token symbol(string id,int bp=0) {
-  static if (debflag) {debEnter("symbol");scope (exit) debLeave();}
+  static if (debf) {debEnter("symbol");scope (exit) debLeave();}
   if (Token *s=(id in symbol_table)) {
     if (bp >= s.lbp) {
       s.lbp=bp;
@@ -413,13 +413,13 @@ Token symbol(string id,int bp=0) {
   }
 }
 Token infix(string id,int bp,Ledfun led=null) {
-  static if (debflag) {debEnter("infix");scope (exit) debLeave();}
+  static if (debf) {debEnter("infix");scope (exit) debLeave();}
   Token s=symbol(id, bp);
   if (led) {
     s.led=led;
   } else {
     s.led=function Token(Token self,Token left) {
-    static if (debflag) {debEnter("infix.led");scope (exit) debLeave();}
+    static if (debf) {debEnter("infix.led");scope (exit) debLeave();}
       self.sub=[left,expression(self.lbp)];
       self.arity="binary";
       return self;
@@ -428,13 +428,13 @@ Token infix(string id,int bp,Ledfun led=null) {
   return s;
 }
 Token infixr(string id,int bp,Ledfun led=null) {
-  static if (debflag) {debEnter("infixr");scope (exit) debLeave();}
+  static if (debf) {debEnter("infixr");scope (exit) debLeave();}
   Token s=symbol(id, bp);
   if (led) {
     s.led=led;
   } else {
     s.led=function Token(Token self,Token left) {
-      static if (debflag) {debEnter("infixr.led");scope (exit) debLeave();}
+      static if (debf) {debEnter("infixr.led");scope (exit) debLeave();}
       self.sub=[left,expression(self.lbp-1)];
       self.arity="binary";
       return self;
@@ -443,13 +443,13 @@ Token infixr(string id,int bp,Ledfun led=null) {
   return s;
 }
 Token prefix(string id,Nudfun nud=null) {
-  static if (debflag) {debEnter("prefix");scope (exit) debLeave();}
+  static if (debf) {debEnter("prefix");scope (exit) debLeave();}
   Token s=symbol(id);
   if (nud) {
     s.nud=nud;
   } else {
     s.nud=function Token(Token self) {
-      static if (debflag) {debEnter("prefix.nud");scope (exit) debLeave();}
+      static if (debf) {debEnter("prefix.nud");scope (exit) debLeave();}
       skope.reserve(self);
       self.sub=[expression(70)];
       self.arity="unary";
@@ -459,13 +459,13 @@ Token prefix(string id,Nudfun nud=null) {
   return s;
 }
 Token suffix(string id,Ledfun led=null) {
-  static if (debflag) {debEnter("suffix");scope (exit) debLeave();}
+  static if (debf) {debEnter("suffix");scope (exit) debLeave();}
   Token s=symbol(id);
   if (led) {
     s.led=led;
   } else {
     s.led=function Token(Token self,Token left) {
-      static if (debflag) {debEnter("suffix.nud");scope (exit) debLeave();}
+      static if (debf) {debEnter("suffix.nud");scope (exit) debLeave();}
       skope.reserve(self);
       self.lbp=75;
       self.sub=[left];
@@ -476,9 +476,9 @@ Token suffix(string id,Ledfun led=null) {
   return s;
 }
 Token assignment(string id) {
-  static if (debflag) {debEnter("assignment");scope (exit) debLeave();}
+  static if (debf) {debEnter("assignment");scope (exit) debLeave();}
   return infixr(id, 10, function Token(Token self,Token left) {
-    static if (debflag) {debEnter("assignment.led");scope (exit) debLeave();}
+    static if (debf) {debEnter("assignment.led");scope (exit) debLeave();}
     if ((left.id != ".") && (left.id != "[") && (left.id != "@") && (left.arity != "name")) {
       left.error("Bad lvalue.",__FILE__,__LINE__);
     }
@@ -489,10 +489,10 @@ Token assignment(string id) {
   });
 };
 Token constant(string s,string v) {
-  static if (debflag) {debEnter("constant");scope (exit) debLeave();}
+  static if (debf) {debEnter("constant");scope (exit) debLeave();}
   Token x=symbol(s);
   x.nud=function Token(Token self) {
-    static if (debflag) {debEnter("constant.nud");scope (exit) debLeave();}
+    static if (debf) {debEnter("constant.nud");scope (exit) debLeave();}
     skope.reserve(self);
     self.value=symbol_table[self.id].value;
     self.arity="literal";
@@ -502,7 +502,7 @@ Token constant(string s,string v) {
   return x;
 };
 Token statement() {
-  static if (debflag) {debEnter("statement");scope (exit) debLeave();}
+  static if (debf) {debEnter("statement");scope (exit) debLeave();}
   Token n=token;
   Token v;
   if (n.std) {
@@ -518,7 +518,7 @@ Token statement() {
   return v;
 };
 Token[] statements() {
-  static if (debflag) {debEnter("statements");scope (exit) debLeave();}
+  static if (debf) {debEnter("statements");scope (exit) debLeave();}
   Token[] a;
   Token s;
   while (true) {
@@ -533,13 +533,13 @@ Token[] statements() {
   return a;
 };
 Token stmt(string s,Nudfun f) {
-  static if (debflag) {debEnter("stmt");scope (exit) debLeave();}
+  static if (debf) {debEnter("stmt");scope (exit) debLeave();}
   Token x=symbol(s);
   x.std=f;
   return x;
 };
 Token block() {
-  static if (debflag) {debEnter("block");scope (exit) debLeave();}
+  static if (debf) {debEnter("block");scope (exit) debLeave();}
   Token t=token;
   advance("{");
   if (!t.std) t.error("Std function expected",__FILE__,__LINE__);
@@ -552,7 +552,7 @@ Token arraytoken_reduce(Token t) {
   return t;
 }
 Token arraytoken(Token[] ta,string arity="array") {
-  static if (debflag) {debEnter("arraytoken");scope (exit) debLeave();}
+  static if (debf) {debEnter("arraytoken");scope (exit) debLeave();}
   Token t=new Token();
   t.arity=arity;
   t.sub=[];
@@ -566,7 +566,7 @@ Token arraytoken(Token[] ta,string arity="array") {
   return t;
 }
 Token statement_or_block() {
-  static if (debflag) {debEnter("statement_or_block");scope (exit) debLeave();}
+  static if (debf) {debEnter("statement_or_block");scope (exit) debLeave();}
   if (token.id == "{") {
     return block();
   } else {
@@ -574,7 +574,7 @@ Token statement_or_block() {
   }
 }
 Token struct_type_constructor(string constructor) {
-  static if (debflag) {debEnter("struct_type_constructor");scope (exit) debLeave();}
+  static if (debf) {debEnter("struct_type_constructor");scope (exit) debLeave();}
   advance(constructor);
   advance("{");
   Token[] a;
@@ -596,7 +596,7 @@ Token struct_type_constructor(string constructor) {
   return t;
 }
 Token type_constructor() {
-  static if (debflag) {debEnter("type_constructor");scope (exit) debLeave();}
+  static if (debf) {debEnter("type_constructor");scope (exit) debLeave();}
   if (token.arity != "name") {
     token.error("Type expected to start with a name.",__FILE__,__LINE__);
   }
@@ -643,7 +643,7 @@ Token type_constructor() {
 }
 Token type_name_value() {
   const bool verbose=!true;
-  static if (debflag) {debEnter("type_name_value");scope (exit) debLeave();}
+  static if (debf) {debEnter("type_name_value");scope (exit) debLeave();}
   //-- check type
   Token t,n,typ;
   n=token;
@@ -714,7 +714,7 @@ void init_symbols() {
   infix(">=", 40);
   //---
   infix("?", 20, function Token(Token self,Token left) {
-    static if (debflag) {debEnter("'?'.led");scope (exit) debLeave();}
+    static if (debf) {debEnter("'?'.led");scope (exit) debLeave();}
     self.sub=[left];
     self.sub ~= expression(0);
     advance(":");
@@ -723,7 +723,7 @@ void init_symbols() {
     return self;
   });
   infix(".", 80, function Token(Token self,Token left) {
-    static if (debflag) {debEnter("'.'.led");scope (exit) debLeave();}
+    static if (debf) {debEnter("'.'.led");scope (exit) debLeave();}
     self.sub=[left];
     if (token.arity != "name") {
       token.error("Expected a property name.",__FILE__,__LINE__);
@@ -735,7 +735,7 @@ void init_symbols() {
     return self;
   });
   infix("[", 80, function Token(Token self,Token left) {
-    static if (debflag) {debEnter("'['.led");scope (exit) debLeave();}
+    static if (debf) {debEnter("'['.led");scope (exit) debLeave();}
     self.sub=[left];
     Token[] a;
     if (token.id != "]") {
@@ -753,7 +753,7 @@ void init_symbols() {
     return self;
   });
   infix("(", 80, function Token(Token self,Token left) {
-    static if (debflag) {debEnter("'('.led");scope (exit) debLeave();}
+    static if (debf) {debEnter("'('.led");scope (exit) debLeave();}
     Token[] a;
     if (left.id == ".") {
       self.arity="ternary";
@@ -786,20 +786,20 @@ void init_symbols() {
   infixr("||", 30);
   //---
   infix("@", 80, function Token(Token self,Token left) {
-    static if (debflag) {debEnter("'@'.led");scope (exit) debLeave();}
+    static if (debf) {debEnter("'@'.led");scope (exit) debLeave();}
     self.sub=[left];
     self.arity="unary";
     return self;
   });
   infix("++", 80, function Token(Token self,Token left) {
-    static if (debflag) {debEnter("'++'.led");scope (exit) debLeave();}
+    static if (debf) {debEnter("'++'.led");scope (exit) debLeave();}
     self.value="postincrement";
     self.sub=[left];
     self.arity="unary";
     return self;
   });
   infix("--", 80, function Token(Token self,Token left) {
-    static if (debflag) {debEnter("'--'.led");scope (exit) debLeave();}
+    static if (debf) {debEnter("'--'.led");scope (exit) debLeave();}
     self.value="postdecrement";
     self.sub=[left];
     self.arity="unary";
@@ -809,7 +809,7 @@ void init_symbols() {
   prefix("-");
   prefix("+");
   prefix("--", function Token(Token self) {
-    static if (debflag) {debEnter("'--'.nud");scope (exit) debLeave();}
+    static if (debf) {debEnter("'--'.nud");scope (exit) debLeave();}
     skope.reserve(self);
     self.value="predecrement";
     self.sub=[expression(70)];
@@ -817,7 +817,7 @@ void init_symbols() {
     return self;
   });
   prefix("++", function Token(Token self) {
-    static if (debflag) {debEnter("'++'.nud");scope (exit) debLeave();}
+    static if (debf) {debEnter("'++'.nud");scope (exit) debLeave();}
     skope.reserve(self);
     self.value="preincrement";
     self.sub=[expression(70)];
@@ -828,7 +828,7 @@ void init_symbols() {
   prefix("&");
   prefix("typeof");
   prefix("(", function Token(Token self) {
-    static if (debflag) {debEnter("'('.nud");scope (exit) debLeave();}
+    static if (debf) {debEnter("'('.nud");scope (exit) debLeave();}
     Token e=expression(0);
     advance(")");
     return e;
@@ -853,7 +853,7 @@ void init_symbols() {
   };
   //---
   stmt("{", function Token(Token self) {
-    static if (debflag) {debEnter("'{'.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("'{'.std");scope (exit) debLeave();}
     new_skope();
     Token[] a=statements();
     advance("}");
@@ -863,7 +863,7 @@ void init_symbols() {
   //---
   stmt("var", function Token(Token self) {
     const bool verbose=false;
-    static if (debflag) {debEnter("var.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("var.std");scope (exit) debLeave();}
     Token[] a;
     Token t;
     while (true) {
@@ -891,7 +891,7 @@ void init_symbols() {
     return arraytoken(a);
   });
   stmt("for", function Token(Token self) {
-    static if (debflag) {debEnter("for.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("for.std");scope (exit) debLeave();}
     new_skope();
     advance("(");
     self.sub=[];
@@ -919,7 +919,7 @@ void init_symbols() {
     return self;
   });
   stmt("do", function Token(Token self) {
-    static if (debflag) {debEnter("do.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("do.std");scope (exit) debLeave();}
     self.sub=[statement_or_block()];
     advance("while");
     advance("(");
@@ -930,7 +930,7 @@ void init_symbols() {
     return self;
   });
   stmt("while", function Token(Token self) {
-    static if (debflag) {debEnter("while.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("while.std");scope (exit) debLeave();}
     advance("(");
     self.sub=[expression(0)];
     advance(")");
@@ -940,7 +940,7 @@ void init_symbols() {
   });
   symbol("case");
   stmt("switch", function Token(Token self) {
-    static if (debflag) {debEnter("switch.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("switch.std");scope (exit) debLeave();}
     advance("(");
     self.sub=[expression(0)];
     advance(")");
@@ -959,7 +959,7 @@ void init_symbols() {
     return self;
   });
   stmt("if", function Token(Token self) {
-    static if (debflag) {debEnter("if.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("if.std");scope (exit) debLeave();}
     advance("(");
     self.sub=[expression(0)];
     advance(")");
@@ -974,7 +974,7 @@ void init_symbols() {
     return self;
   });
   stmt("break", function Token(Token self) {
-    static if (debflag) {debEnter("break.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("break.std");scope (exit) debLeave();}
     advance(";");
     if ((token.id != "}") && (token.id != "case")) {
       token.error("Unreachable statement.",__FILE__,__LINE__);
@@ -983,13 +983,13 @@ void init_symbols() {
     return self;
   });
   stmt("continue", function Token(Token self) {
-    static if (debflag) {debEnter("continue.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("continue.std");scope (exit) debLeave();}
     advance(";");
     self.arity="statement";
     return self;
   });
   stmt("return", function Token(Token self) {
-    static if (debflag) {debEnter("return.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("return.std");scope (exit) debLeave();}
     if (token.id != ";") {
       self.sub=[expression(0)];
     }
@@ -1004,7 +1004,7 @@ void init_symbols() {
     return self;
   });
   stmt("scope", function Token(Token self) {
-    static if (debflag) {debEnter("scope.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("scope.std");scope (exit) debLeave();}
     if (token.id!="{") {
       if (token.arity != "name") {
         token.error("Expected name of scope.",__FILE__,__LINE__);
@@ -1026,7 +1026,7 @@ void init_symbols() {
     return self;
   });
   stmt("deftype", function Token(Token self) {
-    static if (debflag) {debEnter("deftype.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("deftype.std");scope (exit) debLeave();}
     if (token.arity != "name") {
       token.error("Expected name of type to define.",__FILE__,__LINE__);
     }
@@ -1042,7 +1042,7 @@ void init_symbols() {
     return self;
   });
   stmt("aliastype", function Token(Token self) {
-    static if (debflag) {debEnter("aliastype.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("aliastype.std");scope (exit) debLeave();}
     if (token.arity != "name") {
       token.error("Expected name of type to define.",__FILE__,__LINE__);
     }
@@ -1058,7 +1058,7 @@ void init_symbols() {
     return self;
   });
   stmt("supertype", function Token(Token self) {
-    static if (debflag) {debEnter("supertype.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("supertype.std");scope (exit) debLeave();}
     if (token.arity != "name") {
       token.error("Expected name of type to define.",__FILE__,__LINE__);
     }
@@ -1081,7 +1081,7 @@ void init_symbols() {
     return self;
   });
   stmt("defun", function Token(Token self) {
-    static if (debflag) {debEnter("defun.std");scope (exit) debLeave();}
+    static if (debf) {debEnter("defun.std");scope (exit) debLeave();}
     Token[] a=[];
     new_skope();
     if (token.arity == "name") {
@@ -1116,7 +1116,7 @@ void init_symbols() {
     return self;
   });
   prefix("function", function Token(Token self) {
-    static if (debflag) {debEnter("function.nud");scope (exit) debLeave();}
+    static if (debf) {debEnter("function.nud");scope (exit) debLeave();}
     Token[] a=[];
     new_skope();
     if (token.arity == "name") {
@@ -1149,13 +1149,13 @@ void init_symbols() {
     return self;
   });
   symbol("this").nud=function Token(Token self) {
-    static if (debflag) {debEnter("this.nud");scope (exit) debLeave();}
+    static if (debf) {debEnter("this.nud");scope (exit) debLeave();}
     skope.reserve(self);
     self.arity="this";
     return self;
   };
   prefix("[", function Token(Token self) {
-    static if (debflag) {debEnter("'['.nud");scope (exit) debLeave();}
+    static if (debf) {debEnter("'['.nud");scope (exit) debLeave();}
     Token[] a;
     if (token.id != "]") {
       while (true) {
@@ -1172,7 +1172,7 @@ void init_symbols() {
     return self;
   });
   prefix("{", function Token(Token self) {
-    static if (debflag) {debEnter("'{'.nud");scope (exit) debLeave();}
+    static if (debf) {debEnter("'{'.nud");scope (exit) debLeave();}
     Token[] a;
     if (token.id != "}") {
       while (true) {
@@ -1203,7 +1203,7 @@ void init_symbols() {
 }
 
 Token expression(int rbp) {
-  static if (debflag) {debEnter("expression");scope (exit) debLeave();}
+  static if (debf) {debEnter("expression");scope (exit) debLeave();}
   Token left;
   Token t=token;
   advance();
@@ -1252,7 +1252,7 @@ void init_skope() {
   foreach (tn;tnames) skope.define(type_token(tn));
 }
 void init_tokens(string src) {
-  static if (debflag) {debEnter("init_tokens");scope (exit) debLeave();}
+  static if (debf) {debEnter("init_tokens");scope (exit) debLeave();}
   lexemes=rm_whitespaces(astlex(src));
   lexeme_nr=0;
   if (lexemes.length) lexeme=lexemes[lexeme_nr];
@@ -1260,7 +1260,7 @@ void init_tokens(string src) {
   advance();
 }
 Token parse_string_to_token(string source) {
-  static if (debflag) {debEnter("parse");scope (exit) debLeave();}
+  static if (debf) {debEnter("parse");scope (exit) debLeave();}
   if (!types_initialised) {
     printf("Base types must be initialised before parsing!\n");
     assert(false);
@@ -1279,7 +1279,7 @@ Token parse_string_to_token(string source) {
 //----------------
 
 Cell atom(Lexeme token) {
-  static if (debflag) {debEnter("atom");scope (exit) debLeave();}
+  static if (debf) {debEnter("atom");scope (exit) debLeave();}
   if (token.type=="operator") return sym_cell(token.val);
   if (token.type=="name") return sym_cell(token.val);
   if (token.type=="string") return str_cell(token.val);
@@ -1294,7 +1294,7 @@ Cell atom(Lexeme token) {
   assert(false);
 }
 Cell lparse(Lexeme[] tokens,ref int pos) {
-  static if (debflag) {debEnter("read_from(Lexeme[],int)");scope (exit) debLeave();}
+  static if (debf) {debEnter("read_from(Lexeme[],int)");scope (exit) debLeave();}
   assert(tokens.length>pos,"unexpected EOF while reading");
   if (!pos) tokens=rm_whitespaces(tokens);
   Lexeme token=tokens[pos++];

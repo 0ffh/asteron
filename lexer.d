@@ -9,6 +9,7 @@ import std.regexp;
 alias std.string.toStringz tsz;
 alias std.regexp.search search;
 alias string function(string m) LtFun;
+const bool debf=debflag;
 
 int index_to_line(string txt,int idx) {
   int line=1;

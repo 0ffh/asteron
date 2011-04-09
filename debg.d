@@ -4,11 +4,11 @@ import utils;
 import std.c.string;
 
 bool trace=false;
-const bool debf=!true;
+const bool debflag=!true;
 
 void delegate() testfun;
-const bool debEnable=debf;
-const bool debVerbose=debf;
+const bool debEnable=debflag;
+const bool debVerbose=debflag;
 string[] debStringStack;
 
 void debStack() {

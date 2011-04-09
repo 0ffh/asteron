@@ -6,6 +6,8 @@ import cells;
 import llparse;
 import environments;
 
+const bool debf=debflag;
+
 bool types_initialised=false;
 
 Type TSymbol;

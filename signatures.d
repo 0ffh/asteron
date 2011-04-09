@@ -7,6 +7,8 @@ import types;
 import llparse;
 import environments;
 
+const bool debf=debflag;
+
 const int score_shift=3;
 const int exact_score=6;
 const int super_score=4;
