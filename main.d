@@ -274,7 +274,6 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
   Env* e=environment;
   Cell[] args_bak;
   for (;;) {
-//printf("looking up Function '%.*s' in environment %p\n",name,e);
     if (e) e=env_find(e,name);
     if (!e) {
       printf("*** Error: Function '%.*s' lookup failed!\n",name);
@@ -294,15 +293,10 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
       }
     }
     args_bak=eargs.dup;
-    //printf("XXXXXXX 0\n");
     for (int k;k<eargs.length;++k) {
       Cell a=eargs[k];
-      //printf("XXXXXXX %i/%i\n",k,eargs.length);
-      //printf("XXXXXXX n %.*s\n",cells.str(a));
-      //printf("XXXXXXX t %.*s\n",types.str(a.type));
     }
     candidate_entry=ftab_resolve(candidate.ftab,eargs,name);
-    //printf("XXXXXXX 1\n");
     if (candidate_entry) {
       candidate_sig=candidate_entry.sig;
       while (eargs.length<candidate_sig.length) {
@@ -318,19 +312,13 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
   if (fle is null) {
     //printf("!FLE:%.*s\n",name);
     name=cfrm("$%.*s_%d",name,fun_list.length);
+    px0.sym=name;
     fle=FunListEntry(name,candidate_entry,args,candidate_entry.fun);
     fun_list~=fle;
     call_stack_push(fle);
-    px0.sym=fle.nam;
-    Cell fle_res=abs_eval(list_cell([fle.fun]~args));
-    if (state.code!=StC.abt) fle.res=fle_res;
+    fle.res=abs_eval(list_cell([fle.fun]~args));
     while (fle.abt) {
       fle.abt=false;
-      printf("state.code==StC.ret\n");
-      FunListEntry tocs=call_stack_top();
-      printf("call_stack.length = %i\n",call_stack.length);
-      printf("tocs.res.type = %.*s\n",types.str(tocs.res.type));
-      //state.code=StC.run;
       Cell res=abs_eval(list_cell([fle.fun]~args));
       if ((fle.res.type!=TNull) && (res.type!=TNull)) {
         if (res.type!=fle.res.type) {
@@ -346,11 +334,10 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
     name=fle.nam;
     px0.sym=name;
     if (fle.res.type==TNull) {
-      printf("+++++++ Recursion return type unavailable for %.*s\n",fle.nam);
+      //printf("+++++++ Recursion return type unavailable for %.*s\n",fle.nam);
       fle.abt=true;
       state.code=StC.abt;
       state.val=fle.res;
-      return list_cell([fle.res]);
     }
   }
   return list_cell([fle.res]);
@@ -427,7 +414,7 @@ Cell abs_evalin(Cell x,Env* env) {
 }
 Cell abs_eval(Cell x) {
   static if (debf) {debEnter("abs_eval('%.*s')",cells.str(x));scope (exit) debLeave();}
-  if (state.code) {printf("!!! state.code is %i\n",state.code);return state.val;}
+  //if (state.code) {printf("!!! state.code is %i\n",state.code);return state.val;}
   if (isa(x,TSymbol)) return env_get(environment,x.sym);
   if (!isa(x,TList)) return x;
   if (!x.lst.length) return x;

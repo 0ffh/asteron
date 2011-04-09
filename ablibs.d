@@ -219,11 +219,7 @@ Cell op_return(Cell[] args) {
     } else {
       assert(tocs.res.type==c.type,"Return type mismatch");
     }
-    printf("***** Returning %.*s\n",types.str(c.type));
-    printf("call_stack.length = %i\n",call_stack.length);
-    printf("tocs.res.type = %.*s\n",types.str(tocs.res.type));
-//    state.ret=1;
-//    state.val=c;
+    //printf("***** Returning %.*s\n",types.str(c.type));
     return c;
   } else {
     return null_cell();
