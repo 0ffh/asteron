@@ -29,7 +29,7 @@ import std.string;
 
 const bool require_declaration_before_use=true;
 
-enum StC {run=0,ret,brk,cnt};
+enum StC {run=0,ret,brk,cnt,abt};
 
 struct State {
   StC    code;
@@ -205,19 +205,13 @@ Cell eval(Cell x) {
 //----------------
 //---------------- abstract eval helpers
 //----------------
-/*struct AbsRec {
-  int    code;
-  Cell[] exps;
-}
-AbsRec abs_rec;*/
-bool abs_recursion_retry;
 class FunListEntry {
   string     nam;
   FTabEntry* fte;
   Cell[]     par; // parameters
   Cell       fun; // function cell
   Cell       res; // result value
-  bool       rec; // recursion
+  bool       abt; // aborted
   static FunListEntry opCall(string nam,FTabEntry* fte,Cell[] par,Cell fun) {
     FunListEntry fle=new FunListEntry();
     fle.nam=nam;
@@ -225,12 +219,24 @@ class FunListEntry {
     fle.par=par;
     fle.fun=clone_cell(fun);
     fle.res=null_cell();
+    fle.abt=false;
     return fle;
   }
 }
 FunListEntry[] fun_list;
 FunListEntry[] call_stack;
-
+FunListEntry call_stack_top() {
+  assert(call_stack.length,"Abstract interpreter error: Call stack empty.");
+  return call_stack[$-1];
+}
+void call_stack_push(FunListEntry e) {
+  call_stack~=e;
+}
+FunListEntry call_stack_pop() {
+  FunListEntry e=call_stack_top();
+  call_stack.length=call_stack.length-1;
+  return e;
+}
 int[string] fun_name_cnt;
 void show_fun_list() {
   for (int kfl;kfl<fun_list.length;++kfl) {
@@ -288,15 +294,15 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
       }
     }
     args_bak=eargs.dup;
-    printf("XXXXXXX 0\n");
+    //printf("XXXXXXX 0\n");
     for (int k;k<eargs.length;++k) {
       Cell a=eargs[k];
-      printf("XXXXXXX %i/%i\n",k,eargs.length);
-      printf("XXXXXXX n %.*s\n",cells.str(a));
-      printf("XXXXXXX t %.*s\n",types.str(a.type));
+      //printf("XXXXXXX %i/%i\n",k,eargs.length);
+      //printf("XXXXXXX n %.*s\n",cells.str(a));
+      //printf("XXXXXXX t %.*s\n",types.str(a.type));
     }
     candidate_entry=ftab_resolve(candidate.ftab,eargs,name);
-    printf("XXXXXXX 1\n");
+    //printf("XXXXXXX 1\n");
     if (candidate_entry) {
       candidate_sig=candidate_entry.sig;
       while (eargs.length<candidate_sig.length) {
@@ -314,52 +320,39 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
     name=cfrm("$%.*s_%d",name,fun_list.length);
     fle=FunListEntry(name,candidate_entry,args,candidate_entry.fun);
     fun_list~=fle;
-    call_stack~=fle;
+    call_stack_push(fle);
     px0.sym=fle.nam;
-    printf("+++++++ Activating recursion test for %.*s\n",fle.nam);
-    fle.rec=true;
-    fle.res=abs_eval(list_cell([fle.fun]~args));
-    printf("+++++++ Deactivating recursion test for %.*s\n",fle.nam);
-    fle.rec=false;
-    if (abs_recursion_retry) {
-      printf("+++++++ Premature return due to recursion!\n");
-      abs_recursion_retry=false;
-      Cell res=abs_eval(list_cell([fle.fun]~args));
-      if (res.type!=fle.res.type) {
-        printf("types : %.*s / %.*s\n",types.str(res.type),types.str(fle.res.type));
-        assert(false,"Recursion type mismatch.");
-      }
-    } else if (state.code==StC.ret) {
+    Cell fle_res=abs_eval(list_cell([fle.fun]~args));
+    if (state.code!=StC.abt) fle.res=fle_res;
+    while (fle.abt) {
+      fle.abt=false;
       printf("state.code==StC.ret\n");
-      if (call_stack.length) {
-        printf("res = %.*s\n",cells.str(call_stack[$-1].res));
-      } else {
-        assert(false,"Abstract interpreter internal error: Call stack empty\n");
-      }
-      //assert(false,"whut now???");
-      state.code=StC.run;
+      FunListEntry tocs=call_stack_top();
+      printf("call_stack.length = %i\n",call_stack.length);
+      printf("tocs.res.type = %.*s\n",types.str(tocs.res.type));
+      //state.code=StC.run;
       Cell res=abs_eval(list_cell([fle.fun]~args));
-      if (res.type!=fle.res.type) {
-        printf("types : %.*s / %.*s\n",types.str(res.type),types.str(fle.res.type));
-        assert(false,"Recursion type mismatch.");
+      if ((fle.res.type!=TNull) && (res.type!=TNull)) {
+        if (res.type!=fle.res.type) {
+          printf("types : %.*s / %.*s\n",types.str(res.type),types.str(fle.res.type));
+          assert(false,"Recursion type mismatch.");
+        }
+        break;
       }
-    }/* else {
-      assert(false,"Abstract interpreter internal error");
-    }*/
-    call_stack.length=call_stack.length-1;
+    }
+    call_stack_pop();
   } else {
     //printf("FLE:%.*s (%.*s)\n",name,fle.nam);
     name=fle.nam;
     px0.sym=name;
-    if (fle.rec) {
-      printf("+++++++ Recursion tested positive for %.*s\n",fle.nam);
-      state.code=StC.ret;
+    if (fle.res.type==TNull) {
+      printf("+++++++ Recursion return type unavailable for %.*s\n",fle.nam);
+      fle.abt=true;
+      state.code=StC.abt;
       state.val=fle.res;
       return list_cell([fle.res]);
     }
-    //printf("+++ A\n");
   }
-  //printf("+++ B\n");
   return list_cell([fle.res]);
 }
 Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {

@@ -15,57 +15,28 @@ import std.math;
 //---------------- core functions
 //----------------
 
-Cell abs_eval_all(Cell[] exps) {
+Cell[] abs_eval_all(Cell[] exps) {
   Cell[] ress;
-  //printf("### exps:%i\n",exps.length);
   for (int k;k<exps.length;++k) {
-    //printf("### exps[%i]\n",k);
     Cell exp=exps[k];
-    //printf("### %.*s\n",cells.str(exp));
     Cell res=abs_eval(exp);
-    if (state.code==StC.ret) {
-      //printf("### exps[%i] -> recursion\n",k);
+    if (state.code==StC.abt) {
       state.code=StC.run;
     } else {
-      //printf("### exps[%i] -> result: %.*s\n",k,types.str(res.type));
       ress~=res;
     }
   }
-  //printf("### ress:%i\n",ress.length);
   assert(ress.length>0,"Internal humbug error.");
-  for (int k=1;k<ress.length;++k) {
-    assert(ress[0].type==ress[k].type,"Type error in recursion!");
-  }
-  if (ress.length<exps.length) {
-    //printf("### abs_recursion_retry:=true\n");
-    abs_recursion_retry=true;
-  }
-//  printf("***** exps:%i ress:%i\n",exps.length,ress.length);
-  //printf("### abs_eval_all: %.*s\n",types.str(ress[0].type));
-  return ress[0];
+  return ress;
 }
 Cell op_if(Cell[] args) {
   static if (debf) {debEnter("[if]");scope (exit) debLeave();}
-  abs_eval(args[0]);
-  if (args.length==2) {
-    return abs_eval(args[1]);
-  }
-  if (args.length==3) {
-    return abs_eval_all(args[1..$]);
-  }
-  assert(false);
+  assert(args.length<=3,"Too many arguments in if-clause");
+  abs_eval_all(args);
+  return null_cell();
 }
 Cell op_switch(Cell[] args) {
   static if (debf) {debEnter("[switch]");scope (exit) debLeave();}
-  /*
-  Cell c=abs_eval(args[0]);
-  int k=2;
-  while (k<args.length) {
-    c=abs_eval(args[k]);
-    k=k+2;
-  }
-  */
-//  state.brk=0;
   abs_eval_all(args);
   return null_cell();
 }
@@ -242,7 +213,15 @@ Cell op_return(Cell[] args) {
   static if (debf) {debEnter("[return]");scope (exit) debLeave();}
   if (args.length) {
     Cell c=abs_eval(args[0]);
-    call_stack[$-1].res=c;
+    FunListEntry tocs=call_stack_top();
+    if (isa(tocs.res,TNull)) {
+      tocs.res=c;
+    } else {
+      assert(tocs.res.type==c.type,"Return type mismatch");
+    }
+    printf("***** Returning %.*s\n",types.str(c.type));
+    printf("call_stack.length = %i\n",call_stack.length);
+    printf("tocs.res.type = %.*s\n",types.str(tocs.res.type));
 //    state.ret=1;
 //    state.val=c;
     return c;
