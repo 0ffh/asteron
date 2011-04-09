@@ -211,19 +211,20 @@ Cell op_continue(Cell[] args) {
 }
 Cell op_return(Cell[] args) {
   static if (debf) {debEnter("[return]");scope (exit) debLeave();}
+  FunListEntry tocs=call_stack_top();
   if (args.length) {
     Cell c=abs_eval(args[0]);
-    FunListEntry tocs=call_stack_top();
     if (isa(tocs.res,TNull)) {
       tocs.res=c;
     } else {
-      assert(tocs.res.type==c.type,"Return type mismatch");
+      printf("tocs.res.type=%.*s c.type=%.*s\n",types.str(tocs.res.type),types.str(c.type));
+      assert(isa(c,TNull) || (tocs.res.type==c.type),"Return type mismatch");
     }
-    //printf("***** Returning %.*s\n",types.str(c.type));
-    return c;
   } else {
-    return null_cell();
+    tocs.res=null_cell();
   }
+  printf("***** Returning %.*s\n",types.str(tocs.res.type));
+  return tocs.res;
 }
 Cell op_ftab_set(Cell[] args) {
   static if (debf) {debEnter("[op_ftab_set]");scope (exit) debLeave();}

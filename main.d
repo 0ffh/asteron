@@ -242,7 +242,7 @@ void show_fun_list() {
   for (int kfl;kfl<fun_list.length;++kfl) {
     FunListEntry fle=fun_list[kfl];
     printf("--------------- function %.*s\n",fle.nam);
-    printf("%.*s\n",pretty_str(fle.fun,0));
+    printf("%.*s  -->  %.*s\n",pretty_str(fle.fun,0),types.str(fle.res.type));
   }
 }
 FunListEntry find_in_fun_list(FTabEntry* fte,Cell[] par) {
