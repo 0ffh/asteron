@@ -178,9 +178,11 @@ Cell op_function(Cell[] args) {
 }
 Cell op_seq(Cell[] args) {
   static if (debf) {debEnter("[seq]");scope (exit) debLeave();}
-  Cell res;
+  abs_eval_all(args);
+/*  Cell res;
   for (int k=0;k<args.length;++k) res=abs_eval(args[k]);
-  return res;
+  return res;*/
+  return null_cell();
 }
 Cell op_scope(Cell[] args) {
   static if (debf) {debEnter("[scope]");scope (exit) debLeave();}

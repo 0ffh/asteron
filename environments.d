@@ -9,7 +9,7 @@ import signatures;
 Env* environment;
 Env*[] envstack;
 
-const bool debf=debflag;
+const bool debf=debflag && 0;
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------

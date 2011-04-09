@@ -283,7 +283,7 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs,Cell* px0) {
     if (e) e=env_find(e,name);
     if (!e) {
       printf("*** Error: Function '%.*s' lookup failed!\n",name);
-      assert(false);
+      assert(false,cfrm("Function '%.*s' lookup failed!\n",name));
     }
     candidate=env_get(e,name);
     if (!isa(candidate,TFtab)) {

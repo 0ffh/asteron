@@ -5,6 +5,7 @@
  - type literals
  - all types global (?)
 */
+/*
 defun fib0(n) {if (n<2) return n; else return fib0(n-2)+fib0(n-1);}
 defun fib1(n) {if (n<2) return n;      return fib1(n-2)+fib1(n-1);}
 defun fib2(n) {if (n>1) return fib2(n-2)+fib2(n-1); else return n;}
@@ -23,14 +24,9 @@ fib3(3);
 //defun dfib(n) {if (n>1) return dfib("n-2)+dfib(n-1");      return n;} // defect
 //defun dfib(n) {if (n>1) return dfib(n-2)+dfib(n-1);      return "n";} // defect
 //dfib(2);
-
-/*
+*/
 //----------------------------------------------------------------------
 //--- minimal testing framework
-tic();
-prln();
-prln("-------------------- running test suite now");
-prln();
 var testname="";
 var errors=0,tests=0;
 var suberr=0,subtest=0;
@@ -74,7 +70,7 @@ var fib_par=12,fib_res=144;
 //----------------------------------------------------------------------
 //--- tests
 //--- each test is embedded in a scope to avoid namespace pollution
-scope {
+defun test1() {
   start("fibonacci");
   defun fib(n) {
     if (n<2) {
@@ -86,7 +82,7 @@ scope {
   test(fib(fib_par),fib_res);
   finish();
 }
-scope {
+defun test2() {
   start("loops");
   var i=0;
   // for
@@ -120,7 +116,7 @@ scope {
   //
   finish();
 }
-scope {
+defun test3() {
   start("return");
   defun fib(n) {
     if (n<2) {return n;}
@@ -129,7 +125,7 @@ scope {
   test(fib(fib_par),fib_res);
   finish();
 }
-scope {
+defun test4() {
   start("break");
   var i=0;
   while (i<20) {
@@ -141,7 +137,7 @@ scope {
   test(i,10);
   finish();
 }
-scope {
+defun test5() {
   start("continue");
   var i=1;
   var ok=1;
@@ -153,7 +149,7 @@ scope {
   test(ok,1);
   finish();
 }
-scope {
+defun test6() {
   start("switch");
   var ok=0;
   switch (0) {
@@ -169,7 +165,7 @@ scope {
   test(ok,3);
   finish();
 }
-scope {
+defun test7() {
   start("return from switch");
   var ok=1;
   defun foo(n) {
@@ -184,7 +180,7 @@ scope {
   test(foo(1),1);
   finish();
 }
-scope {
+defun test8() {
   start("switch fallthrough");
   var ok=0;
   switch (1) {
@@ -195,27 +191,18 @@ scope {
   test(ok,2);
   finish();
 }
-scope {
+defun test9() {
   start("arrays");
   var k=0;
-  var a=[0,1,2,3,"test"];
+  var a=[0,1,2,3,4];
   test(length(a),5);
   test(a[0],0);
   test(a[1],1);
   test(a[2],2);
   test(a[3],3);
-  test(a[4],"test");
-  a[1]="one";
-  test(a[1],"one");
-  a[2]=[2.0,2.1,2.2];
-  test(a[2][0],2.0);
-  test(a[2][1],2.1);
-  test(a[2][2],2.2);
-  a[2][1]="2.1";
-  test(a[2][1],"2.1");
   finish();
 }
-scope {
+defun test10() {
   start("references");
   var o={},a=[];
   var oref=o;
@@ -226,7 +213,7 @@ scope {
   test(aref[0],"bar");
   finish();
 }
-scope {
+defun test11() {
   start("signature dispatch");
   defun foo(a,b) {return "foo-any-any";}
   defun foo(float a,float b) {return "foo-float-float";}
@@ -241,7 +228,7 @@ scope {
   test(foo(1,"2"),"foo-int-string");
   finish();
 }
-scope {
+defun test12() {
   start("evil blockless constructs");
   var a=[0,1,2,3];
   test(length(a),4);
@@ -261,7 +248,7 @@ scope {
   test(foo(2,3),5);
   finish();
 }
-scope {
+defun test13() {
   start("types (1)");
   var int i;
   var float f;
@@ -275,7 +262,7 @@ scope {
   test(foo("2"),"foo-string");
   finish();
 }
-scope {
+defun test14() {
   start("default arguments");
   defun foo(a,b=2) tostr([a,b]);
   test(foo(0,1),"[0 1]");
@@ -284,7 +271,7 @@ scope {
   test(typeof(new(array())),array(any));
   finish();
 }
-scope {
+defun test15() {
   start("structs (anonymous)");
   var struct{a,int i,float f} x;
   test(tostr(x),"{a=any,i=0,f=0}");
@@ -297,10 +284,10 @@ scope {
   test(tostr(x),"{a='prlnx',i=1,f=2}");
   finish();
 }
-scope {
+defun test16() {
   start("structs (aliastype)");
-  aliastype t struct{a,int i,float f};
-  var t x;
+  aliastype at struct{a,int i,float f};
+  var at x;
   test(tostr(x),"{a=any,i=0,f=0}");
   x.a="prlnx";
   test(x.a,"prlnx");
@@ -311,13 +298,13 @@ scope {
   test(tostr(x),"{a='prlnx',i=1,f=2}");
   finish();
 }
-scope {
+defun test17() {
   start("structs (deftype)");
-  deftype t struct{a,int i,float f};
+  deftype ts struct{a,int i,float f};
   //test("(struct (any a) (int i) (float f))",tostr(t));
-  defun set(t x,string idx,value) set(unpack(x),idx,value);
-  defun get(t x,string idx) return get(unpack(x),idx);
-  var t y;
+  defun set(ts x,string idx,value) set(unpack(x),idx,value);
+  defun get(ts x,string idx) return get(unpack(x),idx);
+  var ts y;
   test(tostr(y),"{a=any,i=0,f=0}");
   y.a="prlny";
   test(y.a,"prlny");
@@ -328,7 +315,7 @@ scope {
   test(tostr(y),"{a='prlny',i=2,f=1}");
   finish();
 }
-scope {
+defun test18() {
   start("unions (anonymous)");
   var union{a,int i,float f} z;
   test(tostr(z),"{a,i,f}");
@@ -341,13 +328,13 @@ scope {
   test(tostr(z),"{a,i,f=2}");
   finish();
 }
-scope {
+defun test19() {
   start("unions (deftype)");
-  deftype t union{a,int i,float f};
+  deftype tu union{a,int i,float f};
   //test("(union (any a) (int i) (float f))",tostr(u));
-  defun set(t x,string idx,value) set(unpack(x),idx,value);
-  defun get(t x,string idx) return get(unpack(x),idx);
-  var t z;
+  defun set(tu x,string idx,value) set(unpack(x),idx,value);
+  defun get(tu x,string idx) return get(unpack(x),idx);
+  var tu z;
   test(tostr(z),"{a,i,f}");
   z.a="prlnz";
   test(z.a,"prlnz");
@@ -358,7 +345,7 @@ scope {
   test(tostr(z),"{a,i,f=2}");
   finish();
 }
-scope {
+defun test20() {
   start("aliastype");
   aliastype intarr int[];
   test(tostr(intarr),"intarr");
@@ -370,7 +357,7 @@ scope {
   test(tostr(ia),"[0 1 2 3]");
   finish();
 }
-scope {
+defun test21() {
   start("ternary dispatch");
   scope foo {
     defun fun() return "foo";
@@ -386,7 +373,7 @@ scope {
   test(x.typeof().tostr().typeof(),string);
   finish();
 }
-scope {
+defun test22() {
   start("ternary dispatch (2)");
   var struct{int x} a;
   var struct{float x} b;
@@ -396,7 +383,7 @@ scope {
   test(b.x.foo(),"float");
   finish();
 }
-scope {
+defun test23() {
   start("array concatenation");
   var int[] a;
   a=[0,1];
@@ -411,15 +398,44 @@ scope {
 }
 //----------------------------------------------------------------------
 //--- summary
-summary();
+defun main() {
+  tic();
+  prln();
+  prln("-------------------- running test suite now");
+  prln();
+  test1();
+  test2();
+  test3();
+  test4();
+  test5();
+  test6();
+  test7();
+  test8();
+  test9();
+  test10();
+  test11();
+  test12();
+  test13();
+  test14();
+  test15();
+  test16();
+  test17();
+  test18();
+  test19();
+  test20();
+  test21();
+  test22();
+  test23();
+  summary();
+}
+main();
 /*
 defun foo(x) {return (x+x);}
 defun bar(x) {return foo(x);}
 defun fib(n) {
   if (n<2) return n;
-  else return fib(n-2)+fib(n-1);
+  return fib(n-2)+fib(n-1);
 }
-
 defun main(string[] args=[]) {
   prln("main");
   prln(foo(1));
@@ -427,6 +443,7 @@ defun main(string[] args=[]) {
   prln(bar(1));
   prln(bar(1.1));
   prln(fib(3));
+  prln(fib(3.1));
 }
 main();
 /*
