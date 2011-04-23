@@ -314,11 +314,14 @@ Cell token2cell(Token t) {
   }
   t.error("js-to-lisp error");
 }
-Cell parse_file_to_cell(string filename) {
-  Token t=parse_string_to_token(cast(string)std.file.read(filename));
+Cell parse_string_to_cell(string source) {
+  Token t=parse_string_to_token(source);
 //  t.show();
   Cell c=token2cell(t);
   assert(isa(c,TList),"list cell expected");
   c.lst=sym_cell("seq")~c.lst;
   return c;
+}
+Cell parse_file_to_cell(string filename) {
+  return parse_string_to_cell(cast(string)std.file.read(filename));
 }

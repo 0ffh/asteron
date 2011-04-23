@@ -28,22 +28,23 @@ void pop_env() {
   environment=envstack[$-1];
   envstack.length=envstack.length-1;
 }
-void push_env(Env* env=null) {
+void push_env(Env* env=null,bool copy_tt=false) {
   envstack~=environment;
   if (!env) {
     env=mk_env(environment);
     // copy typetable
-    Cell tytc=env_get(environment,"type_table");
-    TypeTable* oldtyt=as_typetable(tytc);
-    TypeTable tyt;
-    foreach (string key;oldtyt.str2typ.keys) {
-      Type val=oldtyt.str2typ[key];
-      tyt.str2typ[key]=val;
-      tyt.typ2str[val]=key;
+    if (copy_tt) {
+      Cell tytc=env_get(environment,"type_table");
+      TypeTable* oldtyt=as_typetable(tytc);
+      TypeTable* tyt=cast(TypeTable*)([TypeTable()].ptr);
+      foreach (string key;oldtyt.str2typ.keys) {
+        Type val=oldtyt.str2typ[key];
+        tyt.str2typ[key]=val;
+        tyt.typ2str[val]=key;
+      }
+      tytc=typetable_cell(tyt);
+      env_put(env,"type_table",tytc);
     }
-    tytc.tyt=cast(TypeTable*)([tyt].ptr);
-    //tytc=typetable_cell(cast(TypeTable*)([tyt].ptr));
-    env_put(env,"type_table",tytc);
   }
   environment=env;
 }
@@ -59,15 +60,27 @@ Env* mk_env(Env* outer=null) {
 }
 Cell env_put(Env* e,string key,Cell value) {
   static if (debf) {debEnter("env_put('"~key~"')");scope (exit) debLeave();}
-  return e.inner[key]=value;
+//   if (types_initialised && !(key=="type_table")) {
+//     printf("env_put %.*s = %.*s [%.*s]\n",key,cells.str(value),types.str(value.type));
+//   }
+  e.inner[key]=value;
+  if (types_initialised && !(key=="type_table")) {
+    value=e.inner[key];
+  }
+//   env_get(e,key);
+  return value;
 }
 Cell env_get(Env* e,string key) {
   static if (debf) {debEnter("env_get('"~key~"')");scope (exit) debLeave();}
 //  env_pr(e);
   Cell* c=key in e.inner;
-//  printf("env_get %.*s -> %p\n",key,c);
-//  env_pr(e);
-  if (c !is null) return *c;
+  if (c !is null) {
+//     if (types_initialised && !(key=="type_table")) {
+//       printf("env_get %.*s = %.*s [%.*s]\n", key, cells.str(*c),types.str(c.type));
+//     }
+    return *c;
+//     return c.clone();    
+  }
   if (e.outer !is null) {
 //    printf("trying outer -> ");
     return env_get(e.outer,key);

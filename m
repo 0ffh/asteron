@@ -3,12 +3,7 @@
 optimise=0
 dmd_not_gdc=1
 -- files
-files={"main","emit_d",
-       "cells","types","trafo",
-       "environments","signatures",
-       "libs","ablibs",
-       "llparse","hlparse",
-       "lexer","utils","debg"}
+files={"out","rtlib"}
 --
 cstr=""
 for _,f in ipairs(files) do
@@ -26,15 +21,15 @@ else
   else
     cstr="gdc -O0"..cstr
   end
-  cstr=cstr.." -o main"
+  cstr=cstr.." -o out"
 end
 res=os.execute(cstr)
 if res==0 then
   print("compiled okay, executing...")
   if arg[1] then
-    os.execute("./main "..arg[1])
+    os.execute("./out "..arg[1])
   else
-    os.execute("./main")
+    os.execute("./out")
   end
 else
   print("build error ["..tostring(res).."]")

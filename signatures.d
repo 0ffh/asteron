@@ -7,7 +7,7 @@ import types;
 import llparse;
 import environments;
 
-const bool debf=debflag;
+const bool debf=debflag && 0;
 
 const int score_shift=3;
 const int exact_score=6;
@@ -281,8 +281,8 @@ int type_matches(Type tp,Type ta) {
   if (is_union_type(tp) && is_union_type(ta)) return union_type_matches(tp,ta);
   if (is_assoc_type(tp) && is_assoc_type(ta)) return assoc_type_matches(tp,ta);
   if (is_ref_type(tp) && is_ref_type(ta)) return ref_type_matches(tp,ta);
-  Cell cp=*tp.cell;
-  Cell ca=*ta.cell;
+  Cell cp=tp.cell;
+  Cell ca=ta.cell;
   if (cp.type!=ca.type) return fail_score;
   if (cp.type!=TList) return fail_score;
   assert(cp.lst.length && ca.lst.length);

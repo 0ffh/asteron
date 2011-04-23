@@ -1299,9 +1299,7 @@ Cell lparse(Lexeme[] tokens,ref int pos) {
   if (!pos) tokens=rm_whitespaces(tokens);
   Lexeme token=tokens[pos++];
   if (token.val=="(") {
-    Cell c;
-    c.type=TList;
-    c.lst=[];
+    Cell c=list_cell([]);
     while (tokens[pos].val!=")") c.lst~=lparse(tokens,pos);
     ++pos; // pop off ')'
     return c;

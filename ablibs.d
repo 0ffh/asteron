@@ -22,7 +22,7 @@ Cell[] abs_eval_all(Cell[] exps) {
   for (int k;k<exps.length;++k) {
     Cell exp=exps[k];
     Cell res=abs_eval(exp);
-    printf("abs_eval_all %i/%i: %i / %.*s\n",k,exps.length,state.code,types.str(res.type));
+//     printf("abs_eval_all %i/%i: %i / %.*s\n",k,exps.length,state.code,types.str(res.type));
     if (state.code==StC.abt) state.code=StC.run;
     if (!isa(res,TAny)) ress~=res;
   }
@@ -46,6 +46,7 @@ Cell op_for(Cell[] args) {
   static if (debf) {debEnter("[for]");scope (exit) debLeave();}
   assert(args.length==4);
   push_env(); // we get our own scope
+  evalcell[$-1].ann["environment"]=env_cell(environment);
   abs_eval(args[0]);
   abs_eval(args[1]);
   abs_eval(args[2]);
@@ -59,6 +60,7 @@ Cell op_while(Cell[] args) {
   static if (debf) {debEnter("[while]");scope (exit) debLeave();}
   assert(args.length==2);
   push_env(); // we get our own scope
+  evalcell[$-1].ann["environment"]=env_cell(environment);
   abs_eval(args[0]);
   Cell c=abs_eval(args[1]);
 //  state.brk=0;
@@ -70,6 +72,7 @@ Cell op_dowhile(Cell[] args) {
   static if (debf) {debEnter("[dowhile]");scope (exit) debLeave();}
   assert(args.length==2);
   push_env(); // we get our own scope
+  evalcell[$-1].ann["environment"]=env_cell(environment);
   Cell c=abs_eval(args[0]);
   abs_eval(args[1]);
 //  state.brk=0;
@@ -114,6 +117,7 @@ Cell op_def(Cell[] args) {
 //    printf("new %.*s\n",types.str(type));
     value=new_cell(type);
   }
+//   printf("def %.*s / %.*s : %.*s\n",name,types.str(type),types.str(value.type));
   //-
   if (env_find(environment,name)==environment) {
     printf("Error: Symbol '%.*s' is already defined in this scope!\n",name);
@@ -127,8 +131,10 @@ Cell op_deftype(Cell[] args) {
   string name=as_symbol(args[0]);
   Type typ=type_deftype(name,type(args[1]));
   Cell val=type_cell(typ);
-  //printf("deftype %.*s / %.*s\n",name,types.str(type(args[1])));
-  return env_put(environment,name,val);
+//   val.ann["type"]=str_cell("deftype");
+//   printf("deftype %.*s / %.*s\n",name,types.str(typ));
+//   return env_put(environment,name,val);
+  return env_put(base_env,name,val);
 }
 Cell op_aliastype(Cell[] args) {
   static if (debf) {debEnter("[aliastype]");scope (exit) debLeave();}
@@ -136,8 +142,10 @@ Cell op_aliastype(Cell[] args) {
   string name=as_symbol(args[0]);
   Type typ=type_aliastype(name,type(args[1]));
   Cell val=type_cell(typ);
+//   val.ann["type"]=str_cell("aliastype");
   //printf("deftype %.*s / %.*s\n",name,types.str(type(args[1])));
-  return env_put(environment,name,val);
+//   return env_put(environment,name,val);
+  return env_put(base_env,name,val);
 }
 Cell op_supertype(Cell[] args) {
   static if (debf) {debEnter("[supertype]");scope (exit) debLeave();}
@@ -147,8 +155,10 @@ Cell op_supertype(Cell[] args) {
   for (int k=1;k<args.length;++k) st~=type(args[k]);
   Type typ=type_supertype(name,st);
   Cell val=type_cell(typ);
+//   val.ann["type"]=str_cell("supertype");
   //printf("deftype %.*s / %.*s\n",name,types.str(type(args[1])));
-  return env_put(environment,name,val);
+//   return env_put(environment,name,val);
+  return env_put(base_env,name,val);
 }
 Cell op_defun(Cell[] args) {
   static if (debf) {debEnter("[defun]");scope (exit) debLeave();}
@@ -188,6 +198,7 @@ Cell op_scope(Cell[] args) {
   static if (debf) {debEnter("[scope]");scope (exit) debLeave();}
   if (args.length==1) {
     push_env(); // we get our own scope
+    evalcell[$-1].ann["environment"]=env_cell(environment);
     Cell res=op_seq(as_list(args[0]));
     pop_env();
     return res;
@@ -197,6 +208,7 @@ Cell op_scope(Cell[] args) {
     Cell ce=env_cell(e);
     env_put(environment,as_symbol(args[0]),ce);
     push_env(e); // we get our own scope
+    evalcell[$-1].ann["environment"]=env_cell(environment);
     Cell res=abs_eval(args[1]); // sequence in new environment
     pop_env();
     return res;
@@ -283,7 +295,7 @@ Cell op_call(Cell[] args) {
   return abs_eval(list_cell(args));
 }
 Cell op_prenv(Cell[] args) {
-  env_pr(environment);
+  //env_pr(environment);
   return assoc_cell(environment.inner);
 }
 void init_abs_libs() {
@@ -567,17 +579,21 @@ Cell op_alloc(Cell[] args) {
 }
 Cell op_typeof(Cell[] args) {
   static if (debf) {debEnter("[typeof(any)]");scope (exit) debLeave();}
+//   printf("%.*s\n",cells.str(evalcell[$-1]));
+//   evalcell[$-1].ann["type"]=type_cell(args[0].type);
   return type_cell(args[0].type);
 }
 Cell op_unpack(Cell[] args) {
   static if (debf) {debEnter("[unpack(any)]");scope (exit) debLeave();}
-  args[0].type=get_def_subtype(args[0].type);
-  return args[0];
+  Cell c=args[0].clone();
+  c.type=get_def_subtype(c.type);
+  return c;
 }
 Cell op_pack(Cell[] args) {
   static if (debf) {debEnter("[pack(any,type)]");scope (exit) debLeave();}
-  args[0].type=as_type(args[1]);
-  return args[0];
+  Cell c=args[0].clone();
+  c.type=as_type(args[1]);
+  return c;
 }
 Cell op_array(Cell[] args) { // (array type) -> type
   static if (debf) {debEnter("[array]");scope (exit) debLeave();}
@@ -609,18 +625,22 @@ Cell op_struct(Cell[] args) {
   return type_cell(t);
 }
 Cell op_struct_get(Cell[] args) {
-  static if (debf) {debEnter("[struct_get]");scope (exit) debLeave();}
+  static if (debf) {debEnter("[struct_get_field]");scope (exit) debLeave();}
   assert(args.length==2);
   Struct* s=as_struct(args[0]);
   string key=as_str(args[1]);
-  return struct_get(s,key);
+  Cell res=struct_get_field(s,key);
+  printf("struct_get_field %.*s -> [%.*s]\n",key,types.str(res.type));
+  return res;
 }
 Cell op_struct_set(Cell[] args) {
-  static if (debf) {debEnter("[struct_set]");scope (exit) debLeave();}
+  static if (debf) {debEnter("[struct_set_field]");scope (exit) debLeave();}
   assert(args.length==3);
   Struct* s=as_struct(args[0]);
   string key=as_str(args[1]);
-  struct_set(s,key,args[2]);
+  Cell res=struct_get_field(s,key);
+  printf("struct_set_field %.*s -> [%.*s]\n",key,types.str(res.type));
+  assert(res.type==args[2].type);
   return args[2];
 }
 Cell op_union(Cell[] args) {

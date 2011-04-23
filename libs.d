@@ -432,6 +432,8 @@ int op_equal_sub(Cell a,Cell b) {
     }
     return 1;
   }
+//   printf("\n%.*s [%.*s] ?= %.*s [%.*s]\n",cells.str(a),types.str(a.type),cells.str(b),types.str(b.type));
+  if (a.type==TType) return (type(a.typ)==type(b.typ));
   return (a==b);
 }
 Cell op_equal(Cell[] args) {
@@ -686,13 +688,15 @@ Cell op_typeof(Cell[] args) {
 }
 Cell op_unpack(Cell[] args) {
   static if (debf) {debEnter("[unpack(any)]");scope (exit) debLeave();}
-  args[0].type=get_def_subtype(args[0].type);
-  return args[0];
+  Cell c=args[0].clone();
+  c.type=get_def_subtype(c.type);
+  return c;
 }
 Cell op_pack(Cell[] args) {
   static if (debf) {debEnter("[pack(any,type)]");scope (exit) debLeave();}
-  args[0].type=as_type(args[1]);
-  return args[0];
+  Cell c=args[0].clone();
+  c.type=as_type(args[1]);
+  return c;
 }
 Cell op_array(Cell[] args) { // (array type) -> type
   static if (debf) {debEnter("[array]");scope (exit) debLeave();}
@@ -724,18 +728,18 @@ Cell op_struct(Cell[] args) {
   return type_cell(t);
 }
 Cell op_struct_get(Cell[] args) {
-  static if (debf) {debEnter("[struct_get]");scope (exit) debLeave();}
+  static if (debf) {debEnter("[struct_get_field]");scope (exit) debLeave();}
   assert(args.length==2);
   Struct* s=as_struct(args[0]);
   string key=as_str(args[1]);
-  return struct_get(s,key);
+  return struct_get_field(s,key);
 }
 Cell op_struct_set(Cell[] args) {
-  static if (debf) {debEnter("[struct_set]");scope (exit) debLeave();}
+  static if (debf) {debEnter("[struct_set_field]");scope (exit) debLeave();}
   assert(args.length==3);
   Struct* s=as_struct(args[0]);
   string key=as_str(args[1]);
-  struct_set(s,key,args[2]);
+  struct_set_field(s,key,args[2]);
   return args[2];
 }
 Cell op_union(Cell[] args) {

@@ -5,6 +5,7 @@ import utils;
 import types;
 import environments;
 import std.string;
+import std.c.string;
 
 int clothedStringDefault=0;
 
@@ -36,6 +37,34 @@ Lamb* clone(Lamb* s) {
   d.env=s.env;
   return cast(Lamb*)[d].ptr;
 }
+string[] lambda_parameter_names(Lamb* lam) {
+  string[] par;
+  for (int k;k<lam.pars.length;++k) {
+    Cell[] cs=as_list(lam.pars[k]);
+    par~=as_symbol(cs[1]);
+  }
+  return par;
+}
+string[] lambda_parameter_names(Cell lam) {
+  return lambda_parameter_names(as_lambda(lam));
+}
+Cell[] lambda_parameter_defaults(Lamb* lam) {
+  Cell[] par;
+  for (int k;k<lam.pars.length;++k) {
+//     printf("[%i:%.*s]",k,cells.str(lam.pars[k]));
+    Cell[] cs=as_list(lam.pars[k]);
+    if (cs.length>2) {
+      par~=cs[2];
+    } else {
+      par~=null_cell();
+    }
+  }
+//   printf("\n");
+  return par;
+}
+Cell[] lambda_parameter_defaults(Cell lam) {
+  return lambda_parameter_defaults(as_lambda(lam));
+}
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -65,14 +94,21 @@ struct Ref {
   string id;
   Env* env;
 }
-Cell struct_get(Struct* s,string key) {
+Type struct_get_fieldtype(Struct* s,string key) {
+  for (int k;k<s.key.length;++k) {
+    if (key==s.key[k]) return s.typ[k];
+  }
+  assert(false,"struct has not field "~key);
+  return TNull;
+}
+Cell struct_get_field(Struct* s,string key) {
   for (int k;k<s.key.length;++k) {
     if (key==s.key[k]) return s.val[k];
   }
   assert(false,"struct has not field "~key);
   return null_cell();
 }
-Cell struct_set(Struct* s,string key,Cell val) {
+Cell struct_set_field(Struct* s,string key,Cell val) {
   for (int k;k<s.key.length;++k) {
     if (key==s.key[k]) return s.val[k]=val;
   }
@@ -103,11 +139,11 @@ Cell union_set(Union* u,string key,Cell val) {
   }
   assert(false,"union has not field "~key);
 }
-struct Cell {
+class Cell {
   Type type;
   union {
-    Cell* cel;
-    Cell* typ;
+    Cell cel;
+    Cell typ;
     string sym;
     string str;
     Cell[] lst;
@@ -125,53 +161,79 @@ struct Cell {
     Env* env;
     TypeTable* tyt;
   }
+  Cell[string] ann;
   void show(int style=0) {
-    printf("%.*s\n",cells.str(*this,style));
+    printf("%.*s\n",cells.str(this,style));
   }
+  static Cell opCall() {
+    return new Cell();
+  }
+  Cell clone() {
+    return clone_cell(this);
+  }
+}
+Cell clone_cell(Cell self) {
+  Cell c=Cell();
+  if (self.type==TList) {
+    c.type=TList;
+    c.lst.length=self.lst.length;
+    for (int k=self.lst.length;k--;) c.lst[k]=clone_cell(self.lst[k]);
+    return c;
+  }
+  if (self.type==TLambda) {
+    c.type=TLambda;
+    c.lam=clone(self.lam);
+    return c;
+  }
+//   memcpy(cast(void*)self,cast(void*)c,self.sizeof);
+  c.type=self.type;
+  c.lst=self.lst;
+  c.ann=self.ann;
+  return c;
 }
 Cell any_cell() {
   static if (debf) {debEnter("any_cell()");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TAny;
   return c;
 }
 Cell null_cell() {
   static if (debf) {debEnter("null_cell()");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TNull;
   return c;
 }
 Cell shell_cell(Cell v) {
   static if (debf) {debEnter("shell_cell(Cell)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TShell;
-  c.cel=cast(Cell*)([v].ptr);
+  c.cel=v;
   return c;
 }
 Cell sym_cell(string val) {
   static if (debf) {debEnter("sym_cell(string)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TSymbol;
   c.sym=val;
   return c;
 }
 Cell str_cell(string val) {
   static if (debf) {debEnter("str_cell(string)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TString;
   c.str=val;
   return c;
 }
 Cell float_cell(float val) {
   static if (debf) {debEnter("float_cell(float)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TFloat;
   c.flt=val;
   return c;
 }
 Cell int_cell(int val) {
   static if (debf) {debEnter("int_cell(int)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TInt;
   c.fix=val;
   return c;
@@ -186,14 +248,14 @@ Cell int_cell(string val) {
 }
 Cell list_cell(Cell[] val=[]) {
   static if (debf) {debEnter("list_cell(Cell[])");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TList;
   c.lst=val;
   return c;
 }
 Cell typetable_cell(TypeTable* val) {
   static if (debf) {debEnter("typetable_cell(TypeTable*)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TTypeTable;
   c.tyt=val;
   return c;
@@ -210,7 +272,7 @@ Cell assoc_cell_from_subtype(Type typ) {
 }
 Cell cell_from_assoc_type(Type typ) {
   static if (debf) {debEnter("cell_from_assoc_type(Type)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   Assoc val;
   c.type=typ;
   c.asc=cast(Assoc*)([val].ptr);
@@ -231,7 +293,7 @@ Cell cell_from_array_type(Type typ) {
     a.inner.length=len;
     for (int k;k<len;++k) a.inner[k]=new_cell(subtype);
   }
-  Cell c;
+  Cell c=Cell();
   c.type=typ;
   //printf("*** array_cell(%.*s)\n",types.str(c.type));
   c.arr=cast(Array*)([a].ptr);
@@ -251,7 +313,7 @@ Cell cell_from_struct_type(Type t) {
     s.typ~=ftype;
     s.val~=new_cell(ftype);
   }
-  Cell c;
+  Cell c=Cell();
   c.type=t;
   c.stc=cast(Struct*)([s].ptr);
   return c;
@@ -271,7 +333,7 @@ Cell cell_from_union_type(Type t) {
   }
   u.val=null_cell();
   u.tag=-1;
-  Cell c;
+  Cell c=Cell();
   c.type=t;
   c.uni=cast(Union*)([u].ptr);
   return c;
@@ -285,7 +347,7 @@ Cell cell_from_def_type(Type typ) {
 Cell cell_from_ref_type(Type typ) {
   static if (debf) {debEnter("cell_from_ref_type(Type,Cell[])");scope (exit) debLeave();}
   Ref r;
-  Cell c;
+  Cell c=Cell();
   c.type=typ;
   //printf("%.*s\n",types.str(c.type));
   c.ptr=cast(Ref*)([r].ptr);
@@ -296,8 +358,9 @@ Cell ref_cell(Env* env,string id) {
   Ref r;
   r.env=env;
   r.id=id;
-  Cell c=env_get(env,id);
-  c.type=ref_type_from_subtype(c.type);
+  Cell c=Cell();
+  Type t=env_get(env,id).type;
+  c.type=ref_type_from_subtype(t);
   c.ptr=cast(Ref*)([r].ptr);
   return c;
 }
@@ -316,35 +379,35 @@ Cell cell_from_alias_type(Type t) {
 }
 Cell ftab_cell(FTab* ft) {
   static if (debf) {debEnter("ftab_cell(Ftab)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TFtab;
   c.ftab=ft;
   return c;
 }
 Cell lambda_cell(Lamb* val) {
   static if (debf) {debEnter("lambda_cell(Lamb)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TLambda;
   c.lam=val;
   return c;
 }
 Cell fun_cell(fun_type val) {
   static if (debf) {debEnter("fun_cell(fun_type)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TFun;
   c.fun=val;
   return c;
 }
 Cell lfun_cell(lfn_type val) {
   static if (debf) {debEnter("lfun_cell(lfn_type)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TLfun;
   c.lfn=val;
   return c;
 }
 Cell env_cell(Env* val) {
   static if (debf) {debEnter("env_cell(Env*)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TEnv;
   c.env=val;
   return c;
@@ -352,7 +415,7 @@ Cell env_cell(Env* val) {
 }
 Cell type_cell(Type t) {
   static if (debf) {debEnter("type_cell(Type)");scope (exit) debLeave();}
-  Cell c;
+  Cell c=Cell();
   c.type=TType;
   c.typ=t.cell;
   return c;
@@ -436,7 +499,7 @@ Type as_type(Cell c) {
 }
 Cell as_shell(Cell c) {
   assert(c.type==TShell,"as_shell: Type error.");
-  return *c.cel;
+  return c.cel;
 }
 int istrue(Cell c) {
   if (c.type==TInt)    return c.fix;
@@ -451,22 +514,6 @@ bool isa(Cell c,Type t) {
 }
 bool is_sym(Cell c,string s) {
   return ((c.type==TSymbol)&&(c.sym==s));
-}
-Cell clone_cell(Cell self) {
-  if (self.type==TList) {
-    Cell c;
-    c.type=TList;
-    c.lst.length=self.lst.length;
-    for (int k=self.lst.length;k--;) c.lst[k]=clone_cell(self.lst[k]);
-    return c;
-  }
-  if (self.type==TLambda) {
-    Cell c;
-    c.type=TLambda;
-    c.lam=clone(self.lam);
-    return c;
-  }
-  return self;
 }
 void pr(Cell self) {
   printf("%.*s",str(self));
@@ -513,6 +560,7 @@ Cell new_cell(Type t) {
 //--------------------
 string str(Cell c,int clothedString=clothedStringDefault,int rec=1) {
   static if (debf) {debEnter("cells.str(Cell)");scope (exit) debLeave();}
+  c=c.clone();
   if (!types_initialised) {
     printf("Base types must be initialised before using cells.str!\n");
     assert(false);
@@ -623,6 +671,7 @@ string str(Cell c,int clothedString=clothedStringDefault,int rec=1) {
   }
   //
   if (is_def_type(c.type)) {
+    c=c.clone();
     c.type=get_def_subtype(c.type);
     return str(c);
   }

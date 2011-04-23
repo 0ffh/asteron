@@ -400,8 +400,8 @@ scope {
 }
 scope {
   start("structs (aliastype)");
-  aliastype t struct{a,int i,float f};
-  var t x;
+  aliastype ta struct{a,int i,float f};
+  var ta x;
   test(tostr(x),"{a=any,i=0,f=0}");
   x.a="prlnx";
   test(x.a,"prlnx");
@@ -414,11 +414,11 @@ scope {
 }
 scope {
   start("structs (deftype)");
-  deftype t struct{a,int i,float f};
+  deftype td struct{a,int i,float f};
   //test("(struct (any a) (int i) (float f))",tostr(t));
-  defun set(t x,string idx,value) set(unpack(x),idx,value);
-  defun get(t x,string idx) return get(unpack(x),idx);
-  var t y;
+  defun set(td x,string idx,value) set(unpack(x),idx,value);
+  defun get(td x,string idx) return get(unpack(x),idx);
+  var td y;
   test(tostr(y),"{a=any,i=0,f=0}");
   y.a="prlny";
   test(y.a,"prlny");
@@ -444,11 +444,11 @@ scope {
 }
 scope {
   start("unions (deftype)");
-  deftype t union{a,int i,float f};
+  deftype tu union{a,int i,float f};
   //test("(union (any a) (int i) (float f))",tostr(u));
-  defun set(t x,string idx,value) set(unpack(x),idx,value);
-  defun get(t x,string idx) return get(unpack(x),idx);
-  var t z;
+  defun set(tu x,string idx,value) set(unpack(x),idx,value);
+  defun get(tu x,string idx) return get(unpack(x),idx);
+  var tu z;
   test(tostr(z),"{a,i,f}");
   z.a="prlnz";
   test(z.a,"prlnz");

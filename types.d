@@ -55,20 +55,20 @@ const string[] type_ids=[
 // all types are interned so type pointers can be compared
 
 struct Type {
-  Cell* cell;
+  Cell cell;
   void show() {
     printf("%.*s\n",types.str(*this));
   }
 }
 void prln(Type t) {
-  cells.prln(*(t.cell));
+  cells.prln(t.cell);
 }
 Type prim_type(string typestring) {
   static if (debf) {debEnter("prim_type(string '"~typestring~"')");scope (exit) debLeave();}
   TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
   if (typestring in tyt.str2typ) return tyt.str2typ[typestring];
   Type t;
-  t.cell=cast(Cell*)([sym_cell(typestring)].ptr);
+  t.cell=sym_cell(typestring);
   tyt.str2typ[typestring]=t;
   tyt.typ2str[t]=typestring;
   return t;
@@ -78,8 +78,11 @@ Type prim_type(string typestring) {
 //--------------------
 //-------------------- compound types
 //--------------------
+bool is_basic_type(Type t) {
+  return !is_compound_type(t);
+}
 bool is_compound_type(Type t) {
-  return isa(*t.cell,TList);
+  return isa(t.cell,TList);
 }
 string get_compound_type_constructor(Type t) {
   if (t.cell.type!=TList) return "";
@@ -108,6 +111,7 @@ bool is_def_type(Type t) {
   return (get_compound_type_constructor(t)=="deftype");
 }
 Type get_def_subtype(Type t) {
+//   printf("%.*s\n",str(t));
   assert(is_def_type(t));
   assert(t.cell.lst.length>1);
   return type(t.cell.lst[1]);
@@ -317,11 +321,12 @@ Type type(string typestring) {
 }
 Type type(Cell val) {
   static if (debf) {debEnter("type(Cell)");scope (exit) debLeave();}
+  //val=val.clone();
   string typestring=cells.str(val);
   TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
   if (typestring in tyt.str2typ) return tyt.str2typ[typestring];
   Type t;
-  t.cell=cast(Cell*)([val].ptr);
+  t.cell=val;
   tyt.str2typ[typestring]=t;
   tyt.typ2str[t]=typestring;
   return t;
@@ -333,8 +338,8 @@ string str(Type t) {
   TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
   string* ps=(t in tyt.typ2str);
   if (ps) return *ps;
-  //assert(false); // temporary test
-  return cells.str(*t.cell);
+//   assert(false); // temporary test
+  return cells.str(t.cell);
 }
 string str(Type[] ts) {
   if (!ts.length) return "()";
@@ -356,22 +361,22 @@ void init_types() {
   static if (debf) {debEnter("init_types");scope (exit) debLeave();}
   TypeTable* tyt=mk_typetable();
   // make TSymbol and TType
-  TSymbol.cell=cast(Cell*)([Cell()].ptr);
-  TType.cell=cast(Cell*)([Cell()].ptr);
+  TSymbol.cell=Cell();
+  TType.cell=Cell();
   TSymbol.cell.type=TType;
   TType.cell.type=TType;
   tyt.str2typ[id_sym]=TSymbol;
   tyt.str2typ[id_type]=TType;
   tyt.typ2str[TSymbol]=id_sym;
   tyt.typ2str[TType]=id_type;
-  TSymbol.cell.typ=cast(Cell*)([sym_cell(id_sym)].ptr);
-  TType.cell.typ=cast(Cell*)([sym_cell(id_type)].ptr);
+  TSymbol.cell.typ=sym_cell(id_sym);
+  TType.cell.typ=sym_cell(id_type);
   //
-  TTypeTable.cell=cast(Cell*)([Cell()].ptr);
+  TTypeTable.cell=Cell();
   TTypeTable.cell.type=TType;
   tyt.str2typ[id_typetable]=TTypeTable;
   tyt.typ2str[TTypeTable]=id_typetable;
-  TType.cell.typ=cast(Cell*)([sym_cell(id_typetable)].ptr);
+  TType.cell.typ=sym_cell(id_typetable);
   //
   env_put(environment,"type_table",typetable_cell(tyt));
   // make other prim_types
