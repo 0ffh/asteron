@@ -1,16 +1,21 @@
 module emit_d;
 
 import std.file;
+import std.stdio;
 import std.string;
 import std.regexp;
 import std.c.stdio;
 import std.c.string;
 
+import debg;
 import main;
+import trafo;
 import utils;
 import cells;
 import types;
 import environments;
+
+const bool debf=debflag;
 
 FILE* dst;
 
@@ -27,17 +32,16 @@ bool newlnf=true;
 void indent(int n) {
   while (n-->0) emit("  ");
 }
-void emit(string fs,...) {
+void emit(...) {
+  static if (debf) {debEnter("emit(...)");scope (exit) debLeave();}
   string buffer;
-  buffer.length=0x800;
-  fs~='\0';
-  std.c.stdio.vsprintf(buffer.ptr,fs.ptr,_argptr);
-  buffer.length=strlen(buffer.ptr);
+  void putc(dchar c) {buffer~=c;}
+  std.format.doFormat(&putc,_arguments,_argptr);
   if (newlnf) {
     newlnf=false;
     indent(indval);
   }
-  fprintf(dst,"%.*s",buffer);
+  fprintf(dst,"%s",tsz(buffer));
 }
 void ind() {++indval;}
 void unind() {--indval;}
@@ -71,6 +75,7 @@ bool id_in(string id,string[] cids) {
   return false;
 }
 void emit_ast(Cell c) {
+  static if (debf) {debEnter("emit_ast(Cell)");scope (exit) debLeave();}
   if (!isa(c,TList)) {
     if (isa(c,TType)) {
       emit("\"");
@@ -79,16 +84,16 @@ void emit_ast(Cell c) {
       emit("\"");
     }
     if (isa(c,TInt)) {
-      emit("%i",as_int(c));
+      emit("%d",as_int(c));
     }
     if (isa(c,TFloat)) {
-      emit("%f",as_float(c));
+      emit("%g",as_float(c));
     }
     if (isa(c,TSymbol)) {
-      emit("%.*s",as_symbol(c));
+      emit("%s",as_symbol(c));
     }
     if (isa(c,TString)) {
-      emit("\"%.*s\"",as_str(c));
+      emit("\"%s\"",as_str(c));
     }
     if (isa(c,TLambda)) {
       if (callstr(c.lam.expr)=="seq") {
@@ -106,12 +111,14 @@ void emit_ast(Cell c) {
     }
     return;
   }
-  if (!c.lst.length) return;
-  if (!isa(c.lst[0],TSymbol)) return;
+  assert(c.lst.length);
+  //writefln("%s",cells.str(c.lst[0]));
+  assert(isa(c.lst[0],TSymbol));
   string id=as_symbol(c.lst[0]);
   Cell[] sub=[];
   if (c.lst.length>1) sub=c.lst[1..$];
-//   emit("[%.*s]",id);
+//  emit("[%s]",id);
+//  writefln("<%s>\n",id);//types.str(c.type));
   if (id=="seq") {
     emit("{");
     ind();
@@ -229,7 +236,7 @@ void emit_ast(Cell c) {
     if (isa(sub[1],TString)) {
       emit("."~as_str(sub[1]));
     } else if (isa(sub[1],TInt)) {
-      emit("[%i]",as_int(sub[1]));
+      emit("[%d]",as_int(sub[1]));
     } else {
       emit("[");
       emit_ast(sub[1]);
@@ -242,14 +249,16 @@ void emit_ast(Cell c) {
     if (isa(sub[1],TString)) {
       emit("."~as_str(sub[1]));
     } else if (isa(sub[1],TInt)) {
-      emit("[%i]",as_int(sub[1]));
+      emit("[%d]",as_int(sub[1]));
     } else {
       emit("[");
       emit_ast(sub[1]);
       emit("]");
     }
   } else if (id=="call") {
-    emit_ast(list_cell([sub[1],sub[0]]));
+    Cell cc=list_cell([sub[0],sub[1]]);
+    writefln("call : %s",cells.str(cc));
+    emit_ast(cc);
   } else if (id=="resize") {
     emit_ast(sub[0]);
     emit(".length=");
@@ -276,14 +285,14 @@ void emit_ast(Cell c) {
     emit("return ");
     emit_ast(sub[0]);
   } else if (id=="new_array") {
-    emit("[",id);
+    emit("[");
     for (int k=0;k<sub.length;++k) {
       if (k) emit(",");
       emit_ast(sub[k]);
     }
     emit("]");
   } else if (id=="prln") {
-    emit("%.*s(",id);
+    emit("%s(",id);
     for (int k=0;k<sub.length;++k) {
       if (k) emit(",");
       emit_ast(sub[k]);
@@ -292,14 +301,28 @@ void emit_ast(Cell c) {
   } else if (id=="def") {
     string name=as_symbol(sub[1]);
     Cell cel=env_get(environment,name);
-    emit_ast(cel.type);
-    emit(" %.*s",name);
+    /*writef("### define %s %s\n",name,types.str(cel.type));
+    writef("### define %s %s\n",name,cells.str(cel.type.cell));
+    emit_ast(cel.type);*/
+    string tn;
+    Cell* tnp="typename" in cel.ann;
+    writefln("%s : %s [%s]\n",name,cells.str(cel,1),types.str(cel.type));
+    if (tnp is null) {
+      writefln("~~~ no type annotation for %s",name);
+      //assert(false);
+      //tn=types.str(cel.type);
+      emit_ast(cel.type);
+    } else {
+      tn=as_symbol(*tnp);
+      emit("%s",tn);
+    }
+    emit(" %s",name);
     if (sub.length>2) {
       emit("=");
       emit_ast(sub[2]);
     }
   } else if (id[0]=='$') {
-    emit("%.*s(",id[1..$]);
+    emit("%s(",id[1..$]);
     for (int k=0;k<sub.length;++k) {
       if (k) emit(",");
       emit_ast(sub[k]);
@@ -319,7 +342,7 @@ void emit_ast(Cell c) {
     emit("// omitting "~id);
   } else {
     static if (1) {
-      emit("%.*s(",id);
+      emit("%s(",id);
       for (int k=0;k<sub.length;++k) {
         if (k) emit(",");
         emit_ast(sub[k]);
@@ -327,59 +350,18 @@ void emit_ast(Cell c) {
       emit(")");
     } else {
       crlf();
-      emit("[%.*s]",cells.str(c));
-//     printf("*** Unhandled: [%.*s]\n",cells.str(c));
+      emit("[%s]",cells.str(c));
+//     writef("*** Unhandled: [%s]\n",cells.str(c));
 //     assert(false);
     }
   }
   fflush(stdout);
 }
-void emit_ast(Type t,string name="") {
-  if (is_basic_type(t)) {
-    emit(types.str(t));
-  } else if (is_array_type(t)) {
-    Type st=get_array_subtype(t);
-    emit_ast(st);
-    emit("[]");
-  } else if (is_ref_type(t)) {
-    Type st=get_ref_subtype(t);
-    emit_ast(st);
-    emit("*");
-  } else if (is_struct_type(t)) {
-    Cell[] sc=get_compound_fields(t);
-    emit("struct ");
-    if (name.length) emit(name~" ");
-    emit("{");
-    for (int k;k<sc.length;++k) {
-      emit_ast(sc[k].lst[0]);
-      emit(" "~as_symbol(sc[k].lst[1]));
-      emit(";");
-    }
-    emit("}");
-  } else if (is_union_type(t)) {
-    Cell[] sc=get_compound_fields(t);
-    emit("union ");
-    if (name.length) emit(name~" ");
-    emit("{");
-    for (int k;k<sc.length;++k) {
-      emit_ast(sc[k].lst[0]);
-      emit(" "~as_symbol(sc[k].lst[1]));
-      emit(";");
-    }
-    emit("}");
-  } else if (is_alias_type(t)) {
-    t=get_alias_subtype(t);
-    emit_ast(t);
-  } else if (is_def_type(t)) {
-    emit(types.str(t));
-  } else {
-    emit("<"~types.str(t)~">");
-  }
-}
 void emit_ast(FunListEntry fle) {
+  static if (debf) {debEnter("emit_ast(FunListEntry)");scope (exit) debLeave();}
   if (!isa(fle.fun,TLambda)) return;
   //crlf();
-  //emit("//----- defun %.*s",fle.nam);
+  //emit("//----- defun %s",fle.nam);
   string[] nam=lambda_parameter_names(fle.fun);
   Cell[] def=lambda_parameter_defaults(fle.fun);
   crlf();
@@ -388,7 +370,7 @@ void emit_ast(FunListEntry fle) {
   } else {
     emit_ast(fle.res.type);
   }
-  emit(" %.*s(",fle.nam[1..$]);
+  emit(" %s(",fle.nam[1..$]);
   static if (1) {
     for (int k;k<fle.par.length;++k) {
       if (k) emit(",");
@@ -418,8 +400,52 @@ void emit_ast(FunListEntry fle) {
   emit(") ");
   emit_ast(fle.fun);
 }
+void emit_ast(Type t,string name="") {
+  static if (debf) {debEnter("emit_ast(Type)");scope (exit) debLeave();}
+  if (is_basic_type(t)) {
+    emit(types.str(t));
+  } else if (is_array_type(t)) {
+    Type st=get_array_subtype(t);
+    emit_ast(st);
+    emit("[]");
+  } else if (is_ref_type(t)) {
+    Type st=get_ref_subtype(t);
+    emit_ast(st);
+    emit("*");
+  } else if (is_struct_type(t)) {
+    writef("emit struct type %s [%s]\n",name,types.str(t));
+    string type_name=get_type_name(t);
+    Cell[] sc=get_compound_fields(t);
+    emit("struct ");
+    if (name.length) emit(name~" ");
+    emit("{");
+    for (int k;k<sc.length;++k) {
+      emit_ast(sc[k].lst[0]);
+      emit(" "~as_symbol(sc[k].lst[1]));
+      emit(";");
+    }
+    emit("}");
+  } else if (is_union_type(t)) {
+    writef("emit union type %s\n",name);
+    Cell[] sc=get_compound_fields(t);
+    emit("union ");
+    if (name.length) emit(name~" ");
+    emit("{");
+    for (int k;k<sc.length;++k) {
+      emit_ast(sc[k].lst[0]);
+      emit(" "~as_symbol(sc[k].lst[1]));
+      emit(";");
+    }
+    emit("}");
+  } else if (is_def_type(t)) {
+    emit(types.str(t));
+  } else {
+    emit("<"~types.str(t)~">");
+  }
+}
 void emit_typedef(string name,Type t) {
-//  printf("typedef %.*s = %.*s\n",name,types.str(t));
+  static if (debf) {debEnter("emit_typedef(...)");scope (exit) debLeave();}
+//  writef("typedef %s = %s\n",name,types.str(t));
   if (is_basic_type(t)) {
     emit("typedef ");
     emit_ast(t);
@@ -447,9 +473,10 @@ void emit_typedefs() {
         t=get_def_subtype(t);
         emit_typedef(key,t);
       }
-//       if (is_alias_type(t)) {
-//         emit_typedef(key,get_alias_subtype(t));
-//       }
+      if (is_alias_type(t)) {
+        t=get_alias_subtype(t);
+        emit_typedef(key,t);
+      }
     }
   }
 }
@@ -465,6 +492,7 @@ void emit_globals(Cell root) {
   }
 }
 void emit_d_main(Cell root,FunListEntry[] fun_list,string fn="stdout") {
+  static if (debf) {debEnter("emit_d_main(...)");scope (exit) debLeave();}
   environment=base_env;
   if (fn=="stdout") dst=stdout;
   else dst=fopen(tsz(fn),"wb");

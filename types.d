@@ -5,6 +5,7 @@ import utils;
 import cells;
 import llparse;
 import environments;
+import std.stdio;
 
 const bool debf=debflag;
 
@@ -57,7 +58,7 @@ const string[] type_ids=[
 struct Type {
   Cell cell;
   void show() {
-    printf("%.*s\n",types.str(*this));
+    writef("%s\n",types.str(*this));
   }
 }
 void prln(Type t) {
@@ -68,7 +69,7 @@ Type prim_type(string typestring) {
   TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
   if (typestring in tyt.str2typ) return tyt.str2typ[typestring];
   Type t;
-  t.cell=sym_cell(typestring);
+  t.cell=symbol_cell(typestring);
   tyt.str2typ[typestring]=t;
   tyt.typ2str[t]=typestring;
   return t;
@@ -105,13 +106,25 @@ Cell[] get_compound_fields(Type t) {
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //--------------------
+//-------------------- add type to type table
+void add_type_to_table(string name,Type type) {
+  TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
+  if (name in tyt.str2typ) assert(false,"type "~name~" is already defined");
+  type.cell.ann["name"]=symbol_cell(name);
+  tyt.str2typ[name]=type;
+  tyt.typ2str[type]=name;
+}
+//--------------------
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
+//--------------------
 //-------------------- deftype
 //--------------------
 bool is_def_type(Type t) {
   return (get_compound_type_constructor(t)=="deftype");
 }
 Type get_def_subtype(Type t) {
-//   printf("%.*s\n",str(t));
+//   writef("%s\n",str(t));
   assert(is_def_type(t));
   assert(t.cell.lst.length>1);
   return type(t.cell.lst[1]);
@@ -122,13 +135,10 @@ Type def_type_from_subtype(Type subtyp) {
 }
 Type type_deftype(string name,Type t) {
   static if (debf) {debEnter("type_deftype(string,Cell)");scope (exit) debLeave();}
-  //printf("*** defining type '%.*s'\n",name);
-  //printf("*** typestring = %.*s\n",str(t));
-  TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
-  if (name in tyt.str2typ) assert(false,"type "~name~" is already defined");
+  //writef("*** defining type '%s'\n",name);
+  //writef("*** typestring = %s\n",str(t));
   t=def_type_from_subtype(t);
-  tyt.str2typ[name]=t;
-  tyt.typ2str[t]=name;
+  add_type_to_table(name,t);
   return t;
 }
 //----------------------------------------------------------------------
@@ -150,13 +160,10 @@ Type alias_type_from_subtype(Type subtyp) {
 }
 Type type_aliastype(string name,Type t) {
   static if (debf) {debEnter("type_aliastype(string,Cell)");scope (exit) debLeave();}
-  //printf("*** defining type '%.*s'\n",name);
-  //printf("*** typestring = %.*s\n",str(t));
-  TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
-  if (name in tyt.str2typ) assert(false,"type "~name~" is already defined");
+  //writef("*** defining type '%s'\n",name);
+  //writef("*** typestring = %s\n",str(t));
   t=alias_type_from_subtype(t);
-  tyt.str2typ[name]=t;
-  tyt.typ2str[t]=name;
+  add_type_to_table(name,t);
   return t;
 }
 //----------------------------------------------------------------------
@@ -189,8 +196,8 @@ void super_type_extend_to_subtypes(Type t,Type[] subtypes) {
 }
 Type type_supertype(string name,Type[] st) {
   static if (debf) {debEnter("type_supertype(string,Cell)");scope (exit) debLeave();}
-  //printf("*** defining type '%.*s'\n",name);
-  //printf("*** typestring = %.*s\n",str(t));
+  //writef("*** defining type '%s'\n",name);
+  //writef("*** typestring = %s\n",str(t));
   TypeTable* tyt=as_typetable(env_get(environment,"type_table"));
   Type t;
   if (name in tyt.str2typ) {
@@ -201,9 +208,9 @@ Type type_supertype(string name,Type[] st) {
   }
   t=super_type_from_subtypes(st);
   static if (0) {
-    printf("supertype %.*s",name);
-    foreach (ste;st) printf(" %.*s",str(ste));
-    printf("\n");
+    writef("supertype %s",name);
+    foreach (ste;st) writef(" %s",str(ste));
+    writef("\n");
   }
   tyt.str2typ[name]=t;
   tyt.typ2str[t]=name;
@@ -279,7 +286,7 @@ bool is_struct_type(Type t) {
 }
 Type struct_type_from_fields(Cell[] fields) {
   static if (debf) {debEnter("struct_type_from_fields(Cell[])");scope (exit) debLeave();}
-  return type(cells.str(list_cell(sym_cell("struct")~fields)));
+  return type(cells.str(list_cell(symbol_cell("struct")~fields)));
 }
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -291,7 +298,7 @@ bool is_union_type(Type t) {
 }
 Type union_type_from_fields(Cell[] fields) {
   static if (debf) {debEnter("union_type_from_fields(Cell[])");scope (exit) debLeave();}
-  return type(cells.str(list_cell(sym_cell("union")~fields)));
+  return type(cells.str(list_cell(symbol_cell("union")~fields)));
 }
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -369,14 +376,14 @@ void init_types() {
   tyt.str2typ[id_type]=TType;
   tyt.typ2str[TSymbol]=id_sym;
   tyt.typ2str[TType]=id_type;
-  TSymbol.cell.typ=sym_cell(id_sym);
-  TType.cell.typ=sym_cell(id_type);
+  TSymbol.cell.typ=symbol_cell(id_sym);
+  TType.cell.typ=symbol_cell(id_type);
   //
   TTypeTable.cell=Cell();
   TTypeTable.cell.type=TType;
   tyt.str2typ[id_typetable]=TTypeTable;
   tyt.typ2str[TTypeTable]=id_typetable;
-  TType.cell.typ=sym_cell(id_typetable);
+  TType.cell.typ=symbol_cell(id_typetable);
   //
   env_put(environment,"type_table",typetable_cell(tyt));
   // make other prim_types
@@ -412,4 +419,21 @@ void init_types() {
   assert(TTypeTable==type(id_typetable),"Type interning failure");
   //
   foreach (tid;type_ids) env_put(environment,tid,type_cell(type(tid)));
+}
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
+//--------------------
+//-------------------- anonymous types
+//--------------------
+string[string] type_names;
+void add_type_name(Type typ,string name) {
+  writef("*** add_type_name %s %s\n",types.str(typ),name);
+  type_names[str(typ)]=name;
+}
+string get_type_name(Type typ) {
+  string name;
+  string *pname=str(typ) in type_names;
+  if (pname is null) name=""; else name=*pname;
+  writef("*** get_type_name %s %s\n",types.str(typ),name);
+  return name;
 }

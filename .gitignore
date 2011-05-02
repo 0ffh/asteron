@@ -9,6 +9,8 @@ usb
 x.x
 y.y
 out.d
+out.o
+out
 null
 main.obj
 b0/

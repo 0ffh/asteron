@@ -1,7 +1,7 @@
 #!/usr/bin/lua
 -- options
 optimise=0
-dmd_not_gdc=1
+dmd_not_gdc=0
 -- files
 files={"main","emit_d",
        "cells","types","trafo",

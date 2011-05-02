@@ -2,6 +2,7 @@ module utils;
 
 import std.date;
 import std.math;
+import std.stdio;
 import std.string;
 import std.format;
 import std.random;
@@ -29,7 +30,19 @@ int rand(int n) {
 void flush() {
   fflush(stdout);
 }
-string cfrm(string fs,...) {
+string doformat(TypeInfo[] arguments,void* argptr) {
+  string s;
+  void putc(dchar c) {s~=c;}
+  std.format.doFormat(&putc,arguments,argptr);
+  return s;
+}
+string frm(...) {
+  string s;
+  void putc(dchar c) {s~=c;}
+  std.format.doFormat(&putc,_arguments,_argptr);
+  return s;
+}
+/*string cfrm(string fs,...) {
   string buffer;
   buffer.length=0x800;
   fs~='\0';
@@ -37,13 +50,13 @@ string cfrm(string fs,...) {
   buffer.length=strlen(buffer.ptr);
   return buffer;
 }
-/*void pr(string fs,...) {
+void pr(string fs,...) {
   string buffer;
   buffer.length=0x800;
   fs~='\0';
   std.c.stdio.vsprintf(buffer.ptr,fs.ptr,_argptr);
   buffer.length=strlen(buffer.ptr);
-  printf("%.*s",buffer);
+  writef("%s",buffer);
 }
 void prln(string fs,...) {
   string buffer;
@@ -51,7 +64,7 @@ void prln(string fs,...) {
   fs~='\0';
   std.c.stdio.vsprintf(buffer.ptr,fs.ptr,_argptr);
   buffer.length=strlen(buffer.ptr);
-  printf("%.*s\n",buffer);
+  writef("%s\n",buffer);
 }*/
 string spaces(int n) {
   string s;
@@ -60,7 +73,7 @@ string spaces(int n) {
   return s;
 }
 void indent(int n) {
-  while (n-->0) printf("  ");
+  while (n-->0) writef("  ");
 }
 int sign(int i) {
   if (i>0) return +1;
@@ -88,9 +101,9 @@ string deCtrl(string s) {
   }
   return r;
 }
-char* dsz(string s) {
+/*char* dsz(string s) {
   return tsz(deCtrl(s));
-}
+}*/
 string str(int n) {
   return std.string.toString(n);
 }

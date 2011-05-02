@@ -4,6 +4,7 @@ import debg;
 import utils;
 import types;
 import environments;
+import std.stdio;
 import std.string;
 import std.c.string;
 
@@ -51,7 +52,7 @@ string[] lambda_parameter_names(Cell lam) {
 Cell[] lambda_parameter_defaults(Lamb* lam) {
   Cell[] par;
   for (int k;k<lam.pars.length;++k) {
-//     printf("[%i:%.*s]",k,cells.str(lam.pars[k]));
+//     writef("[%i:%s]",k,cells.str(lam.pars[k]));
     Cell[] cs=as_list(lam.pars[k]);
     if (cs.length>2) {
       par~=cs[2];
@@ -59,7 +60,7 @@ Cell[] lambda_parameter_defaults(Lamb* lam) {
       par~=null_cell();
     }
   }
-//   printf("\n");
+//   writef("\n");
   return par;
 }
 Cell[] lambda_parameter_defaults(Cell lam) {
@@ -163,7 +164,7 @@ class Cell {
   }
   Cell[string] ann;
   void show(int style=0) {
-    printf("%.*s\n",cells.str(this,style));
+    writef("%s\n",cells.str(this,style));
   }
   static Cell opCall() {
     return new Cell();
@@ -171,9 +172,25 @@ class Cell {
   Cell clone() {
     return clone_cell(this);
   }
+  Cell set(Cell src) {
+    src=src.clone();
+    this.type=src.type;
+    this.lst=src.lst;
+    this.ann=src.ann;
+    return this;
+//    return copy_cell(this,c);
+  }
+}
+Cell copy_cell(Cell dst,Cell src) {
+  src=src.clone();
+  dst.type=src.type;
+  dst.lst=src.lst;
+  dst.ann=src.ann;
+  return dst;
 }
 Cell clone_cell(Cell self) {
   Cell c=Cell();
+  c.ann=self.ann;
   if (self.type==TList) {
     c.type=TList;
     c.lst.length=self.lst.length;
@@ -188,7 +205,6 @@ Cell clone_cell(Cell self) {
 //   memcpy(cast(void*)self,cast(void*)c,self.sizeof);
   c.type=self.type;
   c.lst=self.lst;
-  c.ann=self.ann;
   return c;
 }
 Cell any_cell() {
@@ -210,15 +226,15 @@ Cell shell_cell(Cell v) {
   c.cel=v;
   return c;
 }
-Cell sym_cell(string val) {
-  static if (debf) {debEnter("sym_cell(string)");scope (exit) debLeave();}
+Cell symbol_cell(string val) {
+  static if (debf) {debEnter("symbol_cell(string)");scope (exit) debLeave();}
   Cell c=Cell();
   c.type=TSymbol;
   c.sym=val;
   return c;
 }
-Cell str_cell(string val) {
-  static if (debf) {debEnter("str_cell(string)");scope (exit) debLeave();}
+Cell string_cell(string val) {
+  static if (debf) {debEnter("string_cell(string)");scope (exit) debLeave();}
   Cell c=Cell();
   c.type=TString;
   c.str=val;
@@ -295,7 +311,7 @@ Cell cell_from_array_type(Type typ) {
   }
   Cell c=Cell();
   c.type=typ;
-  //printf("*** array_cell(%.*s)\n",types.str(c.type));
+  //writef("*** array_cell(%s)\n",types.str(c.type));
   c.arr=cast(Array*)([a].ptr);
   return c;
 }
@@ -339,17 +355,24 @@ Cell cell_from_union_type(Type t) {
   return c;
 }
 Cell cell_from_def_type(Type typ) {
-  static if (debf) {debEnter("deftype_cell_from_type(Type,Cell[])");scope (exit) debLeave();}
+  static if (debf) {debEnter("cell_from_def_type(Type)");scope (exit) debLeave();}
   Cell c=new_cell(get_def_subtype(typ));
   c.type=typ;
   return c;
+}
+Cell cell_from_alias_type(Type typ) {
+  static if (debf) {debEnter("cell_from_alias_type(Type)");scope (exit) debLeave();}
+  Cell c=new_cell(get_alias_subtype(typ));
+  c.type=typ;
+  return c;
+//  return new_cell(get_alias_subtype(typ));
 }
 Cell cell_from_ref_type(Type typ) {
   static if (debf) {debEnter("cell_from_ref_type(Type,Cell[])");scope (exit) debLeave();}
   Ref r;
   Cell c=Cell();
   c.type=typ;
-  //printf("%.*s\n",types.str(c.type));
+  //writef("%s\n",types.str(c.type));
   c.ptr=cast(Ref*)([r].ptr);
   return c;
 }
@@ -373,9 +396,6 @@ Cell ref_cell_on_heap(Cell v) {
   r.id="id";
   env_put(r.env,r.id,v);
   return c;
-}
-Cell cell_from_alias_type(Type t) {
-  return new_cell(get_alias_subtype(t));
 }
 Cell ftab_cell(FTab* ft) {
   static if (debf) {debEnter("ftab_cell(Ftab)");scope (exit) debLeave();}
@@ -446,7 +466,7 @@ int as_int(Cell c) {
 float as_number(Cell c) {
   if (c.type==TFloat) return c.flt;
   if (c.type==TInt) return c.fix;
-  //printf("cell type = %i\n",c.type);
+  //writef("cell type = %i\n",c.type);
   assert(false,"as_number: Type error.");
 }
 Lamb* as_lambda(Cell c) {
@@ -516,10 +536,10 @@ bool is_sym(Cell c,string s) {
   return ((c.type==TSymbol)&&(c.sym==s));
 }
 void pr(Cell self) {
-  printf("%.*s",str(self));
+  writef("%s",str(self));
 }
 void prln(Cell self) {
-  printf("%.*s\n",str(self));
+  writef("%s\n",str(self));
 }
 Cell new_cell(string t) {
   static if (debf) {debEnter("new_cell(string)");scope (exit) debLeave();}
@@ -527,13 +547,13 @@ Cell new_cell(string t) {
 }
 Cell new_cell(Type t) {
   static if (debf) {debEnter("new_cell(Type)");scope (exit) debLeave();}
-  //printf("new called with parameter: %.*s\n",types.str(t));
+  //writef("new called with parameter: %s\n",types.str(t));
   if (t==TAny) return any_cell();
 //  if (t==TAny) return null_cell();
   if (t==TNull) return null_cell();
-  if (t==TSymbol) return sym_cell("");
+  if (t==TSymbol) return symbol_cell("");
   if (t==TNull) return null_cell();
-  if (t==TString) return str_cell("");
+  if (t==TString) return string_cell("");
   if (t==TInt) return int_cell(0);
   if (t==TFloat) return float_cell(0.0);
   if (t==TList) return list_cell([]);
@@ -550,7 +570,7 @@ Cell new_cell(Type t) {
     if (constructor=="aliastype") return cell_from_alias_type(t);
     assert(false,"unhandled compund type in new_cell");
   }
-  printf("new_cell can't handle parameter %.*s\n",types.str(t));
+  writef("new_cell can't handle parameter %s\n",types.str(t));
   assert(false,"new_cell failed");
 }
 //----------------------------------------------------------------------
@@ -560,16 +580,18 @@ Cell new_cell(Type t) {
 //--------------------
 string str(Cell c,int clothedString=clothedStringDefault,int rec=1) {
   static if (debf) {debEnter("cells.str(Cell)");scope (exit) debLeave();}
+//writefln("*** %s",types.str(c.type));
   c=c.clone();
   if (!types_initialised) {
-    printf("Base types must be initialised before using cells.str!\n");
+    writef("Base types must be initialised before using cells.str!\n");
     assert(false);
   }
   if (c.type==TInt) {
-    return cfrm("%li",c.fix);
+    string s=frm("%d",c.fix);
+    return s;
   }
   if (c.type==TFloat) {
-    return cfrm("%g",cast(double)c.flt);
+    return frm("%g",cast(double)c.flt);
   }
   if (c.type==TList) {
     string s;
@@ -686,14 +708,14 @@ string pretty_str(Cell c,int ind) {
   int clothedString=1;
   int rec=1;
   if (!types_initialised) {
-    printf("Base types must be initialised before using cells.str!\n");
+    writef("Base types must be initialised before using cells.str!\n");
     assert(false);
   }
   if (c.type==TInt) {
-    return cfrm("%li",c.fix);
+    return frm("%d",c.fix);
   }
   if (c.type==TFloat) {
-    return cfrm("%g",cast(double)c.flt);
+    return frm("%g",cast(double)c.flt);
   }
   if (c.type==TList) {
     string s;

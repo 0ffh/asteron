@@ -8,6 +8,7 @@ import signatures;
 import environments;
 import utils;
 import std.math;
+import std.stdio;
 
 const bool debf=debflag;
 
@@ -32,7 +33,7 @@ Cell op_switch(Cell[] args) {
   Cell c=eval(args[0]);
   int k=1;
   while ((k+1)<args.length) {
-    Cell exp=list_cell([sym_cell("=="),c,args[k]]);
+    Cell exp=list_cell([symbol_cell("=="),c,args[k]]);
     if (istrue(eval(exp))) break;
     k=k+2;
   }
@@ -119,12 +120,12 @@ Cell op_def(Cell[] args) {
     //args[2].show();
     value=eval(args[2]);
   } else {
-//    printf("new %.*s\n",types.str(type));
+    //writef("new %s\n",types.str(type));
     value=new_cell(type);
   }
   //-
   if (env_find(environment,name)==environment) {
-    printf("Error: Symbol '%.*s' is already defined in this scope!\n",name);
+    writef("Error: Symbol '%s' is already defined in this scope!\n",name);
     assert(false);
   }
   return env_put(environment,name,value);
@@ -135,7 +136,7 @@ Cell op_deftype(Cell[] args) {
   string name=as_symbol(args[0]);
   Type typ=type_deftype(name,type(args[1]));
   Cell val=type_cell(typ);
-  //printf("deftype %.*s / %.*s\n",name,types.str(type(args[1])));
+  //writef("deftype %s / %s\n",name,types.str(type(args[1])));
   return env_put(environment,name,val);
 }
 Cell op_aliastype(Cell[] args) {
@@ -144,7 +145,7 @@ Cell op_aliastype(Cell[] args) {
   string name=as_symbol(args[0]);
   Type typ=type_aliastype(name,type(args[1]));
   Cell val=type_cell(typ);
-  //printf("deftype %.*s / %.*s\n",name,types.str(type(args[1])));
+  //writef("deftype %s / %s\n",name,types.str(type(args[1])));
   return env_put(environment,name,val);
 }
 Cell op_supertype(Cell[] args) {
@@ -155,14 +156,14 @@ Cell op_supertype(Cell[] args) {
   for (int k=1;k<args.length;++k) st~=type(args[k]);
   Type typ=type_supertype(name,st);
   Cell val=type_cell(typ);
-  //printf("supertype %.*s / %.*s\n",name,types.str(type(args[1])));
+  //writef("supertype %s / %s\n",name,types.str(type(args[1])));
   return env_put(environment,name,val);
 }
 Cell op_defun(Cell[] args) {
   static if (debf) {debEnter("[defun]");scope (exit) debLeave();}
   assert(args.length>=2);
   string name=as_symbol(args[0]);
-  Cell val=eval(list_cell(sym_cell("function")~args[1..$]));
+  Cell val=eval(list_cell(symbol_cell("function")~args[1..$]));
   Signature sig=parameter_cell2signature(args[1]);
   return env_putfun(environment,name,val,sig,TAny);
 }
@@ -179,7 +180,7 @@ Cell op_function(Cell[] args) {
   // create and return lambda cell
   if (args.length>2) {
     // more than one expression -> implicit sequence
-    return lambda_cell(mk_lamb(list_cell(sym_cell("seq")~args[1..$]),pars,mk_env(environment)));
+    return lambda_cell(mk_lamb(list_cell(symbol_cell("seq")~args[1..$]),pars,mk_env(environment)));
   } else {
     return lambda_cell(mk_lamb(args[1],pars,mk_env(environment)));
   }
@@ -432,7 +433,7 @@ int op_equal_sub(Cell a,Cell b) {
     }
     return 1;
   }
-//   printf("\n%.*s [%.*s] ?= %.*s [%.*s]\n",cells.str(a),types.str(a.type),cells.str(b),types.str(b.type));
+//   writef("\n%s [%s] ?= %s [%s]\n",cells.str(a),types.str(a.type),cells.str(b),types.str(b.type));
   if (a.type==TType) return (type(a.typ)==type(b.typ));
   return (a==b);
 }
@@ -521,27 +522,27 @@ Cell op_nullp(Cell[] args) {
 }
 Cell op_tostr(Cell[] args) {
   static if (debf) {debEnter("[tostr]");scope (exit) debLeave();}
-  if (!args.length) return str_cell("");
+  if (!args.length) return string_cell("");
   string s;
   for (int k=0;k<args.length;++k) {
     if (k) s~=" ";
     if (isa(args[k],TList)) {
-      s~=cfrm("%.*s",cells.str(args[k],1));
+      s~=frm("%s",cells.str(args[k],1));
     } else {
-      s~=cfrm("%.*s",cells.str(args[k],0));
+      s~=frm("%s",cells.str(args[k],0));
     }
   }
-  return str_cell(s);
+  return string_cell(s);
 }
 Cell op_pr(Cell[] args) {
   static if (debf) {debEnter("[pr]");scope (exit) debLeave();}
   if (!args.length) return int_cell(0);
   for (int k=0;k<args.length;++k) {
-    if (k) printf(" ");
+    if (k) writef(" ");
     if (isa(args[k],TList)) {
-      printf("%.*s",cells.str(args[k],1));
+      writef("%s",cells.str(args[k],1));
     } else {
-      printf("%.*s",cells.str(args[k],0));
+      writef("%s",cells.str(args[k],0));
     }
   }
   return int_cell(args.length);
@@ -549,7 +550,7 @@ Cell op_pr(Cell[] args) {
 Cell op_prln(Cell[] args) {
   static if (debf) {debEnter("[prln]");scope (exit) debLeave();}
   Cell c=op_pr(args);
-  printf("\n");
+  writef("\n");
   return c;
 }
 Cell op_tic(Cell[] args) {
@@ -560,7 +561,7 @@ Cell op_tic(Cell[] args) {
 Cell op_toc(Cell[] args) {
   static if (debf) {debEnter("[toc]");scope (exit) debLeave();}
   float t=toc();
-  printf("%.3fs\n",t);
+  writef("%.3fs\n",t);
   return float_cell(t);
 }
 Cell op_new_object(Cell[] args) {
@@ -606,12 +607,12 @@ Cell op_new_array(Cell[] args) {
   if (args.length) {
     Type t=args[0].type;
     for (int k=1;k<args.length;++k) if (args[k].type!=t) {
-      //printf("created %.*s %.*s\n",types.str(c.type),cells.str(c));
+      //writef("created %s %s\n",types.str(c.type),cells.str(c));
       return c;
     }
     c.type=array_type_from_subtype(t);
   }
-  //printf("created %.*s %.*s\n",types.str(c.type),cells.str(c));*/
+  //writef("created %s %s\n",types.str(c.type),cells.str(c));*/
   return c;
 }
 Cell op_array_cat(Cell[] args) {
@@ -628,7 +629,7 @@ Cell op_string_cat(Cell[] args) {
   static if (debf) {debEnter("[string_cat]");scope (exit) debLeave();}
   assert(args.length==2);
   assert(isa(args[0],TString) && isa(args[1],TString));
-  return str_cell(args[0].str~args[1].str);
+  return string_cell(args[0].str~args[1].str);
 }
 Cell op_array_get(Cell[] args) {
   static if (debf) {debEnter("[array_get]");scope (exit) debLeave();}
@@ -646,7 +647,7 @@ Cell op_array_set(Cell[] args) {
   if (!is_array_type(arr.type)) assert(false,"Variable is not an array");
   /*
   if (!type_matches(get_array_subtype(arr.type),args[2].type)) {
-    printf("[array]=%.*s [element]=%.*s\n",types.str(arr.type),types.str(args[2].type));
+    writef("[array]=%s [element]=%s\n",types.str(arr.type),types.str(args[2].type));
     assert(false,"Type error in element assignment");
   }
   */
@@ -659,9 +660,9 @@ Cell op_array_resize(Cell[] args) {
   static if (debf) {debEnter("[array_resize]");scope (exit) debLeave();}
   Cell arr=args[0];
   if (!is_dynamic_array_type(arr.type)) assert(false,"Resize works on dynamic arrays only");
-  //printf("resize %.*s\n",types.str(arr.type));
+  //writef("resize %s\n",types.str(arr.type));
   Type subtyp=get_array_subtype(arr.type);
-  //printf("resize %.*s[]\n",types.str(subtyp));
+  //writef("resize %s[]\n",types.str(subtyp));
   int newlen=cast(int)(as_number(args[1]));
   int oldlen=arr.arr.inner.length;
   arr.arr.inner.length=newlen;
@@ -706,14 +707,14 @@ Cell op_array(Cell[] args) { // (array type) -> type
   } else {
     t=TAny;
   }
-  //printf("array %.*s\n",types.str(t));
+  //writef("array %s\n",types.str(t));
   if (args.length>1) {
     assert(args.length==2);
     t=array_type_from_subtype_and_length(t,as_int(args[1]));
   } else {
     t=array_type_from_subtype(t);
   }
-  //printf(" -> %.*s\n",types.str(t));
+  //writef(" -> %s\n",types.str(t));
   return type_cell(t);
 }
 Cell op_struct(Cell[] args) {
@@ -792,7 +793,7 @@ Cell op_deref(Cell[] args) {
   Ref* r=as_ref(args[0]);
   assert(r.env,"Trying to deref null reference (env)");
   assert(r.id.length,"Trying to deref null reference (id)");
-  return evalin(sym_cell(r.id),r.env);
+  return evalin(symbol_cell(r.id),r.env);
 }
 Cell op_ref_set(Cell[] args) {
   static if (debf) {debEnter("[deref]");scope (exit) debLeave();}

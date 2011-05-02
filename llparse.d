@@ -207,7 +207,7 @@ class Token {
     if (lex) lex.error(s,f,l);
     if (f.length) {
       if (l) {
-        s="["~f~":"~cfrm("%lu",l)~"] "~s;
+        s="["~f~":"~frm("%lu",l)~"] "~s;
       } else {
         s="["~f~"] "~s;
       }
@@ -1280,9 +1280,9 @@ Token parse_string_to_token(string source) {
 
 Cell atom(Lexeme token) {
   static if (debf) {debEnter("atom");scope (exit) debLeave();}
-  if (token.type=="operator") return sym_cell(token.val);
-  if (token.type=="name") return sym_cell(token.val);
-  if (token.type=="string") return str_cell(token.val);
+  if (token.type=="operator") return symbol_cell(token.val);
+  if (token.type=="name") return symbol_cell(token.val);
+  if (token.type=="string") return string_cell(token.val);
   if (token.type=="number") {
     try {
       return int_cell(toInt(token.val));

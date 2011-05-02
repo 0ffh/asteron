@@ -27,6 +27,7 @@ import environments;
 import std.file;
 import std.stdio;
 import std.string;
+import std.format;
 
 const bool debf=debflag;
 
@@ -66,9 +67,9 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
         Cell[] eargs;
         for (int ka=k;ka<args.length;++ka) {
           eargs~=eval(args[ka]);
-//          printf("### %.*s -> %.*s\n",cells.str(args[ka]),cells.str(eargs[$-1]));
+//          writef("### %s -> %s\n",cells.str(args[ka]),cells.str(eargs[$-1]));
         }
-//        printf("### %i\n",eargs.length);
+//        writef("### %i\n",eargs.length);
         env_put(lamenv,"ellipse",array_cell(eargs));
         break;
       }
@@ -113,10 +114,10 @@ Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
   string name=as_symbol(sym);
   Env* e=environment;
   for (;;) {
-//printf("looking up Function '%.*s' in environment %p\n",name,e);
+//writef("looking up Function '%s' in environment %p\n",name,e);
     if (e) e=env_find(e,name);
     if (!e) {
-      printf("*** Error: Function '%.*s' lookup failed!\n",name);
+      writef("*** Error: Function '%s' lookup failed!\n",name);
       assert(false);
     }
     candidate=env_get(e,name);
@@ -154,7 +155,7 @@ Cell evalin(Cell x,Env* env) {
   return x;
 }
 Cell eval(Cell x) {
-  static if (debf) {debEnter("eval('%.*s')",cells.str(x));scope (exit) debLeave();}
+  static if (debf) {debEnter("eval('%s')",cells.str(x));scope (exit) debLeave();}
   evalcell~=x;
   scope (exit) evalcell.length=evalcell.length-1;
   x=x.clone(); // *** TODO: get by without cloning here
@@ -164,7 +165,7 @@ Cell eval(Cell x) {
   }
   static if (0) {
     indent(depth);
-    printf("%.*s\n",str(x));
+    writef("%s\n",str(x));
   }
   if (state.code) return state.val;
   if (isa(x,TSymbol)) return env_get(environment,x.sym);
@@ -191,17 +192,17 @@ Cell eval(Cell x) {
     Lamb* lam=as_lambda(x0);
     Env* lamenv=mk_lambda_environment(lam,args,environment);
     static if (0) {
-      printf("----- lamenv\n");
+      writef("----- lamenv\n");
       lamenv.show();
-      printf("----- lamenv.outer\n");
+      writef("----- lamenv.outer\n");
       if (lamenv.outer) lamenv.outer.show();
     }
     Cell c=evalin(lam.expr,lamenv);
     if (state.code==StC.ret) state.code=StC.run;
     return c;
   }
-  printf("[unexpected type %i]\n",x0.type);
-  printf("[type name is %.*s]\n",types.str(x0.type));
+  writef("[unexpected type %d]\n",x0.type);
+  writef("[type name is %s]\n",types.str(x0.type));
   assert(false);
 }
 //----------------------------------------------------------------------
@@ -249,17 +250,17 @@ void show_fun_list() {
   for (int kfl;kfl<fun_list.length;++kfl) {
     FunListEntry fle=fun_list[kfl];
     static if (1) {
-      //printf("*************** function %.*s\n",fle.nam);
+      //writef("*************** function %s\n",fle.nam);
     } else {
-      printf("*************** function %.*s(",fle.nam);
+      writef("*************** function %s(",fle.nam);
       for (int k=0;k<fle.par.length;++k) {
-        printf("%.*s",types.str(fle.par[k].type));
-        if (k+1<fle.par.length) printf(",");
+        writef("%s",types.str(fle.par[k].type));
+        if (k+1<fle.par.length) writef(",");
       }
-      printf(") : %.*s\n",types.str(fle.res.type));
+      writef(") : %s\n",types.str(fle.res.type));
     }
     static if (0) {
-      printf("%.*s\n",pretty_str(fle.fun,0));
+      writef("%s\n",pretty_str(fle.fun,0));
     }
     if (fle.env !is null) {
       env_pr(fle.env);
@@ -299,9 +300,9 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
   string lmsg;
   static if (debf) {
     debEnter("abs_resolve_function('"~sym.sym~"')");
-    scope (exit) debLeave(cfrm("%.*s / %i",lmsg,state.code));
+    scope (exit) debLeave(frm("%s / %d",lmsg,state.code));
   }
-  //printf("abs_resolve_function('%.*s')\n",sym.sym);
+  //writef("abs_resolve_function('%s')\n",sym.sym);
   FTabEntry* candidate_entry;
   Signature candidate_sig;
   Cell candidate;
@@ -310,12 +311,12 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
   for (;;) {
     if (e) e=env_find(e,name);
     if (!e) {
-      printf("*** Error: Function '%.*s' lookup failed!\n",name);
-      assert(false,cfrm("Function '%.*s' lookup failed!\n",name));
+      writef("*** Error: Function '%s' lookup failed!\n",name);
+      assert(false,frm("Function '%s' lookup failed!\n",name));
     }
     candidate=env_get(e,name);
     if (!isa(candidate,TFtab)) {
-      printf("Candidate is %.*s\n",types.str(candidate.type));
+      //writef("Candidate is %s\n",types.str(candidate.type));
       return candidate;
     }
     if (!eargs.length) {
@@ -338,12 +339,12 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
     }
     e=e.outer;
   }
-//   printf("find %.*s\n",name);
+//   writef("find %s\n",name);
   FunListEntry fle=find_in_fun_list(candidate_entry,args);
   if (fle is null) {
-     printf("!FLE:%.*s\n",name);
-    //printf("*** %.*s\n",cells.str(candidate_entry.fun));
-    name=cfrm("$%.*s_%d",name,fun_list.length);
+    //writef("!FLE:%s\n",name);
+    //writef("*** %s\n",cells.str(candidate_entry.fun));
+    name=frm("$%s_%d",name,fun_list.length);
     fle=FunListEntry(name,candidate_entry,args,candidate_entry.fun);
     if (isa(candidate_entry.fun,TLambda)) {
       fun_list~=fle;
@@ -360,19 +361,19 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
     }
     call_stack_pop();
   } else {
-    printf("FLE:%.*s (%.*s)\n",name,fle.nam);
+    //writef("FLE:%s (%s)\n",name,fle.nam);
     name=fle.nam;
     if (isa(fle.fun,TLambda)) {
       sym.sym=name;
     }
     if ((fle.res.type==TAny) || (fle.res.type==TNull)) {
-      //printf("+++++++ Recursion return type unavailable for %.*s\n",fle.nam);
+      //writef("+++++++ Recursion return type unavailable for %s\n",fle.nam);
       fle.abt=true;
       state.code=StC.abt;
       state.val=fle.res;
     }
   }
-  lmsg=cfrm("%.*s",types.str(fle.res.type));
+  lmsg=frm("%s",types.str(fle.res.type));
   return list_cell([fle.res]);
 }
 Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
@@ -395,9 +396,9 @@ Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
         Cell[] eargs;
         for (int ka=k;ka<args.length;++ka) {
           eargs~=abs_eval(args[ka]);
-//          printf("### %.*s -> %.*s\n",cells.str(args[ka]),cells.str(eargs[$-1]));
+//          writef("### %s -> %s\n",cells.str(args[ka]),cells.str(eargs[$-1]));
         }
-//        printf("### %i\n",eargs.length);
+//        writef("### %i\n",eargs.length);
         env_put(lamenv,"ellipse",array_cell(eargs));
         break;
       }
@@ -448,15 +449,15 @@ Cell abs_evalin(Cell x,Env* env) {
 }
 //Cell current_x;
 Cell abs_eval(Cell x) {
-  static if (debf) {debEnter("abs_eval('%.*s')",cells.str(x));scope (exit) debLeave();}
+  static if (debf) {debEnter("abs_eval('%s')",cells.str(x));scope (exit) debLeave();}
   evalcell~=x;
-  printf("eval %.*s\n",pretty_str(x,0));
+  //writef("eval %s\n",pretty_str(x,0));
   scope (exit) evalcell.length=evalcell.length-1;
-  //if (state.code) {printf("!!! state.code is %i\n",state.code);return state.val;}
+  //if (state.code) {writef("!!! state.code is %i\n",state.code);return state.val;}
   if (isa(x,TSymbol)) return env_get(environment,x.sym);
   if (!isa(x,TList)) return x;
   if (!x.lst.length) return x;
-  Cell[] args=x.lst[1..$].dup; // !!! dup needed
+  Cell[] args=x.lst[1..$];//.dup; // !!! dup needed
   Cell[] eargs;
   Cell x0=x.lst[0];
   while (isa(x0,TList)) {
@@ -477,14 +478,14 @@ Cell abs_eval(Cell x) {
   if (isa(x0,TLambda)) {
     Lamb* lam=as_lambda(x0);
     Env* lamenv=abs_mk_lambda_environment(lam,args,environment);
-//    printf("******* evaluate lambda\n%.*s\n",pretty_str(lam.expr,0));
+//    writef("******* evaluate lambda\n%s\n",pretty_str(lam.expr,0));
     FunListEntry tocs=call_stack_top();
     if (tocs.env is null) tocs.env=lamenv;
     Cell c=abs_evalin(lam.expr,lamenv);
     return c;
   }
-  printf("[unexpected type %i]\n",x0.type);
-  printf("[type name is %.*s]\n",types.str(x0.type));
+  writef("[unexpected type %d]\n",x0.type);
+  writef("[type name is %s]\n",types.str(x0.type));
   assert(false);
 }
 //----------------------------------------------------------------------
@@ -508,31 +509,43 @@ void exec_ast(string filename) {
     operator_to_front(c,"supertype");
     operator_to_front(c,"aliastype");
     operator_to_front(c,"deftype");
-    if (showflag) printf("%.*s\n",pretty_str(c,0));
+    if (showflag) writef("%s\n",pretty_str(c,0));
   }
-  Cell run=list_cell([sym_cell("main")]);
-  push_env();eval(c);eval(run);pop_env();
+  Cell run=list_cell([symbol_cell("main")]);
+  push_env();
+  eval(c);
+  //eval(run);
+  pop_env();
 //  push_env();eval(c);eval(run);pop_env();
 //  if (showflag) c.show(true);
 }
 void abs_exec_ast(string filename) {
   bool showflag=!true;
   bool reorder=true;
-  Cell c=parse_file_to_cell(filename);
-//  if (showflag) c.show(true);
-  reduce_seq_of_one(c);
+  Cell root=parse_file_to_cell(filename);
+  if (showflag) root.show(true);
+  //
+  find_anonymous_structs(root);
+  //
+  reduce_seq_of_one(root);
+  //if (root !is null) return;
+  //writef("%s\n",pretty_str(root,0));
   if (reorder) {
-    operators_to_front(c,["defun","def"]);
-    operator_to_front(c,"supertype");
-    operator_to_front(c,"aliastype");
-    operator_to_front(c,"deftype");
-    if (showflag) printf("%.*s\n",pretty_str(c,0));
+    operators_to_front(root,["defun","def"]);
+    operator_to_front(root,"supertype");
+    operator_to_front(root,"aliastype");
+    operator_to_front(root,"deftype");
+    if (showflag) writef("%s\n",pretty_str(root,0));
   }
-  abs_eval(c);
-  abs_eval(parse_string_to_cell("main();"));
-  if (showflag) printf("%.*s\n",pretty_str(c,0));
-  if (showflag) show_fun_list();
-  emit_d_main(c,fun_list,"out.d");
+  static if (1) {
+    writef("%s\n",pretty_str(root,0));
+    abs_eval(root);
+    abs_eval(parse_string_to_cell("main();"));
+    if (showflag) writef("%s\n",pretty_str(root,0));
+    if (showflag) show_fun_list();
+    emit_d_main(root,fun_list,"out.d");
+    //writef("%s\n",pretty_str(root,0));
+  }
 }
 
 //----------------------------------------------------------------------
@@ -564,8 +577,8 @@ void abs_exec(string fn) {
   abs_exec_ast(fn);
 }
 void env_info() {
-  for (int k=0;k<envstack.length;++k) printf("%p ",envstack[k]);
-  printf("[%i] be=%p e=%p\n",envstack.length,base_env,environment);
+  for (int k=0;k<envstack.length;++k) writef("%p ",envstack[k]);
+  writef("[%d] be=%p e=%p\n",envstack.length,base_env,environment);
 }
 void main(string[] args) {
   string fn;
@@ -573,9 +586,10 @@ void main(string[] args) {
   else fn="test.ast";
 //  state.code=StC.run;
   if (0) {
-    exec(fn);
+    exec("tests.ast");
+    //exec(fn);
   } else {
     abs_exec(fn);
   }
-//  printf("state.code=%i\n",state.code);
+//  writef("state.code=%i\n",state.code);
 }

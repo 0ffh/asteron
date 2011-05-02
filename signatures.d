@@ -70,7 +70,7 @@ string str(Signature sig) {
 }*/
 Signature signature_string2signature(string sigstr) {
   static if (debf) {debEnter("signature_string2signature(string)");scope (exit) debLeave();}
-//  printf("x ");
+//  writef("x ");
   return signature_cell2signature(lparse(sigstr));
 }
 Signature parameter_cell2signature(Cell arg) {
@@ -112,7 +112,7 @@ Signature parameter_cell2signature(Cell arg) {
       sig~=se;
     }
   }
-//  printf("pc2s %.*s -> %.*s\n",cells.str(arg),str(sig));
+//  writef("pc2s %s -> %s\n",cells.str(arg),str(sig));
   return sig;
 }
 Signature signature_cell2signature(Cell arg) {
@@ -120,7 +120,7 @@ Signature signature_cell2signature(Cell arg) {
   const int verbose=false;
   if (!isa(arg,TList)) assert(false);
   Signature sig;
-  static if (verbose) printf("signature_cell2signature");
+  static if (verbose) writef("signature_cell2signature");
   for (int k;k<arg.lst.length;++k) {
     // options for each entry:
     //   type
@@ -149,31 +149,31 @@ Signature signature_cell2signature(Cell arg) {
         break;
       }
     }
-    //static if (verbose) printf(" %.*s",cells.str(a));
+    //static if (verbose) writef(" %s",cells.str(a));
     se.type=type(a);
-    static if (verbose) printf(" %.*s",types.str(se.type));
+    static if (verbose) writef(" %s",types.str(se.type));
     se.defv=null_cell();
     sig~=se;
   }
-  static if (verbose) printf("\n");
-//  printf("sc2s %.*s -> %.*s\n",cells.str(arg),str(sig));
+  static if (verbose) writef("\n");
+//  writef("sc2s %s -> %s\n",cells.str(arg),str(sig));
   return sig;
 }
 Signature types2signature(Type[] args,Type* open=null) {
   static if (debf) {debEnter("types2signature(Cell)");scope (exit) debLeave();}
   const int verbose=false;
   Signature sig;
-  static if (verbose) printf("types2signature");
+  static if (verbose) writef("types2signature");
   for (int k;k<args.length;++k) {
     SigElement se;
     se.name=""; // there's never a parameter name
-    static if (verbose) printf(" %.*s",types.str(args[k]));
+    static if (verbose) writef(" %s",types.str(args[k]));
     se.type=args[k];
     se.defv=null_cell();
     sig~=se;
   }
   if (open) sig.open=*open;
-  static if (verbose) printf("\n");
+  static if (verbose) writef("\n");
   return sig;
 }
 int fields_match_unordered(Cell[] pfs,Cell[] afs) {
@@ -258,9 +258,9 @@ int type_equal(Type tp,Type ta) {
 }
 int type_matches(Type tp,Type ta) {
   static if (0) {
-    //printf(" s : %i : %i\n",is_struct_type(tp),is_struct_type(ta));
-    printf(" 0 : %.*s : %.*s\n",types.str(tp),types.str(ta));
-    printf(" 1 : %.*s : %.*s\n",types.str(tp.cell.type),types.str(ta.cell.type));
+    //writef(" s : %i : %i\n",is_struct_type(tp),is_struct_type(ta));
+    writef(" 0 : %s : %s\n",types.str(tp),types.str(ta));
+    writef(" 1 : %s : %s\n",types.str(tp.cell.type),types.str(ta.cell.type));
   }
   if (tp==TAny) return any_score;
   if (tp==ta) return exact_score;
@@ -297,40 +297,40 @@ int signature_matches(Signature sig,Type[] targ) {
   const int verbose=!true;
   int p=exact_score;
   if ((targ.length>sig.length) && (!sig.is_open())) return fail_score;
-  static if (verbose) printf("-- sig= %.*s\n",str(sig));
-  static if (verbose) printf("-- arg= %.*s\n",str(types2signature(targ)));
+  static if (verbose) writef("-- sig= %s\n",str(sig));
+  static if (verbose) writef("-- arg= %s\n",str(types2signature(targ)));
   Type tp=TNull,ta=TNull;
   int k=0;
   for (;k<targ.length;++k) {
     if (k>=sig.length) break;
     tp=sig[k].type;
     ta=targ[k];
-    static if (verbose) printf("par= %.*s   arg= %.*s\n",types.str(tp),types.str(ta));
+    static if (verbose) writef("par= %s   arg= %s\n",types.str(tp),types.str(ta));
     int m=type_matches(tp,ta);
     if (m) {
       p=(p<<score_shift)+m;
       continue;
     }
-    static if (verbose) printf("fail\n");
+    static if (verbose) writef("fail\n");
     return fail_score;
   }
   if (sig.is_open()) {
     tp=sig.open;
     for (;k<targ.length;++k) {
       ta=targ[k];
-      static if (verbose) printf("par= %.*s   arg= %.*s\n",types.str(tp),types.str(ta));
+      static if (verbose) writef("par= %s   arg= %s\n",types.str(tp),types.str(ta));
       int m=type_matches(tp,ta);
       if (m) {
         p=(p<<score_shift)+m;
         continue;
       }
-      static if (verbose) printf("fail\n");
+      static if (verbose) writef("fail\n");
       return fail_score;
     }
     return p-1;
   }
   for (;k<sig.length;++k) {
-//    printf("default %.*s\n",cells.str(sig[k].defv));
+//    writef("default %s\n",cells.str(sig[k].defv));
     if (sig.is_open()) return p-1; // empty ellipse
     if (sig[k].defv.type==TNull) return fail_score;
   }

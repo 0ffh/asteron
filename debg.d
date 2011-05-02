@@ -1,10 +1,12 @@
 module debg;
 
 import utils;
-import std.c.string;
+import std.stdio;
+import std.format;
+//import std.c.string;
 
 bool trace=false;
-const bool debflag=true;
+const bool debflag=!true;
 
 void delegate() testfun;
 const bool debEnable=debflag;
@@ -14,10 +16,43 @@ string[] debStringStack;
 void debStack() {
   for (int k=0;k<debStringStack.length;++k) {
     indent(k*2);
-    printf("%.*s\n",debStringStack[k]);
+    writef("%s\n",debStringStack[k]);
   }
 }
-void debLog(string fs,...) {
+void debLog(...) {
+  static if (debEnable) {
+    // generate debug string
+    string s;
+    void putc(dchar c) {s~=c;}
+    std.format.doFormat(&putc,_arguments,_argptr);
+    // output debug string
+    static if (debVerbose) {
+      indent(debStringStack.length);
+      writef("%s",s);
+      flush();
+    }
+    //
+    if (testfun !is null) testfun();
+  }
+}
+void debEnter(...) {
+  static if (debEnable) {
+    // generate debug string
+    string s;
+    void putc(dchar c) {s~=c;}
+    std.format.doFormat(&putc,_arguments,_argptr);
+    // push and output debug string
+    static if (debVerbose) {
+      indent(debStringStack.length);
+      writef("%s {\n",s);
+      flush();
+    }
+    debStringStack~=s;
+    //
+    if (testfun !is null) testfun();
+  }
+}
+/*void debLog(string fs,...) {
   static if (debEnable) {
     // generate debug string
     string s;
@@ -28,7 +63,7 @@ void debLog(string fs,...) {
     // output debug string
     static if (debVerbose) {
       indent(debStringStack.length);
-      printf("%s",tsz(s));
+      writef("%s",s);
       flush();
     }
     //
@@ -46,14 +81,14 @@ void debEnter(string fs,...) {
     // push and output debug string
     static if (debVerbose) {
       indent(debStringStack.length);
-      printf("%s {\n",tsz(s));
+      writef("%s {\n",s);
       flush();
     }
     debStringStack~=s;
     //
     if (testfun !is null) testfun();
   }
-}
+}*/
 void debLeave(string lmsg="") {
   static if (debEnable) {
     // ensure stack is nonempty
@@ -65,9 +100,9 @@ void debLeave(string lmsg="") {
     static if (debVerbose) {
       indent(debStringStack.length);
       if (lmsg.length) {
-        printf("} [%.*s]\n",lmsg);
+        writef("} [%s]\n",lmsg);
       } else {
-        printf("}\n");
+        writef("}\n");
       }
       flush();
     }
@@ -76,8 +111,8 @@ void debLeave(string lmsg="") {
 void my_ass(T)(T p,lazy char[] msg="Fail!") {
   if (!p) {
     string m=msg();
-//    printf("My ass in %.*s line %.*s: %.*s\n",__FILE__,__LINE__,m);
-    printf("My ass: %.*s\n",m);
+//    writef("My ass in %s line %s: %s\n",__FILE__,__LINE__,m);
+    writef("My ass: %s\n",m);
     assert(false,m);
   }
 }

@@ -5,6 +5,7 @@ import utils;
 import cells;
 import types;
 import signatures;
+import std.stdio;
 
 Env* environment;
 Env*[] envstack;
@@ -61,7 +62,7 @@ Env* mk_env(Env* outer=null) {
 Cell env_put(Env* e,string key,Cell value) {
   static if (debf) {debEnter("env_put('"~key~"')");scope (exit) debLeave();}
 //   if (types_initialised && !(key=="type_table")) {
-//     printf("env_put %.*s = %.*s [%.*s]\n",key,cells.str(value),types.str(value.type));
+//     writef("env_put %s = %s [%s]\n",key,cells.str(value),types.str(value.type));
 //   }
   e.inner[key]=value;
   if (types_initialised && !(key=="type_table")) {
@@ -76,13 +77,13 @@ Cell env_get(Env* e,string key) {
   Cell* c=key in e.inner;
   if (c !is null) {
 //     if (types_initialised && !(key=="type_table")) {
-//       printf("env_get %.*s = %.*s [%.*s]\n", key, cells.str(*c),types.str(c.type));
+//       writef("env_get %s = %s [%s]\n", key, cells.str(*c),types.str(c.type));
 //     }
     return *c;
-//     return c.clone();    
+//     return c.clone();
   }
   if (e.outer !is null) {
-//    printf("trying outer -> ");
+//    writef("trying outer -> ");
     return env_get(e.outer,key);
   }
   assert(false,"env_get: '"~key~"' not found!");
@@ -105,7 +106,7 @@ Env* env_clone(Env* self) {
 }
 void env_pr(Env* env) {
   foreach (key;env.inner.keys) {
-    printf("  %.*s -> %.*s\n",key,cells.str(env.inner[key]));
+    writef("  %s -> %s\n",key,cells.str(env.inner[key]));
   }
 }
 Cell env_putfun(Env* e,string key,Cell fun,Signature sig,Type ret) {
@@ -122,7 +123,7 @@ Cell env_putfun(Env* e,string key,Cell fun,Signature sig,Type ret) {
     e.inner[key]=*c;
   }
   //--
-  //printf("putfun %.*s%.*s\n",key,str(par));
+  //writef("putfun %s%s\n",key,str(par));
   ftab_add(ft,fun,sig,ret);
   //
   return *c;
@@ -167,7 +168,7 @@ string str(FTab* ft) {
 }
 bool ftab_add(FTab* ft,Cell fun,Signature sig,Type ret) {
   static if (debf) {debEnter("ftab_add(FTab*,Cell,Type[])");scope (exit) debLeave();}
-//  printf("*** %.*s\n",str(tpar));
+//  writef("*** %s\n",str(tpar));
   Cell* now;// =ftab_find(ft,par);
   if (now !is null) return false;
   ft.dat~=FTabEntry(sig,ret,fun);
@@ -193,10 +194,10 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
   //--
   static if (show) {
     if (trace) {
-      printf("--- ftab_resolve %.*s\n",id);
-      printf("call arguments:\n ");
-      foreach (ta;targs) printf(" %.*s",types.str(ta));
-      printf("\navailable parameters:\n");
+      writef("--- ftab_resolve %s\n",id);
+      writef("call arguments:\n ");
+      foreach (ta;targs) writef(" %s",types.str(ta));
+      writef("\navailable parameters:\n");
     }
   }
   int bestp=0,bestk=0,ambiguous=0;
@@ -205,9 +206,9 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
     int p=signature_matches(sig,targs);
     static if (show) {
       if (trace) {
-        printf(" ");
-        printf(" %.*s",sig.str());
-        printf(" -> %i\n",p);
+        writef(" ");
+        writef(" %s",sig.str());
+        writef(" -> %d\n",p);
       }
     }
     if (p==bestp) ambiguous=1;
@@ -217,14 +218,14 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
       bestk=k;
     }
   }
-//  printf("best match for %.*s%.*s -> %i\n",id,types.str(targs),bestp);
+//  writef("best match for %s%s -> %i\n",id,types.str(targs),bestp);
   if (!bestp) {
-//    printf("No match found for function signature %.*s!\n",types.str(targs));
+//    writef("No match found for function signature %s!\n",types.str(targs));
 //    assert(false);
     return null;
   }
   if (ambiguous) {
-    printf("No unambiguous match found for function signature %.*s!\n",types.str(targs));
+    writef("No unambiguous match found for function signature %s!\n",types.str(targs));
     assert(false);
 //    return null;
   }

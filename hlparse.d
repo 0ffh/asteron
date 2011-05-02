@@ -10,6 +10,8 @@ import utils;
 import std.conv;
 import std.string;
 
+const bool debf=debflag && 0;
+
 string[string] opeq;
 void init_hlparse() {
   opeq["+="]="+";
@@ -28,18 +30,23 @@ Cell[] tokens2cells(Token[] t) {
   for (int k;k<t.length;++k) c[k]=token2cell(t[k]);
   return c;
 }
+Cell tag(Cell c,string tn) {
+  //c.ann["typename"]=symbol_cell(tn);
+  return c;
+}
 Cell token2cell(Token t) {
-  if (tav(t,"name")) return sym_cell(t.value);
-  if (tav(t,"string")) return str_cell(t.value);
-  if (tav(t,"literal","true")) return int_cell(1);
-  if (tav(t,"literal","false")) return int_cell(0);
+  //static if (debf) {debEnter("token2cell()");scope (exit) debLeave();}
+  if (tav(t,"name")) return symbol_cell(t.value);
+  if (tav(t,"string")) return tag(string_cell(t.value),"string");
+  if (tav(t,"literal","true")) return tag(int_cell(1),"int");
+  if (tav(t,"literal","false")) return tag(int_cell(0),"int");
   if (tav(t,"literal","null")) return null_cell();
-  if (tav(t,"this")) return sym_cell(t.value);
+  if (tav(t,"this")) return symbol_cell(t.value);
   if (tav(t,"number")) {
     try {
-      return int_cell(toInt(t.value));
+      return tag(int_cell(toInt(t.value)),"int");
     } catch {
-      return float_cell(toFloat(t.value));
+      return tag(float_cell(toFloat(t.value)),"float");
     }
   }
   if (tav(t,"binary","type_name")) {
@@ -54,42 +61,42 @@ Cell token2cell(Token t) {
     assert(t.sub.length==1);
     assert(t.sub[0].arity=="array");
     Token[] sub=t.sub[0].sub;
-    Cell[] lst=[sym_cell("new_object")];
+    Cell[] lst=[symbol_cell("new_object")];
     for (int k;k<sub.length;++k) {
-      lst~=[str_cell(sub[k].key),token2cell(sub[k])];
+      lst~=[string_cell(sub[k].key),token2cell(sub[k])];
     }
     return list_cell(lst);
   }
   if (tav(t,"unary","[")) {
     assert(t.sub.length==1);
     assert(t.sub[0].arity=="array");
-    return list_cell(sym_cell("new_array")~as_list(token2cell(t.sub[0])));
+    return list_cell(symbol_cell("new_array")~as_list(token2cell(t.sub[0])));
   }
   if (tav(t,"unary","typeof")) {
     assert(t.sub.length==1);
-    return list_cell([sym_cell("typeof"),token2cell(t.sub[0])]);
+    return list_cell([symbol_cell("typeof"),token2cell(t.sub[0])]);
   }
   if (tav(t,"parameter")) {
     Cell[] cs=tokens2cells(t.sub);
-    if (cs.length==3) cs=[cs[0],cs[1],sym_cell("="),cs[2]];
+    if (cs.length==3) cs=[cs[0],cs[1],symbol_cell("="),cs[2]];
     return list_cell(cs);
   }
   if (tav(t,"type")) {
-    if (t.id=="(name)") return sym_cell(t.value);
+    if (t.id=="(name)") return symbol_cell(t.value);
     if (t.id=="assoc") {
-      return list_cell([sym_cell("assoc")]~tokens2cells(t.sub));
+      return list_cell([symbol_cell("assoc")]~tokens2cells(t.sub));
     }
     if (t.id=="struct") {
-      return list_cell([sym_cell("struct")]~tokens2cells(t.sub));
+      return list_cell([symbol_cell("struct")]~tokens2cells(t.sub));
     }
     if (t.id=="union") {
-      return list_cell([sym_cell("union")]~tokens2cells(t.sub));
+      return list_cell([symbol_cell("union")]~tokens2cells(t.sub));
     }
     if (t.id=="[") {
-      return list_cell([sym_cell("array")]~tokens2cells(t.sub));
+      return list_cell([symbol_cell("array")]~tokens2cells(t.sub));
     }
     if (t.id=="@") {
-      return list_cell([sym_cell("ref")]~tokens2cells(t.sub));
+      return list_cell([symbol_cell("ref")]~tokens2cells(t.sub));
     }
     if (t.id==";") {
       assert(t.sub.length==1);
@@ -98,33 +105,33 @@ Cell token2cell(Token t) {
   }
   if (tav(t,"statement","deftype")) {
     Cell type=token2cell(t.sub[0]);
-    return list_cell([sym_cell("deftype"),sym_cell(t.name),type]);
+    return list_cell([symbol_cell("deftype"),symbol_cell(t.name),type]);
   }
   if (tav(t,"statement","aliastype")) {
     Cell type=token2cell(t.sub[0]);
-    return list_cell([sym_cell("aliastype"),sym_cell(t.name),type]);
+    return list_cell([symbol_cell("aliastype"),symbol_cell(t.name),type]);
   }
   if (tav(t,"statement","supertype")) {
-    return list_cell([sym_cell("supertype"),sym_cell(t.name)]~tokens2cells(t.sub));
+    return list_cell([symbol_cell("supertype"),symbol_cell(t.name)]~tokens2cells(t.sub));
   }
   if (tav(t,"statement","defun")) {
     Cell pars=token2cell(t.sub[0]);
     Cell code=token2cell(t.sub[1]);
-    if (t.sub[1].arity=="array") code.lst=sym_cell("seq")~code.lst;
-    return list_cell([sym_cell("defun"),sym_cell(t.name),pars,code]);
+    if (t.sub[1].arity=="array") code.lst=symbol_cell("seq")~code.lst;
+    return list_cell([symbol_cell("defun"),symbol_cell(t.name),pars,code]);
   }
   if (tav(t,"function","function")) {
     Cell pars=token2cell(t.sub[0]);
     Cell code=token2cell(t.sub[1]);
-    if (t.sub[1].arity=="array") code.lst=sym_cell("seq")~code.lst;
-    return list_cell([sym_cell("function"),pars,code]);
+    if (t.sub[1].arity=="array") code.lst=symbol_cell("seq")~code.lst;
+    return list_cell([symbol_cell("function"),pars,code]);
   }
   if (tav(t,"statement","def")) {
     if (t.sub.length==2) {
-      return list_cell([sym_cell("def")]~tokens2cells(t.sub));
+      return list_cell([symbol_cell("def")]~tokens2cells(t.sub));
     }
     if (t.sub.length==3) {
-      return list_cell([sym_cell("def")]~tokens2cells(t.sub));
+      return list_cell([symbol_cell("def")]~tokens2cells(t.sub));
     }
     assert(false);
   }
@@ -132,12 +139,12 @@ Cell token2cell(Token t) {
     if (t.sub.length==1) {
       if (t.sub[0].arity=="array") {
         Cell code=token2cell(t.sub[0]);
-        code=list_cell(sym_cell("seq")~as_list(code));
-        return list_cell([sym_cell("scope"),code]);
+        code=list_cell(symbol_cell("seq")~as_list(code));
+        return list_cell([symbol_cell("scope"),code]);
       }
       if (t.sub[0].arity=="statement") {
         Cell code=token2cell(t.sub[0]);
-        return list_cell([sym_cell("scope"),code]);
+        return list_cell([symbol_cell("scope"),code]);
       }
     }
     if (t.sub.length==2) {
@@ -145,80 +152,80 @@ Cell token2cell(Token t) {
       assert(t.sub[0].arity=="name");
       if (t.sub[1].arity=="array") {
         Cell code=token2cell(t.sub[1]);
-        code=list_cell(sym_cell("seq")~as_list(code));
-        return list_cell([sym_cell("scope"),sym_cell(t.sub[0].value),code]);
+        code=list_cell(symbol_cell("seq")~as_list(code));
+        return list_cell([symbol_cell("scope"),symbol_cell(t.sub[0].value),code]);
       }
       if (t.sub[1].arity=="statement") {
         Cell code=token2cell(t.sub[1]);
-        return list_cell([sym_cell("scope"),sym_cell(t.sub[0].value),code]);
+        return list_cell([symbol_cell("scope"),symbol_cell(t.sub[0].value),code]);
       }
     }
     assert(false);
   }
   if (tav(t,"statement","if")) {
     if (t.sub.length==2) {
-      Cell c=list_cell([sym_cell("if")]~tokens2cells(t.sub));
-      if (t.sub[1].arity=="array") c.lst[2].lst=sym_cell("seq")~c.lst[2].lst;
+      Cell c=list_cell([symbol_cell("if")]~tokens2cells(t.sub));
+      if (t.sub[1].arity=="array") c.lst[2].lst=symbol_cell("seq")~c.lst[2].lst;
       return c;
     }
     if (t.sub.length==3) {
-      Cell c=list_cell([sym_cell("if")]~tokens2cells(t.sub));
-      if (t.sub[1].arity=="array") c.lst[2].lst=sym_cell("seq")~c.lst[2].lst;
-      if (t.sub[2].arity=="array") c.lst[3].lst=sym_cell("seq")~c.lst[3].lst;
+      Cell c=list_cell([symbol_cell("if")]~tokens2cells(t.sub));
+      if (t.sub[1].arity=="array") c.lst[2].lst=symbol_cell("seq")~c.lst[2].lst;
+      if (t.sub[2].arity=="array") c.lst[3].lst=symbol_cell("seq")~c.lst[3].lst;
       return c;
     }
     assert(false);
   }
   if (tav(t,"statement","for")) {
     assert(t.sub.length==4);
-    Cell c=list_cell([sym_cell("for")]~tokens2cells(t.sub));
+    Cell c=list_cell([symbol_cell("for")]~tokens2cells(t.sub));
     //printf("%.*s\n",cells.str(c));
-    if (t.sub[0].arity=="array") c.lst[1].lst=sym_cell("seq")~c.lst[1].lst;
-    if (t.sub[3].arity=="array") c.lst[4].lst=sym_cell("seq")~c.lst[4].lst;
+    if (t.sub[0].arity=="array") c.lst[1].lst=symbol_cell("seq")~c.lst[1].lst;
+    if (t.sub[3].arity=="array") c.lst[4].lst=symbol_cell("seq")~c.lst[4].lst;
     //printf("%.*s\n",cells.str(c));
     return c;
   }
   if (tav(t,"statement","while")) {
     assert(t.sub.length==2);
-    Cell c=list_cell([sym_cell("while")]~tokens2cells(t.sub));
-    if (t.sub[1].arity=="array") c.lst[2].lst=sym_cell("seq")~c.lst[2].lst;
+    Cell c=list_cell([symbol_cell("while")]~tokens2cells(t.sub));
+    if (t.sub[1].arity=="array") c.lst[2].lst=symbol_cell("seq")~c.lst[2].lst;
     return c;
   }
   if (tav(t,"statement","do")) {
     assert(t.sub.length==2);
-    Cell c=list_cell([sym_cell("dowhile")]~tokens2cells(t.sub));
-    if (t.sub[0].arity=="array") c.lst[1].lst=sym_cell("seq")~c.lst[1].lst;
+    Cell c=list_cell([symbol_cell("dowhile")]~tokens2cells(t.sub));
+    if (t.sub[0].arity=="array") c.lst[1].lst=symbol_cell("seq")~c.lst[1].lst;
     return c;
   }
   if (tav(t,"unary","!")) {
     assert(t.sub.length==1);
-    return list_cell([sym_cell("not"),token2cell(t.sub[0])]);
+    return list_cell([symbol_cell("not"),token2cell(t.sub[0])]);
   }
   if (tav(t,"ternary","?")) {
     assert(t.sub.length==3);
-    return list_cell([sym_cell("if")]~tokens2cells(t.sub));
+    return list_cell([symbol_cell("if")]~tokens2cells(t.sub));
   }
   if (tav(t,"statement","switch")) {
-    Cell[] lst=[sym_cell("switch")]~tokens2cells(t.sub);
+    Cell[] lst=[symbol_cell("switch")]~tokens2cells(t.sub);
     for (int k=1;k<lst.length;k+=2) {
-      if (isa(lst[k],TList)) lst[k].lst=sym_cell("seq")~lst[k].lst;
+      if (isa(lst[k],TList)) lst[k].lst=symbol_cell("seq")~lst[k].lst;
     }
     return list_cell(lst);
   }
   if (tav(t,"statement","break")) {
     assert(!t.sub.length);
-    return list_cell([sym_cell("break")]);
+    return list_cell([symbol_cell("break")]);
   }
   if (tav(t,"statement","continue")) {
     assert(!t.sub.length);
-    return list_cell([sym_cell("continue")]);
+    return list_cell([symbol_cell("continue")]);
   }
   if (tav(t,"statement","return")) {
     if (!t.sub.length) {
-      return list_cell([sym_cell("return")]);
+      return list_cell([symbol_cell("return")]);
     }
     if (t.sub.length==1) {
-      return list_cell([sym_cell("return"),token2cell(t.sub[0])]);
+      return list_cell([symbol_cell("return"),token2cell(t.sub[0])]);
     }
     assert(false);
   }
@@ -231,16 +238,16 @@ Cell token2cell(Token t) {
   }
   if (tav(t,"ternary","(")) {
     Cell c=list_cell();
-    c.lst~=[sym_cell("call"),token2cell(t.sub[0]),sym_cell(t.sub[1].value)];
+    c.lst~=[symbol_cell("call"),token2cell(t.sub[0]),symbol_cell(t.sub[1].value)];
     if (!tav(t.sub[2],"array")) assert(false);
     c.lst~=token2cell(t.sub[2]).lst;
     return c;
   }
   if (tav(t,"binary",".")) {
     Cell c=list_cell();
-    c.lst~=sym_cell("get");
+    c.lst~=symbol_cell("get");
     c.lst~=token2cell(t.sub[0]);
-    c.lst~=str_cell(t.sub[1].value);
+    c.lst~=string_cell(t.sub[1].value);
     return c;
   }
   if (tav(t,"binary","[")) {
@@ -248,12 +255,12 @@ Cell token2cell(Token t) {
     static if (0) {
       // ugly hack for array type literals
       if (t.sub.length==1) {
-        c.lst~=sym_cell("array");
+        c.lst~=symbol_cell("array");
       } else {
-        c.lst~=sym_cell("get");
+        c.lst~=symbol_cell("get");
       }
     } else {
-      c.lst~=sym_cell("get");
+      c.lst~=symbol_cell("get");
     }
     for (int k;k<t.sub.length;++k) {
       c.lst~=token2cell(t.sub[k]);
@@ -263,14 +270,14 @@ Cell token2cell(Token t) {
 /*  if (tav(t,"unary","preincrement")) {
     assert(t.sub.length==1);
     Cell id=token2cell(t.sub[0]);
-    Cell sum=list_cell([sym_cell("+"),id,int_cell(1)]);
-    return list_cell([sym_cell("="),id,sum]);
+    Cell sum=list_cell([symbol_cell("+"),id,int_cell(1)]);
+    return list_cell([symbol_cell("="),id,sum]);
   }
   if (tav(t,"unary","predecrement")) {
     assert(t.sub.length==1);
     Cell id=token2cell(t.sub[0]);
-    Cell sum=list_cell([sym_cell("-"),id,int_cell(1)]);
-    return list_cell([sym_cell("="),id,sum]);
+    Cell sum=list_cell([symbol_cell("-"),id,int_cell(1)]);
+    return list_cell([symbol_cell("="),id,sum]);
   }*/
   if (tav(t,"binary")) {
     if (string* op=(t.value in opeq)) {
@@ -286,28 +293,28 @@ Cell token2cell(Token t) {
   if (tav(t,"binary","=")) {
     Cell c=list_cell();
     if (tav(t.sub[0],"binary",".")) {
-      c.lst~=sym_cell("set");
+      c.lst~=symbol_cell("set");
       c.lst~=token2cell(t.sub[0].sub[0]);
-      c.lst~=str_cell(t.sub[0].sub[1].value);
+      c.lst~=string_cell(t.sub[0].sub[1].value);
     } else if (tav(t.sub[0],"binary","[")) {
-      c.lst~=sym_cell("set");
+      c.lst~=symbol_cell("set");
       c.lst~=token2cell(t.sub[0].sub[0]);
       c.lst~=token2cell(t.sub[0].sub[1]);
     } else if (tav(t.sub[0],"unary","@")) {
-      c.lst~=sym_cell("set");
+      c.lst~=symbol_cell("set");
       c.lst~=token2cell(t.sub[0].sub[0]);
     } else {
-      c.lst~=sym_cell("=");
+      c.lst~=symbol_cell("=");
       c.lst~=token2cell(t.sub[0]);
     }
     c.lst~=token2cell(t.sub[1]);
     return c;
   }
   if (tav(t,"unary")) {
-    return list_cell([sym_cell(t.value),token2cell(t.sub[0])]);
+    return list_cell([symbol_cell(t.value),token2cell(t.sub[0])]);
   }
   if (tav(t,"binary")) {
-    return list_cell([sym_cell(t.value),token2cell(t.sub[0]),token2cell(t.sub[1])]);
+    return list_cell([symbol_cell(t.value),token2cell(t.sub[0]),token2cell(t.sub[1])]);
   }
   if (tav(t,"array")) {
     return list_cell(tokens2cells(t.sub));
@@ -315,13 +322,15 @@ Cell token2cell(Token t) {
   t.error("js-to-lisp error");
 }
 Cell parse_string_to_cell(string source) {
+  static if (debf) {debEnter("parse_string_to_cell()");scope (exit) debLeave();}
   Token t=parse_string_to_token(source);
 //  t.show();
   Cell c=token2cell(t);
   assert(isa(c,TList),"list cell expected");
-  c.lst=sym_cell("seq")~c.lst;
+  c.lst=symbol_cell("seq")~c.lst;
   return c;
 }
 Cell parse_file_to_cell(string filename) {
+  static if (debf) {debEnter("parse_file_to_cell()");scope (exit) debLeave();}
   return parse_string_to_cell(cast(string)std.file.read(filename));
 }

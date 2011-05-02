@@ -4,6 +4,9 @@ import debg;
 import cells;
 import types;
 import utils;
+import std.stdio;
+
+const bool debf=debflag;
 
 bool operator_in_tree(Cell c,string op) {
   if (!isa(c,TList)) return false;
@@ -18,6 +21,7 @@ bool operator_in_tree(Cell c,string op) {
   for (int k=1;k<cl.length;++k) {
     if (operator_in_tree(cl[k],op)) return true;
   }
+  return false;
 }
 bool is_list_with_operator(Cell c,string op="") {
   if (!isa(c,TList)) return false;
@@ -76,4 +80,54 @@ void reduce_seq_of_one(Cell c) {
     c.lst=c.lst[1].lst;
   }
 }
-
+Cell[] cells_with_operator(Cell c,string op) {
+  static if (debf) {debEnter("cells_with_operator(...)");scope (exit) debLeave();}
+  Cell[] res;
+  if (!isa(c,TList)) return res;
+  Cell[] cl=c.lst;
+  if (!cl.length) return res;
+  if (isa(cl[0],TSymbol) && (cl[0].sym==op)) res~=c;
+  for (int k=0;k<cl.length;++k) res~=cells_with_operator(cl[k],op);
+  return res;
+}
+Cell first_with_operator(Cell c,string op) {
+  static if (debf) {debEnter("first_with_operator(...)");scope (exit) debLeave();}
+  if (!isa(c,TList)) return null;
+  Cell[] cl=c.lst;
+  if (!cl.length) return null;
+  if (isa(cl[0],TSymbol) && (cl[0].sym==op)) return c;
+  for (int k=0;k<cl.length;++k) {
+    Cell res=first_with_operator(cl[k],op);
+    if (res) return res;
+  }
+  return null;
+}
+Cell deftype_cell(string name,Cell def) {
+  return list_cell([symbol_cell("deftype"),symbol_cell(name),def.clone()]);
+}
+Cell anontype_cell(string name,Cell def) {
+  return list_cell([symbol_cell("anontype"),symbol_cell(name),def.clone()]);
+}
+Cell aliastype_cell(string name,Cell def) {
+  return list_cell([symbol_cell("aliastype"),symbol_cell(name),def.clone()]);
+}
+void find_anonymous_structs(Cell root) {
+  static if (debf) {debEnter("find_anonymous_structs(...)");scope (exit) debLeave();}
+  root=first_with_operator(root,"seq");
+  //root=root.lst[1];
+  //writef("%s\n",cells.str(root));
+  Cell[] cs=cells_with_operator(root,"def");
+  int anon_count;
+  string anon_name;
+  foreach (c;cs) {
+    Cell[] anon=cells_with_operator(c,"struct");
+    if (anon.length) {
+      writef("def with anonymous struct: %s\n",cells.str(c));
+      anon_name=frm("anon_type_%d",anon_count++);
+//      root.lst=[root.lst[0],anontype_cell(anon_name,anon[0])]~root.lst[1..$];
+      root.lst=[root.lst[0],aliastype_cell(anon_name,anon[0])]~root.lst[1..$];
+      anon[0].set(symbol_cell(anon_name));
+      writef("  -->  %s\n",cells.str(c));
+    }
+  }
+}

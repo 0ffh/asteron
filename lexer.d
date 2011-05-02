@@ -3,13 +3,15 @@ module lexer;
 import debg;
 import utils;
 import std.file;
+import std.stdio;
 import std.string;
 import std.regexp;
 
-alias std.string.toStringz tsz;
+//alias std.string.toStringz tsz;
 alias std.regexp.search search;
 alias string function(string m) LtFun;
-const bool debf=debflag;
+
+const bool debf=debflag && 0;
 
 int index_to_line(string txt,int idx) {
   int line=1;
@@ -28,27 +30,27 @@ class Lexeme {
   }
   string str() {
     string s="Lexeme\n";
-    s~=cfrm("  type  = _%s_\n",tsz(type));
-    s~=cfrm("  value = _%s_\n",tsz(val));
-    s~=cfrm("  idx   = [%i..%i]\n",idxs,idxe);
+    s~=frm("  type  = _%s_\n",tsz(type));
+    s~=frm("  value = _%s_\n",tsz(val));
+    s~=frm("  idx   = [%i..%i]\n",idxs,idxe);
     return s;
   }
   void show() {
-    printf("%s",str());
+    writef("%s",str());
   }
   string error_string(string s) {
-    return str()~cfrm("Error around line %i: %.*s\n",line(),s);
+    return str()~frm("Error around line %i: %s\n",line(),s);
   }
   void error(string s,string f="",long l=0) {
     s=error_string(s);
     if (f.length) {
       if (l) {
-        s="["~f~":"~cfrm("%lu",l)~"] "~s;
+        s="["~f~":"~frm("%lu",l)~"] "~s;
       } else {
         s="["~f~"] "~s;
       }
     }
-    printf("%.*s\n",s);
+    writef("%s\n",s);
     assert(false,s);
   }
   this(string val,string type="") {
@@ -105,7 +107,7 @@ Lextab mkAstLextab() {
   lt~=LextabEntry("ws",`\s+`);
   lt~=LextabEntry("remark",`//[^\n]*`,
     function string(string m) {
-      //printf("[%.*s]\n",m);
+      //writef("[%s]\n",m);
       return m[2..$];
     });
   lt~=LextabEntry("remark",`/[*](.|\s)*?[*]/`,
@@ -143,11 +145,11 @@ private Lexeme[] lex(string src,Lextab lt) {
   Lexeme[] tokens;
   int index=0;
   while (index<src.length) {
-    //printf("search in '%.*s'\n",deCtrl(src[index..min($,index+20)]));
+    //writef("search in '%s'\n",deCtrl(src[index..min($,index+20)]));
     int ok=0;
     foreach (e;lt) {
       Lexeme t=new Lexeme();
-//      printf("test %i : %s\n",e.type,tsz(e.pat));
+//      writef("test %i : %s\n",e.type,e.pat);
       foreach (me;e.rex.search(src[index..$])) {
         t.type=e.type;
         t.val=me.match(0);
@@ -156,14 +158,14 @@ private Lexeme[] lex(string src,Lextab lt) {
         index+=t.val.length;
         t.idxe=index-1;
         if (e.fun) t.val=e.fun(t.val);
-//        printf("match : %s\n",dsz(t.val));
+//        writef("match : %s\n",dsz(t.val));
         if ((t.type!="white")&&(t.type!="remark")) tokens~=t;
         ok=1;
       }
       if (ok) break;
     }
     if (!ok) {
-      printf("stumped by '%.*s'\n",deCtrl(src[index..min($,index+20)]));
+      writef("stumped by '%s'\n",deCtrl(src[index..min($,index+20)]));
       assert(false,"lexing failed");
     }
   }
