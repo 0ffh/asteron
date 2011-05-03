@@ -1,8 +1,8 @@
 // FIX aliastype
-// CHECK need for "typename" annotation
 defun test() {
   start("structs (aliastype)");
-  aliastype at struct{string a,int i,float f};
+  aliastype aint int;
+  aliastype at struct{string a,aint i,float f};
   var at x;
   test(tostr(x),"{a='',i=0,f=0}");
   x.a="prlnx";

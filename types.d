@@ -288,6 +288,13 @@ Type struct_type_from_fields(Cell[] fields) {
   static if (debf) {debEnter("struct_type_from_fields(Cell[])");scope (exit) debLeave();}
   return type(cells.str(list_cell(symbol_cell("struct")~fields)));
 }
+Type struct_type_from_fields(Type[] fields) {
+  static if (debf) {debEnter("struct_type_from_fields(Type[])");scope (exit) debLeave();}
+  Cell[] f;
+  f.length=fields.length;
+  for (int k;k<fields.length;++k) f[k]=type_cell(fields[k]);
+  return type(cells.str(list_cell(symbol_cell("struct")~f)));
+}
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //--------------------

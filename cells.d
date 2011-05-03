@@ -95,18 +95,22 @@ struct Ref {
   string id;
   Env* env;
 }
+Cell unalias_type_of(Cell c) {
+  while (is_alias_type(c.type)) c.type=get_alias_subtype(c.type);
+  return c;
+}
 Type struct_get_fieldtype(Struct* s,string key) {
   for (int k;k<s.key.length;++k) {
     if (key==s.key[k]) return s.typ[k];
   }
-  assert(false,"struct has not field "~key);
+  assert(false,"struct has no field "~key);
   return TNull;
 }
 Cell struct_get_field(Struct* s,string key) {
   for (int k;k<s.key.length;++k) {
     if (key==s.key[k]) return s.val[k];
   }
-  assert(false,"struct has not field "~key);
+  assert(false,"struct has no field "~key);
   return null_cell();
 }
 Cell struct_set_field(Struct* s,string key,Cell val) {

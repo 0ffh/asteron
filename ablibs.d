@@ -634,6 +634,10 @@ Cell op_struct(Cell[] args) {
     assert(as_list(arg).length==2);
     arg.lst[0]=abs_eval(arg.lst[0]);
     assert(isa(arg.lst[0],TType));
+    /*while (is_alias_type(as_type(arg.lst[0]))) {
+      writefln("------------------------- ATF");
+      arg.lst[0]=type_cell(get_alias_subtype(as_type(arg.lst[0])));
+    }*/
   }
   Type t=struct_type_from_fields(args);
   return type_cell(t);
@@ -654,6 +658,7 @@ Cell op_struct_set(Cell[] args) {
   Struct* s=as_struct(args[0]);
   string key=as_str(args[1]);
   Cell res=struct_get_field(s,key);
+  unalias_type_of(res);
   writef("struct_set_field %s -> [%s]\n",key,types.str(res.type));
   assert(res.type==args[2].type);
   return args[2];
