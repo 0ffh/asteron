@@ -116,6 +116,7 @@ void find_anonymous_structs(Cell root) {
   root=first_with_operator(root,"seq");
   //root=root.lst[1];
   //writef("%s\n",cells.str(root));
+  Cell[] aslist;
   Cell[] cs=cells_with_operator(root,"def");
   int anon_count;
   string anon_name;
@@ -124,13 +125,27 @@ void find_anonymous_structs(Cell root) {
     if (anon.length) {
       writef("def with anonymous struct: %s\n",cells.str(c));
       anon_name=frm("anon_type_%d",anon_count++);
-//      root.lst=[root.lst[0],anontype_cell(anon_name,anon[0])]~root.lst[1..$];
-      root.lst=[root.lst[0],aliastype_cell(anon_name,anon[0])]~root.lst[1..$];
+      //root.lst=[root.lst[0],aliastype_cell(anon_name,anon[0])]~root.lst[1..$];
+      aslist~=aliastype_cell(anon_name,anon[0]);
       anon[0].set(symbol_cell(anon_name));
       writef("  -->  %s\n",cells.str(c));
     }
   }
+  int k=1;
+  for (;k<root.lst.length;++k) {
+    if (is_list_with_operator(root.lst[k],"deftype") ||
+        is_list_with_operator(root.lst[k],"aliastype") ||
+        is_list_with_operator(root.lst[k],"supertype")) continue;
+    break;
+  }
+  root.lst=root.lst[0..k]~aslist~root.lst[k..$];
 }
+/* // enforce root typedefs in laguage spec!
+void typedefs_to_root(Cell root) {
+  static if (debf) {debEnter("find_anonymous_structs(...)");scope (exit) debLeave();}
+  root=first_with_operator(root,"seq");
+
+}*/
 /*void insert_outer_seq_in_defuns(Cell root) {
   static if (debf) {debEnter("insert_outer_seq_in_lambdas(...)");scope (exit) debLeave();}
   root=first_with_operator(root,"seq");

@@ -1,17 +1,31 @@
 // FIX aliastype
+aliastype aint int;
+aliastype afloat float;
+aliastype at struct{string a,aint i,float f};
+aliastype at2 struct{string a,aint i,float f};
+aliastype cat struct{at s,int i,float f};
 defun test() {
   start("structs (aliastype)");
-  aliastype aint int;
-  aliastype at struct{string a,aint i,float f};
   var at x;
-  test(tostr(x),"{a='',i=0,f=0}");
-  x.a="prlnx";
+  var struct{string a,int i,afloat f} y;
+  var cat z;
+  var aint i;
+  var afloat f;
+  i=1;
+  f=2.1;
+  //test(tostr(x),"{a='',i=0,f=0}");
+  y.a=x.a="prlnx";
   test(x.a,"prlnx");
-  test(tostr(x),"{a='prlnx',i=0,f=0}");
-  x.i=1;
+  //test(tostr(x),"{a='prlnx',i=0,f=0}");
+  y.i=x.i=i;
   test(x.i,1);
-  x.f=2.0;
-  test(tostr(x),"{a='prlnx',i=1,f=2}");
+  x.f=y.f=f;
+  //test(tostr(x),"{a='prlnx',i=1,f=2}");
+  z.s=x;
+  z.s=y;
+  //prln(x);
+  //prln(y);
+  //prln(z);
   finish();
 }
 defun start(...) {
@@ -24,3 +38,4 @@ defun test(a,b) {
 defun main() {
   test();
 }
+main();

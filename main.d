@@ -532,13 +532,13 @@ void abs_exec_ast(string filename) {
   reduce_seq_of_one(root);
   //insert_outer_seq_in_defuns(root);
   //if (test) return;
-  find_anonymous_structs(root);
   //if (root !is null) return;
   //writef("%s\n",pretty_str(root,0));
   operators_to_front(root,["defun","def"]);
   operator_to_front(root,"supertype");
   operator_to_front(root,"aliastype");
   operator_to_front(root,"deftype");
+  find_anonymous_structs(root);
   if (showflag) writef("%s\n",pretty_str(root,0));
   static if (1) {
     writef("%s\n",pretty_str(root,0));
@@ -585,13 +585,14 @@ void env_info() {
 }
 void main(string[] args) {
   string fn;
-  if (args.length>1) fn=args[1]~".ast";
-  else fn="test.ast";
 //  state.code=StC.run;
   if (0) {
-    exec("tests.ast");
-    //exec(fn);
+    if (args.length>1) fn=args[1]~".ast";
+    else fn="tests.ast";
+    exec(fn);
   } else {
+    if (args.length>1) fn=args[1]~".ast";
+    else fn="test.ast";
     abs_exec(fn);
   }
 //  writef("state.code=%i\n",state.code);

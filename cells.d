@@ -96,7 +96,9 @@ struct Ref {
   Env* env;
 }
 Cell unalias_type_of(Cell c) {
-  while (is_alias_type(c.type)) c.type=get_alias_subtype(c.type);
+  string s=types.str(c.type);
+//  writefln("+++++++ unaliasing type %s",s);
+  c.type=unalias_type(c.type);
   return c;
 }
 Type struct_get_fieldtype(Struct* s,string key) {
@@ -367,7 +369,7 @@ Cell cell_from_def_type(Type typ) {
 Cell cell_from_alias_type(Type typ) {
   static if (debf) {debEnter("cell_from_alias_type(Type)");scope (exit) debLeave();}
   Cell c=new_cell(get_alias_subtype(typ));
-  c.type=typ;
+//  c.type=typ;
   return c;
 //  return new_cell(get_alias_subtype(typ));
 }

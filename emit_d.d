@@ -216,9 +216,12 @@ void emit_ast(Cell c) {
     emit_ast(sub[0]);
     emit(")");
   } else if (id_in(id,["=","+=","-=","*=","/=","~="])) {
+    Cell d=abs_eval(sub[0]);
     emit_ast(sub[0]);
     emit(id);
+    //emit("cast()(");
     emit_ast(sub[1]);
+    //emit(")");
   } else if (id_in(id,["==","!="])) {
     emit("(");
     emit_ast(sub[0]);
@@ -414,7 +417,7 @@ void emit_ast(Type t,string name="") {
     emit("*");
   } else if (is_struct_type(t)) {
     writef("emit struct type %s [%s]\n",name,types.str(t));
-    string type_name=get_type_name(t);
+    string type_name=get_atype_name(t);
     Cell[] sc=get_compound_fields(t);
     emit("struct ");
     if (name.length) emit(name~" ");

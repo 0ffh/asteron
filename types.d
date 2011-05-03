@@ -146,6 +146,14 @@ Type type_deftype(string name,Type t) {
 //--------------------
 //-------------------- aliastype
 //--------------------
+Type unalias_type(Type t) {
+  while (is_alias_type(t)) t=get_alias_subtype(t);
+  return t;
+}
+Cell unalias_type(Cell t) {
+  assert(isa(t,TType));
+  return type_cell(unalias_type(as_type(t)));
+}
 bool is_alias_type(Type t) {
   return (get_compound_type_constructor(t)=="aliastype");
 }
@@ -288,13 +296,6 @@ Type struct_type_from_fields(Cell[] fields) {
   static if (debf) {debEnter("struct_type_from_fields(Cell[])");scope (exit) debLeave();}
   return type(cells.str(list_cell(symbol_cell("struct")~fields)));
 }
-Type struct_type_from_fields(Type[] fields) {
-  static if (debf) {debEnter("struct_type_from_fields(Type[])");scope (exit) debLeave();}
-  Cell[] f;
-  f.length=fields.length;
-  for (int k;k<fields.length;++k) f[k]=type_cell(fields[k]);
-  return type(cells.str(list_cell(symbol_cell("struct")~f)));
-}
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //--------------------
@@ -430,17 +431,28 @@ void init_types() {
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //--------------------
-//-------------------- anonymous types
+//--------------------
 //--------------------
 string[string] type_names;
-void add_type_name(Type typ,string name) {
-  writef("*** add_type_name %s %s\n",types.str(typ),name);
+void add_atype_name(Type typ,string name) {
+  writef("*** add_atype_name %s %s\n",types.str(typ),name);
+  assert(!has_atype_name(typ));
   type_names[str(typ)]=name;
 }
-string get_type_name(Type typ) {
+string get_atype_name(Type typ) {
   string name;
   string *pname=str(typ) in type_names;
+  assert(pname !is null);
   if (pname is null) name=""; else name=*pname;
-  writef("*** get_type_name %s %s\n",types.str(typ),name);
+  writef("*** get_atype_name %s %s\n",types.str(typ),name);
   return name;
+}
+bool has_atype_name(Type typ) {
+  return ((str(typ) in type_names) !is null);
+}
+Type get_atype_by_name(string name) {
+  foreach (string key;type_names.keys) {
+    if (type_names[key]==name) return type(key);
+  }
+  assert(false);
 }

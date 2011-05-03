@@ -133,29 +133,28 @@ Cell op_deftype(Cell[] args) {
   string name=as_symbol(args[0]);
   Type typ=type_deftype(name,type(args[1]));
   Cell val=type_cell(typ);
-  return env_put(base_env,name,val);
-}
-Cell op_anontype(Cell[] args) {
-  static if (debf) {debEnter("[anontype]");scope (exit) debLeave();}
-  assert(args.length==2);
-  string name=as_symbol(args[0]);
-  Type typ=type_deftype(name,type(args[1]));
-  Cell val=type_cell(typ);
-  assert(false,"anontype the way to go?");
+  add_atype_name(typ,name);
   return env_put(base_env,name,val);
 }
 Cell op_aliastype(Cell[] args) {
   static if (debf) {debEnter("[aliastype]");scope (exit) debLeave();}
   assert(args.length==2);
   string name=as_symbol(args[0]);
-  Type typ=type(args[1]);
-  Type alt=type_aliastype(name,type(args[1]));
-  Cell val=type_cell(alt);
-  add_type_name(typ,name);
-//   val.ann["type"]=string_cell("aliastype");
+  Type typ=type(abs_eval(args[1]));
+  Type alt;
+  static if (1) {
+    if (has_atype_name(typ)) {
+      alt=type(get_atype_name(typ));
+    } else {
+      alt=type_aliastype(name,type(args[1]));
+      add_atype_name(typ,name);
+    }
+  } else {
+    alt=type_aliastype(name,type(args[1]));
+  }
   writef("aliastype %s / %s / %s\n",name,types.str(alt),types.str(typ));
 //   return env_put(environment,name,val);
-  return env_put(base_env,name,val);
+  return env_put(base_env,name,type_cell(alt));
 }
 Cell op_supertype(Cell[] args) {
   static if (debf) {debEnter("[supertype]");scope (exit) debLeave();}
@@ -175,9 +174,9 @@ Cell op_defun(Cell[] args) {
   assert(args.length>=2);
   string name=as_symbol(args[0]);
   Cell val=list_cell(symbol_cell("function")~args[1..$]);
-  writef("---A %s\n",pretty_str(val,0));
+  //writef("---A %s\n",pretty_str(val,0));
   val=abs_eval(val);
-  writef("---B %s\n",pretty_str(val,0));
+  //writef("---B %s\n",pretty_str(val,0));
   Signature sig=parameter_cell2signature(args[1]);
   return env_putfun(environment,name,val,sig,TAny);
 }
@@ -324,7 +323,6 @@ void init_abs_libs() {
   env_put(env,"def",lfun_cell(&op_def));
   env_put(env,"defun",lfun_cell(&op_defun));
   env_put(env,"deftype",lfun_cell(&op_deftype));
-  env_put(env,"anontype",lfun_cell(&op_anontype));
   env_put(env,"aliastype",lfun_cell(&op_aliastype));
   env_put(env,"supertype",lfun_cell(&op_supertype));
   env_put(env,"quote",lfun_cell(&op_quote));
@@ -629,15 +627,21 @@ Cell op_array(Cell[] args) { // (array type) -> type
 }
 Cell op_struct(Cell[] args) {
   static if (debf) {debEnter("[struct]");scope (exit) debLeave();}
+  writefln("------------------------- STRUCT");
   foreach (ref arg;args) {
-//    arg.show();
+    arg.show();
     assert(as_list(arg).length==2);
+    //writefln("------- A %s",cells.str(arg.lst[0]));
+    //string tname;
+    //if (isa(arg.lst[0],TSymbol)) tname=as_symbol(arg.lst[0]);
     arg.lst[0]=abs_eval(arg.lst[0]);
+    arg.lst[0]=unalias_type(arg.lst[0]);
+    if (!is_basic_type(type(arg.lst[0]))) {
+      string tname=get_atype_name(type(arg.lst[0]));
+      arg.lst[0]=abs_eval(symbol_cell(tname));
+    }
     assert(isa(arg.lst[0],TType));
-    /*while (is_alias_type(as_type(arg.lst[0]))) {
-      writefln("------------------------- ATF");
-      arg.lst[0]=type_cell(get_alias_subtype(as_type(arg.lst[0])));
-    }*/
+    writefln("------- struct field %s of type %s",as_symbol(arg.lst[1]),cells.str(arg.lst[0]));
   }
   Type t=struct_type_from_fields(args);
   return type_cell(t);
@@ -654,12 +658,13 @@ Cell op_struct_get(Cell[] args) {
 Cell op_struct_set(Cell[] args) {
   static if (debf) {debEnter("[struct_set_field]");scope (exit) debLeave();}
   assert(args.length==3);
-  if (is_alias_type(args[0].type)) args[0].type=get_alias_subtype(args[0].type);
+  //unalias_type_of(args[0]);
   Struct* s=as_struct(args[0]);
   string key=as_str(args[1]);
   Cell res=struct_get_field(s,key);
   unalias_type_of(res);
-  writef("struct_set_field %s -> [%s]\n",key,types.str(res.type));
+  //unalias_type_of(args[2]);
+  writef("struct_set_field %s [%s] -> [%s]\n",key,types.str(args[2].type),types.str(res.type));
   assert(res.type==args[2].type);
   return args[2];
 }
@@ -732,6 +737,7 @@ Cell op_result(Cell[] args) {
 Cell op_any_get(Cell[] args) {
   static if (debf) {debEnter("[op_any_get]");scope (exit) debLeave();}
   assert(args.length==2);
+  //args[0].type=unalias_type(args[0].type);
   Type t=args[0].type;
   if (is_struct_type(t)) return op_struct_get(args);
   if (is_union_type(t)) return op_union_get(args);
@@ -740,6 +746,7 @@ Cell op_any_get(Cell[] args) {
 Cell op_any_set(Cell[] args) {
   static if (debf) {debEnter("[op_any_set]");scope (exit) debLeave();}
   assert(args.length==3);
+  //args[0].type=unalias_type(args[0].type);
   Type t=args[0].type;
   if (is_struct_type(t)) return op_struct_set(args);
   if (is_union_type(t)) return op_union_set(args);
