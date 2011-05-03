@@ -131,3 +131,20 @@ void find_anonymous_structs(Cell root) {
     }
   }
 }
+/*void insert_outer_seq_in_defuns(Cell root) {
+  static if (debf) {debEnter("insert_outer_seq_in_lambdas(...)");scope (exit) debLeave();}
+  root=first_with_operator(root,"seq");
+  //root=root.lst[1];
+  //writef("%s\n",cells.str(root));
+  Cell[] cs=cells_with_operator(root,"defun");
+  foreach (c;cs) {
+    assert(isa(c,TList));
+    assert(c.lst.length==4);
+    Cell d=c.lst[3];
+    if (!(is_list_with_operator(d,"seq"))) {
+      d=list_cell([symbol_cell("seq"),d]);
+    }
+    //writefln("lambda %s\n",cells.str(d));
+  }
+}*/
+

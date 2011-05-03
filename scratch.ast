@@ -259,15 +259,15 @@ defun test13() {
 }*/
 defun test15() {
   start("structs (anonymous)");
-  var struct{string a,int i,float f} x;
-  test(tostr(x),"{a='',i=0,f=0}");
-  x.a="prlnx";
-  test(x.a,"prlnx");
-  test(tostr(x),"{a='prlnx',i=0,f=0}");
-  x.i=1;
-  test(x.i,1);
-  x.f=2.0;
-  test(tostr(x),"{a='prlnx',i=1,f=2}");
+  var struct{string a,int i,float f} asx;
+//  test(tostr(asx),"{a='',i=0,f=0}");
+  asx.a="prlnx";
+  test(asx.a,"prlnx");
+//  test(tostr(asx),"{a='prlnx',i=0,f=0}");
+  asx.i=1;
+  test(asx.i,1);
+  asx.f=2.0;
+//  test(tostr(asx),"{a='prlnx',i=1,f=2}");
   finish();
 }/*
 defun test16() {
@@ -330,7 +330,7 @@ defun test19() {
   z.f=2.0;
   test(tostr(z),"{a,i,f=2}");
   finish();
-}*/
+}
 defun test20() {
   start("aliastype");
   aliastype intarr int[];
@@ -342,24 +342,18 @@ defun test20() {
   for (var k=0;k<4;k=k+1) ia[k]=k;
   test(tostr(ia),"[0,1,2,3]");
   finish();
-}
-/*defun test21() {
+}*/
+defun test21() {
   start("ternary dispatch");
-  scope foo {
-    defun fun() return "foo";
-  }
-  scope bar {
-    defun fun() return "bar";
-  }
-  test(foo.fun(),"foo");
-  test(bar.fun(),"bar");
-  var x=3;
-  test(x.tostr(),"3");
-  test(x.typeof().tostr(),"int");
-  test(x.typeof().tostr().typeof(),string);
+  var int xa;
+  var float xb;
+  defun foo(int x) return "int";
+  defun foo(float x) return "float";
+  test(xa.foo(),"int");
+  test(xb.foo(),"float");
   finish();
 }
-defun test22() {
+/*defun test22() {
   start("ternary dispatch (2)");
   var struct{int x} a;
   var struct{float x} b;
@@ -384,7 +378,7 @@ defun test23() {
 }
 //----------------------------------------------------------------------
 //--- summary
-defun main() {
+defun mainx() {
   tic();
   prln();
   prln("-------------------- running test suite now");
@@ -408,9 +402,16 @@ defun main() {
 //   test17();
 //   test18();
 //   test19();
-  test20();
-//   test21();
-//   test22();
+//  test20();
+  test21();
+//  test22();
   test23();
   summary();
+}
+defun mainy() {
+  test22();
+  summary();
+}
+defun main() {
+  mainx();
 }

@@ -27,7 +27,7 @@ Cell[] abs_eval_all(Cell[] exps) {
     if (state.code==StC.abt) state.code=StC.run;
     if (!isa(res,TAny)) ress~=res;
   }
-  if (!ress.length) {
+  if ((!ress.length) && (exps.length)) {
     assert(false,frm("Internal humbug error #ress=%d.",ress.length));
   }
   return ress;

@@ -353,7 +353,10 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
     }
     call_stack_push(fle);
     Cell h=abs_eval(list_cell([fle.fun]~args));
-    if (!isa(h,TNull)) fle.res=h;
+//    writef("### %s -> [%s] %s\n",name,cells.str(h),cells.str(fle.res));
+    if (!(isa(fle.fun,TLambda) || isa(h,TNull))) {
+      fle.res=h;
+    }
     while (fle.abt) {
       fle.abt=false;
       Cell r=abs_eval(list_cell([fle.fun]~args));
@@ -366,7 +369,8 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
     if (isa(fle.fun,TLambda)) {
       sym.sym=name;
     }
-    if ((fle.res.type==TAny) || (fle.res.type==TNull)) {
+//    if ((fle.res.type==TAny) || (fle.res.type==TNull)) {
+    if (fle.res.type==TAny) {
       //writef("+++++++ Recursion return type unavailable for %s\n",fle.nam);
       fle.abt=true;
       state.code=StC.abt;
@@ -521,22 +525,21 @@ void exec_ast(string filename) {
 }
 void abs_exec_ast(string filename) {
   bool showflag=!true;
-  bool reorder=true;
+  bool test=true;
   Cell root=parse_file_to_cell(filename);
   if (showflag) root.show(true);
   //
-  find_anonymous_structs(root);
-  //
   reduce_seq_of_one(root);
+  //insert_outer_seq_in_defuns(root);
+  //if (test) return;
+  find_anonymous_structs(root);
   //if (root !is null) return;
   //writef("%s\n",pretty_str(root,0));
-  if (reorder) {
-    operators_to_front(root,["defun","def"]);
-    operator_to_front(root,"supertype");
-    operator_to_front(root,"aliastype");
-    operator_to_front(root,"deftype");
-    if (showflag) writef("%s\n",pretty_str(root,0));
-  }
+  operators_to_front(root,["defun","def"]);
+  operator_to_front(root,"supertype");
+  operator_to_front(root,"aliastype");
+  operator_to_front(root,"deftype");
+  if (showflag) writef("%s\n",pretty_str(root,0));
   static if (1) {
     writef("%s\n",pretty_str(root,0));
     abs_eval(root);
