@@ -1,14 +1,14 @@
-// CHECK aliastype
+// FIX get and set
 aliastype aint int;
 aliastype afloat float;
-aliastype at struct{string a,aint i,float f};
-aliastype at2 struct{string a,int i,afloat f};
-aliastype cat struct{at s,int i,float f};
-aliastype cat2 struct{at2 s,int i,float f};
+aliastype at union{string a,aint i,float f};
+aliastype at2 union{string a,int i,afloat f};
+aliastype cat union{at s,int i,float f};
+aliastype cat2 union{at2 s,int i,float f};
 defun test() {
-  start("structs (aliastype)");
+  start("unions (aliastype)");
   var at x;
-  var struct{string a,int i,afloat f} y;
+  var union{string a,int i,afloat f} y;
   var cat z;
   var cat2 z2;
   var aint i;

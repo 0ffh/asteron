@@ -538,7 +538,7 @@ void abs_exec_ast(string filename) {
   operator_to_front(root,"supertype");
   operator_to_front(root,"aliastype");
   operator_to_front(root,"deftype");
-  find_anonymous_structs(root);
+  replace_anonymous_structs_and_unions(root);
   if (showflag) writef("%s\n",pretty_str(root,0));
   static if (1) {
     writef("%s\n",pretty_str(root,0));

@@ -429,7 +429,8 @@ void emit_ast(Type t,string name="") {
     }
     emit("}");
   } else if (is_union_type(t)) {
-    writef("emit union type %s\n",name);
+    writef("emit union type %s [%s]\n",name,types.str(t));
+    string type_name=get_atype_name(t);
     Cell[] sc=get_compound_fields(t);
     emit("union ");
     if (name.length) emit(name~" ");

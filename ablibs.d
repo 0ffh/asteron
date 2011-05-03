@@ -627,13 +627,10 @@ Cell op_array(Cell[] args) { // (array type) -> type
 }
 Cell op_struct(Cell[] args) {
   static if (debf) {debEnter("[struct]");scope (exit) debLeave();}
-  writefln("------------------------- STRUCT");
+//  writefln("------------------------- STRUCT");
   foreach (ref arg;args) {
-    arg.show();
+//    arg.show();
     assert(as_list(arg).length==2);
-    //writefln("------- A %s",cells.str(arg.lst[0]));
-    //string tname;
-    //if (isa(arg.lst[0],TSymbol)) tname=as_symbol(arg.lst[0]);
     arg.lst[0]=abs_eval(arg.lst[0]);
     arg.lst[0]=unalias_type(arg.lst[0]);
     if (!is_basic_type(type(arg.lst[0]))) {
@@ -641,7 +638,7 @@ Cell op_struct(Cell[] args) {
       arg.lst[0]=abs_eval(symbol_cell(tname));
     }
     assert(isa(arg.lst[0],TType));
-    writefln("------- struct field %s of type %s",as_symbol(arg.lst[1]),cells.str(arg.lst[0]));
+//    writefln("------- struct field %s of type %s",as_symbol(arg.lst[1]),cells.str(arg.lst[0]));
   }
   Type t=struct_type_from_fields(args);
   return type_cell(t);
@@ -673,6 +670,11 @@ Cell op_union(Cell[] args) {
   foreach (ref arg;args) {
     assert(as_list(arg).length==2);
     arg.lst[0]=abs_eval(arg.lst[0]);
+    arg.lst[0]=unalias_type(arg.lst[0]);
+    if (!is_basic_type(type(arg.lst[0]))) {
+      string tname=get_atype_name(type(arg.lst[0]));
+      arg.lst[0]=abs_eval(symbol_cell(tname));
+    }
     assert(isa(arg.lst[0],TType));
   }
   Type t=union_type_from_fields(args);

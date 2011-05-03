@@ -111,8 +111,8 @@ Cell anontype_cell(string name,Cell def) {
 Cell aliastype_cell(string name,Cell def) {
   return list_cell([symbol_cell("aliastype"),symbol_cell(name),def.clone()]);
 }
-void find_anonymous_structs(Cell root) {
-  static if (debf) {debEnter("find_anonymous_structs(...)");scope (exit) debLeave();}
+void replace_anonymous_structs_and_unions(Cell root) {
+  static if (debf) {debEnter("find_anonymous_structs_and_unions(...)");scope (exit) debLeave();}
   root=first_with_operator(root,"seq");
   //root=root.lst[1];
   //writef("%s\n",cells.str(root));
@@ -121,14 +121,14 @@ void find_anonymous_structs(Cell root) {
   int anon_count;
   string anon_name;
   foreach (c;cs) {
-    Cell[] anon=cells_with_operator(c,"struct");
+    Cell[] anon=cells_with_operator(c,"struct")~cells_with_operator(c,"union");
     if (anon.length) {
-      writef("def with anonymous struct: %s\n",cells.str(c));
+      //writef("def with anonymous struct or union: %s\n",cells.str(c));
       anon_name=frm("anon_type_%d",anon_count++);
       //root.lst=[root.lst[0],aliastype_cell(anon_name,anon[0])]~root.lst[1..$];
       aslist~=aliastype_cell(anon_name,anon[0]);
       anon[0].set(symbol_cell(anon_name));
-      writef("  -->  %s\n",cells.str(c));
+      //writef("  -->  %s\n",cells.str(c));
     }
   }
   int k=1;
