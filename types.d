@@ -450,6 +450,12 @@ string get_atype_name(Type typ) {
 bool has_atype_name(Type typ) {
   return ((str(typ) in type_names) !is null);
 }
+bool is_atype_name(string name) {
+  foreach (string key;type_names.keys) {
+    if (type_names[key]==name) return true;
+  }
+  return false;
+}
 Type get_atype_by_name(string name) {
   foreach (string key;type_names.keys) {
     if (type_names[key]==name) return type(key);

@@ -477,8 +477,11 @@ void emit_typedefs() {
         emit_typedef(key,t);
       }
       if (is_alias_type(t)) {
-        t=get_alias_subtype(t);
-        emit_typedef(key,t);
+//        writef("emit alias typedef %s\n",key);
+        if (is_atype_name(key)) {
+          t=get_alias_subtype(t);
+          emit_typedef(key,t);
+        }
       }
     }
   }
