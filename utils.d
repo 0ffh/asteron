@@ -6,9 +6,6 @@ import std.stdio;
 import std.string;
 import std.format;
 import std.random;
-import std.c.stdio;
-import std.c.string;
-import std.c.stdlib;
 
 alias std.string.toStringz tsz;
 
@@ -42,30 +39,6 @@ string frm(...) {
   std.format.doFormat(&putc,_arguments,_argptr);
   return s;
 }
-/*string cfrm(string fs,...) {
-  string buffer;
-  buffer.length=0x800;
-  fs~='\0';
-  std.c.stdio.vsprintf(buffer.ptr,fs.ptr,_argptr);
-  buffer.length=strlen(buffer.ptr);
-  return buffer;
-}
-void pr(string fs,...) {
-  string buffer;
-  buffer.length=0x800;
-  fs~='\0';
-  std.c.stdio.vsprintf(buffer.ptr,fs.ptr,_argptr);
-  buffer.length=strlen(buffer.ptr);
-  writef("%s",buffer);
-}
-void prln(string fs,...) {
-  string buffer;
-  buffer.length=0x800;
-  fs~='\0';
-  std.c.stdio.vsprintf(buffer.ptr,fs.ptr,_argptr);
-  buffer.length=strlen(buffer.ptr);
-  writef("%s\n",buffer);
-}*/
 string spaces(int n) {
   string s;
   s.length=n;
@@ -101,9 +74,6 @@ string deCtrl(string s) {
   }
   return r;
 }
-/*char* dsz(string s) {
-  return tsz(deCtrl(s));
-}*/
 string str(int n) {
   return std.string.toString(n);
 }

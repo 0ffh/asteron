@@ -3,8 +3,6 @@
 
 /*
 *** todo
- - do static analysis
- - generate code
  - type literals
  - all types global (?)
 */

@@ -11,7 +11,7 @@ defun start(tn) {
   prln("--- testing",testname);
 }
 defun test(actual,expected) {
-//   prln(actual,"?=",expected);
+  prln(actual,"?=",expected);
   subtest=subtest+1;
   if (expected!=actual) {
     prln("subtest",subtest,"failed : expected",expected,"but got",actual);
@@ -235,7 +235,7 @@ defun test13() {
   test(foo("2"),"foo-string");
   finish();
 }
-/*defun test14() {
+defun test14() {
   start("default arguments");
   defun foo(a,b=2) return tostr([a,b]);
   test(foo(0,1),"[0 1]");
@@ -243,7 +243,7 @@ defun test13() {
 //   test(typeof(new(array(int))),array(int));
 //   test(typeof(new(array())),array(any));
   finish();
-}*/
+}
 defun test15() {
   start("structs (anonymous)");
   var struct{string a,int i,float f} asx;
@@ -256,26 +256,26 @@ defun test15() {
   asx.f=2.0;
 //  test(tostr(asx),"{a='prlnx',i=1,f=2}");
   finish();
-}/*
+}
 defun test16() {
   start("structs (aliastype)");
   aliastype at struct{string a,int i,float f};
   var at x;
-  test(tostr(x),"{a='',i=0,f=0}");
+//  test(tostr(x),"{a='',i=0,f=0}");
   x.a="prlnx";
   test(x.a,"prlnx");
-  test(tostr(x),"{a='prlnx',i=0,f=0}");
+//  test(tostr(x),"{a='prlnx',i=0,f=0}");
   x.i=1;
   test(x.i,1);
   x.f=2.0;
-  test(tostr(x),"{a='prlnx',i=1,f=2}");
+//  test(tostr(x),"{a='prlnx',i=1,f=2}");
   finish();
-}*/
-/*defun test17() {
+}
+defun test17() {
   start("structs (deftype)");
   deftype ts struct{string a,int i,float f};
   //test("(struct (any a) (int i) (float f))",tostr(t));
-  defun set(ts x,string idx,value) set(unpack(x),idx,value);
+  defun set(ts x,string idx,value) return set(unpack(x),idx,value);
   defun get(ts x,string idx) return get(unpack(x),idx);
   var ts tsy;
   test(tostr(tsy),"{a='',i=0,f=0}");
@@ -288,19 +288,19 @@ defun test16() {
   test(tostr(tsy),"{a='prlny',i=2,f=1}");
   finish();
 }
-/*defun test18() {
+defun test18() {
   start("unions (anonymous)");
   var union{string a,int i,float f} z;
-  test(tostr(z),"{a,i,f}");
+//  test(tostr(z),"{a,i,f}");
   z.a="prlnz";
   test(z.a,"prlnz");
-  test(tostr(z),"{a='prlnz',i,f}");
+//  test(tostr(z),"{a='prlnz',i,f}");
   z.i=1;
-  test(tostr(z),"{a,i=1,f}");
+//  test(tostr(z),"{a,i=1,f}");
   z.f=2.0;
-  test(tostr(z),"{a,i,f=2}");
+//  test(tostr(z),"{a,i,f=2}");
   finish();
-}*/
+}
 defun test19() {
   start("unions (deftype)");
   deftype tun union{string a,float f,int i};
@@ -340,16 +340,18 @@ defun test21() {
   test(xb.foo(),"float");
   finish();
 }
-/*defun test22() {
+defun test22() {
   start("ternary dispatch (2)");
   var struct{int x} a;
   var struct{float x} b;
   defun foo(int x) return "int";
   defun foo(float x) return "float";
+  test((0).foo(),"int");
+  test((0.1).foo(),"float");
   test(a.x.foo(),"int");
   test(b.x.foo(),"float");
   finish();
-}*/
+}
 defun test23() {
   start("array concatenation");
   var int[] a;
@@ -383,15 +385,15 @@ defun mainx() {
   test11();
   test12();
   test13();
-//   test14();
-   test15();
-//   test16();
-//   test17();
-//   test18();
+//  test14();
+  test15();
+  test16();
+//  test17();
+  test18();
 //  test19();
   test20();
   test21();
-//  test22();
+  test22();
   test23();
   summary();
 }

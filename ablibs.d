@@ -276,9 +276,11 @@ Cell op_ftab_get(Cell[] args) {
 Cell op_call(Cell[] args) {
   static if (debf) {debEnter("[call]");scope (exit) debLeave();}
   assert(args.length>1);
+  //foreach (ref arg;args) arg=arg.clone();
   //-- get object
   Cell obj=abs_eval(args[0]);
   if (is_assoc_type(obj.type)) {
+    assert(false);
     //-- make object environment
     Env* objenv=mk_env(environment);
     objenv.inner=obj.asc.inner;
@@ -295,12 +297,11 @@ Cell op_call(Cell[] args) {
     return abs_evalin(fun.lam.expr,lamenv);
   }
   if (isa(obj,TEnv)) {
+    assert(false);
     for (int k=2;k<args.length;++k) args[k]=abs_eval(args[k]);
     return abs_evalin(list_cell(args[1..$]),as_env(obj));
   }
-  args[0]=args[1];
-  args[1]=obj;
-  return abs_eval(list_cell(args));
+  return abs_eval(list_cell([args[1],obj]));
 }
 Cell op_prenv(Cell[] args) {
   //env_pr(environment);

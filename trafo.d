@@ -150,13 +150,6 @@ void move_typedefs_to_root(Cell root) {
     rdefs~=def.clone();
     def.lst.length=0;
   }
-  /*
-  for (int k;k<defs.length;++k) {
-    Cell def=defs[k];
-    rdefs~=def.clone();
-    def=list_cell([]);
-  }
-  */
   root.lst=root.lst[0]~rdefs~root.lst[1..$];
 }
 /*void insert_outer_seq_in_defuns(Cell root) {

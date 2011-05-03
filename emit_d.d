@@ -116,7 +116,11 @@ void emit_ast(Cell c) {
     return;
   }
   //writefln("%s",cells.str(c.lst[0]));
-  assert(isa(c.lst[0],TSymbol));
+  if (!isa(c.lst[0],TSymbol)) {
+    assert(false);
+    emit_ast(c.lst[0]);
+    c.lst[0]=symbol_cell(" ");
+  }
   string id=as_symbol(c.lst[0]);
   Cell[] sub=[];
   if (c.lst.length>1) sub=c.lst[1..$];
@@ -219,7 +223,7 @@ void emit_ast(Cell c) {
     emit_ast(sub[0]);
     emit(")");
   } else if (id_in(id,["=","+=","-=","*=","/=","~="])) {
-    Cell d=abs_eval(sub[0]);
+    //Cell d=abs_eval(sub[0]);
     emit_ast(sub[0]);
     emit(id);
     //emit("cast()(");
@@ -262,7 +266,7 @@ void emit_ast(Cell c) {
       emit("]");
     }
   } else if (id=="call") {
-    Cell cc=list_cell([sub[0],sub[1]]);
+    Cell cc=list_cell([sub[1],sub[0]]);
     writefln("call : %s",cells.str(cc));
     emit_ast(cc);
   } else if (id=="resize") {
@@ -366,6 +370,7 @@ void emit_ast(Cell c) {
 void emit_ast(FunListEntry fle) {
   static if (debf) {debEnter("emit_ast(FunListEntry)");scope (exit) debLeave();}
   if (!isa(fle.fun,TLambda)) return;
+  writefln("=== emitting function %s : %s",fle.nam,cells.str(fle.fun));
   //crlf();
   //emit("//----- defun %s",fle.nam);
   string[] nam=lambda_parameter_names(fle.fun);

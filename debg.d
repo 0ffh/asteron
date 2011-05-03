@@ -3,7 +3,6 @@ module debg;
 import utils;
 import std.stdio;
 import std.format;
-//import std.c.string;
 
 bool trace=false;
 const bool debflag=!true;
@@ -52,43 +51,6 @@ void debEnter(...) {
     if (testfun !is null) testfun();
   }
 }
-/*void debLog(string fs,...) {
-  static if (debEnable) {
-    // generate debug string
-    string s;
-    s.length=0x800;
-    fs~='\0';
-    std.c.stdio.vsprintf(s.ptr,fs.ptr,_argptr);
-    s.length=strlen(s.ptr);
-    // output debug string
-    static if (debVerbose) {
-      indent(debStringStack.length);
-      writef("%s",s);
-      flush();
-    }
-    //
-    if (testfun !is null) testfun();
-  }
-}
-void debEnter(string fs,...) {
-  static if (debEnable) {
-    // generate debug string
-    string s;
-    s.length=0x800;
-    fs~='\0';
-    std.c.stdio.vsprintf(s.ptr,fs.ptr,_argptr);
-    s.length=strlen(s.ptr);
-    // push and output debug string
-    static if (debVerbose) {
-      indent(debStringStack.length);
-      writef("%s {\n",s);
-      flush();
-    }
-    debStringStack~=s;
-    //
-    if (testfun !is null) testfun();
-  }
-}*/
 void debLeave(string lmsg="") {
   static if (debEnable) {
     // ensure stack is nonempty
