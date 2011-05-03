@@ -7,6 +7,7 @@ import types;
 import environments;
 import utils;
 import std.conv;
+import std.stdio;
 import std.string;
 
 const bool debf=debflag && 0;
@@ -68,40 +69,40 @@ class Token {
   }
   void show_long(int n=0) {
     indent(n);
-    printf("Token {\n");
+    writef("Token {\n");
     indent(n);
-    printf("  id   ='%s'\n",tsz(id));
+    writef("  id   ='%s'\n",tsz(id));
     indent(n);
-    printf("  value='%s'\n",tsz(value));
+    writef("  value='%s'\n",tsz(value));
     indent(n);
-    printf("  arity='%s'\n",tsz(arity));
+    writef("  arity='%s'\n",tsz(arity));
     indent(n);
-    printf("  lbp  =%i\n",lbp);
+    writef("  lbp  =%d\n",lbp);
     for (int k;k<sub.length;++k) {
       indent(n);
-      printf("  sub%i =\n",k);
+      writef("  sub%d =\n",k);
       sub[k].show_long(n+2);
     }
     indent(n);
-    printf("}\n");
+    writef("}\n");
   }
   void show_short(int n=0) {
-    printf("Token");
-    printf(" id:'%.*s'",id);
-    printf(" arity:'%.*s'",arity);
-    if (value.length) printf(" value:'%.*s'",value);
-    if (name.length) printf(" name:'%.*s'",name);
-    if (key.length) printf(" key:'%.*s'",key);
-    printf(" bp:%i\n",lbp);
+    writef("Token");
+    writef(" id:'%s'",id);
+    writef(" arity:'%s'",arity);
+    if (value.length) writef(" value:'%s'",value);
+    if (name.length) writef(" name:'%s'",name);
+    if (key.length) writef(" key:'%s'",key);
+    writef(" bp:%d\n",lbp);
     for (int k;k<sub.length;++k) {
       indent(n+1);
-      printf("[%i]=",k);
+      writef("[%d]=",k);
       sub[k].show_short(n+1);
     }
   }
   string[] k2name=["first","second","third"];
   void show_js(int n=0) {
-    printf("%.*s\n",jstr());
+    writef("%s\n",jstr());
   }
   string jstr(int n=0) {
     n+=2;
@@ -212,7 +213,7 @@ class Token {
         s="["~f~"] "~s;
       }
     }
-    printf("%.*s\n",s);
+    writef("%s\n",s);
     assert(false,s);
   }
 };
@@ -222,16 +223,16 @@ void token_from_lexeme(Lexeme l) {
   string a=l.type;
   Token* o;
   if (a == "name") {
-    static if (verbose) printf("--- token_from_lexeme : name\n");
+    static if (verbose) writef("--- token_from_lexeme : name\n");
     o=cast(Token*)[skope.find(v)].ptr;
   } else if (a == "operator") {
-    static if (verbose) printf("--- token_from_lexeme : operator\n");
+    static if (verbose) writef("--- token_from_lexeme : operator\n");
     o=(v in symbol_table);
     if (!o) {
       l.error("Unknown operator.",__FILE__,__LINE__);
     }
   } else if ((a == "string") || (a ==  "number")) {
-    static if (verbose) printf("--- token_from_lexeme : literal\n");
+    static if (verbose) writef("--- token_from_lexeme : literal\n");
 //    a="literal";
     o=("(literal)" in symbol_table);
   } else {
@@ -245,7 +246,7 @@ void token_from_lexeme(Lexeme l) {
     token.arity=a;
   //}
   static if (verbose) token.show();
-  static if (verbose) printf("--- token_from_lexeme end\n");
+  static if (verbose) writef("--- token_from_lexeme end\n");
 }
 Token advance(string id="") {
   static if (debf) {debEnter("advance");scope (exit) debLeave();}
@@ -365,13 +366,13 @@ Scope new_skope() {
 Token tt_std(Token self) {
   const bool verbose=!true;
   static if (debf) {debEnter("type.std");scope (exit) debLeave();}
-  static if (verbose) printf("------- tt\n");
+  static if (verbose) writef("------- tt\n");
   lexeme_nr-=2;
   advance();
   Token[] a;
   Token t;
   while (true) {
-    static if (verbose) printf("-- tt\n");
+    static if (verbose) writef("-- tt\n");
     t=type_name_value();
     t.arity="statement";
     t.value="def";
@@ -612,7 +613,7 @@ Token type_constructor() {
     n.arity="type";
     n.sub=[t];
     t=n;
-//printf("---A %.*s %.*s\n",t.value,token.value);
+//writef("---A %s %s\n",t.value,token.value);
     return t;
   }
   while ((token.id == "[")||(token.id == "@")) {
@@ -650,15 +651,15 @@ Token type_name_value() {
   if (n.arity != "name") {
     n.error("Expected a new variable name or a type",__FILE__,__LINE__);
   }
-  static if (verbose) printf("### name {\n");
+  static if (verbose) writef("### name {\n");
   static if (verbose) n.show();
   static if (verbose) skope.find(n.value).show();
-  static if (verbose) printf("### name }\n");
+  static if (verbose) writef("### name }\n");
   if (skope.find(n.value).arity=="type") {
-    static if (verbose) printf("### type {\n");
+    static if (verbose) writef("### type {\n");
     typ=type_constructor();
     static if (verbose) typ.show();
-    static if (verbose) printf("### type }\n");
+    static if (verbose) writef("### type }\n");
     n=token;
     if (n.arity != "name") {
       n.error("Expected a new variable name",__FILE__,__LINE__);
@@ -867,7 +868,7 @@ void init_symbols() {
     Token[] a;
     Token t;
     while (true) {
-      static if (verbose) printf("---\n");
+      static if (verbose) writef("---\n");
       t=type_name_value();
       t.arity="statement";
       t.value="def";
@@ -1035,7 +1036,7 @@ void init_symbols() {
     advance();
     Token type=type_constructor();
     type.value=self.name;
-    //printf("constructed type\n  ");type.show_short(1);
+    //writef("constructed type\n  ");type.show_short(1);
     skope.define(type);
     self.sub=[type];
     advance(";");
@@ -1051,7 +1052,7 @@ void init_symbols() {
     advance();
     Token type=type_constructor();
     type.value=self.name;
-    //printf("constructed type\n  ");type.show_short(1);
+    //writef("constructed type\n  ");type.show_short(1);
     skope.define(type);
     self.sub=[type];
     advance(";");
@@ -1239,11 +1240,11 @@ void show(Lexeme[] lexemes) {
   foreach (lexeme;lexemes) {
     int ll=lexeme.line();
     if (ll!=line) {
-      printf("\n%4i ",line=ll);
+      writef("\n%4i ",line=ll);
     }
-    printf("%.*s:'%.*s' ",lexeme.type,lexeme.val);
+    writef("%s:'%s' ",lexeme.type,lexeme.val);
   }
-  printf("\n");
+  writef("\n");
 }
 void init_skope() {
   skope=new Scope();
@@ -1262,7 +1263,7 @@ void init_tokens(string src) {
 Token parse_string_to_token(string source) {
   static if (debf) {debEnter("parse");scope (exit) debLeave();}
   if (!types_initialised) {
-    printf("Base types must be initialised before parsing!\n");
+    writef("Base types must be initialised before parsing!\n");
     assert(false);
   }
   init_symbols();
@@ -1290,7 +1291,7 @@ Cell atom(Lexeme token) {
       return float_cell(toFloat(token.val));
     }
   }
-  printf("*** [%.*s] ***\n",token.val);
+  writef("*** [%s] ***\n",token.val);
   assert(false);
 }
 Cell lparse(Lexeme[] tokens,ref int pos) {
@@ -1309,7 +1310,7 @@ Cell lparse(Lexeme[] tokens,ref int pos) {
 }
 Cell lparse(Lexeme[] tokens) {
   if (!types_initialised) {
-    printf("Base types must be initialised before parsing!\n");
+    writef("Base types must be initialised before parsing!\n");
     assert(false);
   }
   int pos=0;
