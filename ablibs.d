@@ -142,15 +142,11 @@ Cell op_aliastype(Cell[] args) {
   string name=as_symbol(args[0]);
   Type typ=type(abs_eval(args[1]));
   Type alt;
-  static if (1) {
-    if (has_atype_name(typ)) {
-      alt=type(get_atype_name(typ));
-    } else {
-      alt=type_aliastype(name,type(args[1]));
-      add_atype_name(typ,name);
-    }
+  if (has_atype_name(typ)) {
+    alt=type(get_atype_name(typ));
   } else {
     alt=type_aliastype(name,type(args[1]));
+    add_atype_name(typ,name);
   }
   writef("aliastype %s / %s / %s\n",name,types.str(alt),types.str(typ));
 //   return env_put(environment,name,val);

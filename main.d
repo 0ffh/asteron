@@ -535,6 +535,7 @@ void abs_exec_ast(string filename) {
   //if (root !is null) return;
   //writef("%s\n",pretty_str(root,0));
   operators_to_front(root,["defun","def"]);
+  move_typedefs_to_root(root);
   operator_to_front(root,"supertype");
   operator_to_front(root,"aliastype");
   operator_to_front(root,"deftype");

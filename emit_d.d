@@ -111,7 +111,10 @@ void emit_ast(Cell c) {
     }
     return;
   }
-  assert(c.lst.length);
+  if (!c.lst.length) {
+    emit("// line removed");
+    return;
+  }
   //writefln("%s",cells.str(c.lst[0]));
   assert(isa(c.lst[0],TSymbol));
   string id=as_symbol(c.lst[0]);
@@ -417,7 +420,7 @@ void emit_ast(Type t,string name="") {
     emit("*");
   } else if (is_struct_type(t)) {
     writef("emit struct type %s [%s]\n",name,types.str(t));
-    string type_name=get_atype_name(t);
+    //string type_name=get_atype_name(t);
     Cell[] sc=get_compound_fields(t);
     emit("struct ");
     if (name.length) emit(name~" ");
@@ -430,7 +433,7 @@ void emit_ast(Type t,string name="") {
     emit("}");
   } else if (is_union_type(t)) {
     writef("emit union type %s [%s]\n",name,types.str(t));
-    string type_name=get_atype_name(t);
+    //string type_name=get_atype_name(t);
     Cell[] sc=get_compound_fields(t);
     emit("union ");
     if (name.length) emit(name~" ");
@@ -464,6 +467,12 @@ void emit_typedef(string name,Type t) {
   if (is_union_type(t)) {
     emit_ast(t,name);
     emit(";");
+    crlf();
+  }
+  if (is_array_type(t)) {
+    emit("typedef ");
+    emit_ast(t);
+    emit(" "~name~";");
     crlf();
   }
 }

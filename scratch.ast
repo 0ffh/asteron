@@ -1,16 +1,3 @@
-/*defun pr(...) {
-  var k;
-  for (k=0;k<ellipse.length();k+=1) {
-    _pr(ellipse[k]);
-  }
-}
-defun prln(...) {
-  var k;
-  for (k=0;k<ellipse.length();k+=1) {
-    _pr(ellipse[k]);
-  }
-  _prln();
-}*/
 //----------------------------------------------------------------------
 //--- minimal testing framework
 var testname="";

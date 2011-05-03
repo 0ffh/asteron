@@ -140,12 +140,25 @@ void replace_anonymous_structs_and_unions(Cell root) {
   }
   root.lst=root.lst[0..k]~aslist~root.lst[k..$];
 }
-/* // enforce root typedefs in laguage spec!
-void typedefs_to_root(Cell root) {
+// enforce root typedefs in laguage spec!
+void move_typedefs_to_root(Cell root) {
   static if (debf) {debEnter("find_anonymous_structs(...)");scope (exit) debLeave();}
   root=first_with_operator(root,"seq");
-
-}*/
+  Cell[] defs=cells_with_operator(root,"deftype")~cells_with_operator(root,"supertype");
+  Cell[] rdefs;
+  foreach (ref def;defs) {
+    rdefs~=def.clone();
+    def.lst.length=0;
+  }
+  /*
+  for (int k;k<defs.length;++k) {
+    Cell def=defs[k];
+    rdefs~=def.clone();
+    def=list_cell([]);
+  }
+  */
+  root.lst=root.lst[0]~rdefs~root.lst[1..$];
+}
 /*void insert_outer_seq_in_defuns(Cell root) {
   static if (debf) {debEnter("insert_outer_seq_in_lambdas(...)");scope (exit) debLeave();}
   root=first_with_operator(root,"seq");
