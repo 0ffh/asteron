@@ -1,7 +1,7 @@
 #!/usr/bin/lua
 -- options
 optimise=0
-dmd_not_gdc=0
+dmd_not_gdc=1
 -- files
 files={"main","emit_d",
        "cells","types","trafo",
@@ -18,7 +18,7 @@ if dmd_not_gdc then
   if (optimise>0) then
     cstr="dmd -O -inline"..cstr
   else
-    cstr="dmd"..cstr
+    cstr="dmd "..cstr
   end
 else
   if (optimise>0) then
@@ -26,15 +26,15 @@ else
   else
     cstr="gdc -O0"..cstr
   end
-  cstr=cstr.." -o main"
+  cstr=cstr.." -o "..files[1]
 end
 res=os.execute(cstr)
 if res==0 then
   print("compiled okay, executing...")
   if arg[1] then
-    os.execute("./main "..arg[1])
+    os.execute("./"..files[1].." "..arg[1])
   else
-    os.execute("./main")
+    os.execute("./"..files[1])
   end
 else
   print("build error ["..tostring(res).."]")

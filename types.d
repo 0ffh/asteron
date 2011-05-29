@@ -7,7 +7,7 @@ import llparse;
 import environments;
 import std.stdio;
 
-const bool debf=debflag;
+const bool debf=debflag && 0;
 
 bool types_initialised=false;
 
@@ -435,7 +435,7 @@ void init_types() {
 //--------------------
 string[string] type_names;
 void add_atype_name(Type typ,string name) {
-  writef("*** add_atype_name %s %s\n",types.str(typ),name);
+//  writef("*** add_atype_name %s %s\n",types.str(typ),name);
   assert(!has_atype_name(typ));
   type_names[str(typ)]=name;
 }
@@ -444,7 +444,7 @@ string get_atype_name(Type typ) {
   string *pname=str(typ) in type_names;
   assert(pname !is null);
   if (pname is null) name=""; else name=*pname;
-  writef("*** get_atype_name %s %s\n",types.str(typ),name);
+//  writef("*** get_atype_name %s %s\n",types.str(typ),name);
   return name;
 }
 bool has_atype_name(Type typ) {

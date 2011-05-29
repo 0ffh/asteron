@@ -32,20 +32,21 @@ class Lexeme {
     string s="Lexeme\n";
     s~=frm("  type  = _%s_\n",tsz(type));
     s~=frm("  value = _%s_\n",tsz(val));
-    s~=frm("  idx   = [%i..%i]\n",idxs,idxe);
+    s~=frm("  idx   = [%d..%d]\n",idxs,idxe);
     return s;
   }
   void show() {
     writef("%s",str());
   }
   string error_string(string s) {
-    return str()~frm("Error around line %i: %s\n",line(),s);
+    return str()~frm("Error around line %d: %s\n",line(),s);
   }
   void error(string s,string f="",long l=0) {
+    writefln("---XXX");
     s=error_string(s);
     if (f.length) {
       if (l) {
-        s="["~f~":"~frm("%lu",l)~"] "~s;
+        s="["~f~":"~frm("%s",l)~"] "~s;
       } else {
         s="["~f~"] "~s;
       }
@@ -149,7 +150,7 @@ private Lexeme[] lex(string src,Lextab lt) {
     int ok=0;
     foreach (e;lt) {
       Lexeme t=new Lexeme();
-//      writef("test %i : %s\n",e.type,e.pat);
+//      writef("test %d : %s\n",e.type,e.pat);
       foreach (me;e.rex.search(src[index..$])) {
         t.type=e.type;
         t.val=me.match(0);

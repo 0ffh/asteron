@@ -82,6 +82,14 @@ void swap_elements(T)(T[] list,int i0,int i1) {
   list[i0]=list[i1];
   list[i1]=help;
 }
+void remove_element(T)(ref T[] list,int idx) {
+  int max=list.length-1;
+  while (idx<max) {
+    list[idx]=list[idx+1];
+    ++idx;
+  }
+  list.length=max;
+}
 void insert_element(T)(ref T[] list,int idx,T elem) {
   if (!idx) {
     list=elem~list;

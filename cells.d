@@ -39,6 +39,7 @@ Lamb* clone(Lamb* s) {
   return cast(Lamb*)[d].ptr;
 }
 string[] lambda_parameter_names(Lamb* lam) {
+  static if (debf) {debEnter("lambda_parameter_names");scope (exit) debLeave();}
   string[] par;
   for (int k;k<lam.pars.length;++k) {
     Cell[] cs=as_list(lam.pars[k]);
@@ -50,9 +51,10 @@ string[] lambda_parameter_names(Cell lam) {
   return lambda_parameter_names(as_lambda(lam));
 }
 Cell[] lambda_parameter_defaults(Lamb* lam) {
+  static if (debf) {debEnter("lambda_parameter_defaults");scope (exit) debLeave();}
   Cell[] par;
   for (int k;k<lam.pars.length;++k) {
-//     writef("[%i:%s]",k,cells.str(lam.pars[k]));
+//     writef("[%d:%s]",k,cells.str(lam.pars[k]));
     Cell[] cs=as_list(lam.pars[k]);
     if (cs.length>2) {
       par~=cs[2];
@@ -453,8 +455,8 @@ string as_symbol(Cell c) {
   assert(c.type==TSymbol,"as_symbol: Type error.");
   return c.sym;
 }
-string as_str(Cell c) {
-  assert(c.type==TString,"as_str: Type error.");
+string as_string(Cell c) {
+  assert(c.type==TString,"as_string: Type error.");
   return c.str;
 }
 Cell[] as_list(Cell c) {
@@ -472,7 +474,7 @@ int as_int(Cell c) {
 float as_number(Cell c) {
   if (c.type==TFloat) return c.flt;
   if (c.type==TInt) return c.fix;
-  //writef("cell type = %i\n",c.type);
+  //writef("cell type = %d\n",c.type);
   assert(false,"as_number: Type error.");
 }
 Lamb* as_lambda(Cell c) {

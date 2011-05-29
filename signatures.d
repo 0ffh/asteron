@@ -80,10 +80,8 @@ Signature parameter_cell2signature(Cell arg) {
   for (int k;k<arg.lst.length;++k) {
     // options for each entry:
     //   name
-    //   (name)
-    //   (name = default)
     //   (type name)
-    //   (type name = default)
+    //   (type name default)
     Cell a=arg.lst[k];
     if (isa(a,TSymbol)) {
       sig~=SigElement(a.sym,TAny,null_cell());
@@ -92,9 +90,9 @@ Signature parameter_cell2signature(Cell arg) {
     if (!isa(a,TList)) assert(false);
     if (!a.lst.length) assert(false);
     SigElement se;
-    if ((a.lst.length>2) && (is_sym(a.lst[$-2],"="))) {
-      se.defv=a.lst[$-1];
-      a.lst.length=a.lst.length-2;
+    if (a.lst.length==3) {
+      se.defv=a.lst[2];
+      a.lst.length=1;
     } else {
       se.defv=null_cell();
     }
@@ -258,7 +256,7 @@ int type_equal(Type tp,Type ta) {
 }
 int type_matches(Type tp,Type ta) {
   static if (0) {
-    //writef(" s : %i : %i\n",is_struct_type(tp),is_struct_type(ta));
+    //writef(" s : %d : %d\n",is_struct_type(tp),is_struct_type(ta));
     writef(" 0 : %s : %s\n",types.str(tp),types.str(ta));
     writef(" 1 : %s : %s\n",types.str(tp.cell.type),types.str(ta.cell.type));
   }

@@ -46,7 +46,8 @@ Env* base_env;
 //----------------
 //---------------- eval helpers
 //----------------
-Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
+Env* mk_lambda_environment(Lamb* lam,Cell[] args) {
+  static if (debf) {debEnter("mk_lambda_environment");scope (exit) debLeave();}
   Env* lamenv=env_clone(lam.env);
   //-- at least as much parameters as arguments (rest must be defaulted)
   for (int k=0;k<lam.pars.length;++k) {
@@ -62,13 +63,7 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
         n=as_symbol(par.lst[1]);
       }
       if (n=="...") {
-        Cell[] eargs;
-        for (int ka=k;ka<args.length;++ka) {
-          eargs~=eval(args[ka]);
-//          writef("### %s -> %s\n",cells.str(args[ka]),cells.str(eargs[$-1]));
-        }
-//        writef("### %i\n",eargs.length);
-        env_put(lamenv,"ellipse",array_cell(eargs));
+        env_put(lamenv,"ellipse",array_cell(args[k..$]));
         break;
       }
     }
@@ -77,7 +72,7 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
       //- no argument for this parameter
       if (isa(par,TList) && (par.lst.length==3)) {
         //- default argument available
-        Cell t=par.lst[0];
+//        Cell t=par.lst[0];
         string n=as_symbol(par.lst[1]);
         env_put(lamenv,n,par.lst[2]);
         continue;
@@ -89,7 +84,8 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
     Cell arg=args[k];
     //-- handle untyped parameter declaration (name)
     if (isa(par,TSymbol)) {
-      env_put(lamenv,par.sym,eval(arg));
+//      writefln("  put %s <- %s",par.sym,cells.str(arg));
+      env_put(lamenv,par.sym,arg);
       continue;
     }
     //-- handle typed parameter declaration (type name)
@@ -97,7 +93,7 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
       assert(par.lst.length>1);
 //      Cell t=par.lst[0];
       string n=as_symbol(par.lst[1]);
-      env_put(lamenv,n,eval(arg));
+      env_put(lamenv,n,arg);
       continue;
     }
     //
@@ -105,9 +101,23 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
   }
   return lamenv;
 }
-Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
+Cell resolve_macro(Cell sym) {
+  static if (debf) {debEnter("resolve_macro");scope (exit) debLeave();}
+  Cell candidate;
+  string name=as_symbol(sym);
+  Env* e=environment;
+  while (e) {
+    e=env_find(e,name);
+    if (!e) break;
+    candidate=env_get(e,name);
+    if (!isa(candidate,TFtab)) return candidate;
+    e=e.outer;
+  }
+  return null_cell();
+}
+Cell resolve_function(Cell sym,ref Cell[] args) {
+  static if (debf) {debEnter("resolve_function");scope (exit) debLeave();}
   FTabEntry* candidate_entry;
-  Signature candidate_sig;
   Cell candidate;
   string name=as_symbol(sym);
   Env* e=environment;
@@ -119,24 +129,18 @@ Cell resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
       assert(false);
     }
     candidate=env_get(e,name);
-    if (!isa(candidate,TFtab)) return candidate;
-    if (!eargs.length) {
-      eargs.length=args.length;
-      for (int k;k<args.length;++k) eargs[k]=eval(args[k]);
-    }
-    candidate_entry=ftab_resolve(candidate.ftab,eargs,name);
-    if (candidate_entry) {
-      candidate_sig=candidate_entry.sig;
-      while (eargs.length<candidate_sig.length) {
-        if (candidate_sig[eargs.length].name=="...") break;
-        eargs~=candidate_sig[eargs.length].defv;
-      }
-      args=eargs;
-      break;
-    }
+    if (!isa(candidate,TFtab)) continue;
+    candidate_entry=ftab_resolve(candidate.ftab,args,name);
+    if (candidate_entry) break;
     e=e.outer;
   }
   return candidate_entry.fun;
+}
+void eval_args(ref Cell[] args,ref Cell[] eargs) {
+  if (!eargs.length) {
+    eargs.length=args.length;
+    for (int k;k<args.length;++k) eargs[k]=eval(args[k]);
+  }
 }
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -165,7 +169,10 @@ Cell eval(Cell x) {
     indent(depth);
     writef("%s\n",str(x));
   }
-  if (state.code) return state.val;
+  if (state.code) {
+    writefln("code = %s\n",state.code);
+    return state.val;
+  }
   if (isa(x,TSymbol)) return env_get(environment,x.sym);
   if (!isa(x,TList)) return x;
   if (!x.lst.length) return x;
@@ -174,21 +181,25 @@ Cell eval(Cell x) {
   Cell x0=x.lst[0];
   while (isa(x0,TList)) x0=eval(x0);
   if (isa(x0,TSymbol)) {
-    x0=resolve_function(x0,args,eargs);
+    Cell r=resolve_macro(x0);
+    if (isa(r,TNull)) {
+      eval_args(args,eargs);
+      r=resolve_function(x0,eargs);
+    }
+    x0=r;
   }
   if (isa(x0,TLfun)) {
+//    writefln("lazy %s",cells.str(x.lst[0]));
     return x0.lfn(args);
   }
   if (isa(x0,TFun)) {
-    if (!eargs.length) {
-      eargs.length=args.length;
-      for (int k;k<args.length;++k) eargs[k]=eval(args[k]);
-    }
+    eval_args(args,eargs);
     return x0.fun(eargs);
   }
   if (isa(x0,TLambda)) {
+    eval_args(args,eargs);
     Lamb* lam=as_lambda(x0);
-    Env* lamenv=mk_lambda_environment(lam,args,environment);
+    Env* lamenv=mk_lambda_environment(lam,eargs);
     static if (0) {
       writef("----- lamenv\n");
       lamenv.show();
@@ -294,7 +305,21 @@ void abs_eval_args(ref Cell[] args,ref Cell[] eargs) {
     }
   }
 }
-Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
+Cell abs_resolve_macro(Cell sym) {
+  static if (debf) {debEnter("resolve_macro");scope (exit) debLeave();}
+  Cell candidate;
+  string name=as_symbol(sym);
+  Env* e=environment;
+  while (e) {
+    e=env_find(e,name);
+    if (!e) break;
+    candidate=env_get(e,name);
+    if (!isa(candidate,TFtab)) return candidate;
+    e=e.outer;
+  }
+  return null_cell();
+}
+Cell abs_resolve_function(Cell sym,ref Cell[] args) {
   string lmsg;
   static if (debf) {
     debEnter("abs_resolve_function('"~sym.sym~"')");
@@ -306,37 +331,36 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,ref Cell[] eargs) {
   Cell candidate;
   string name=as_symbol(sym);
   Env* e=environment;
+  //-- loop upwards through scopes
   for (;;) {
+    //-- find id in scope
     if (e) e=env_find(e,name);
     if (!e) {
       writef("*** Error: Function '%s' lookup failed!\n",name);
       assert(false,frm("Function '%s' lookup failed!\n",name));
     }
+    //-- get candidate
     candidate=env_get(e,name);
-    if (!isa(candidate,TFtab)) {
-      //writef("Candidate is %s\n",types.str(candidate.type));
-      return candidate;
-    }
-    if (!eargs.length) {
-      abs_eval_args(args,eargs);
-      if (state.code) {
-        lmsg="Parameter abort";
-        eargs.length=0;
-        return list_cell([any_cell()]);
-      }
-    }
-    candidate_entry=ftab_resolve(candidate.ftab,eargs,name);
-    if (candidate_entry) {
-      candidate_sig=candidate_entry.sig;
-      while (eargs.length<candidate_sig.length) {
-        if (candidate_sig[eargs.length].name=="...") break;
-        eargs~=candidate_sig[eargs.length].defv;
-      }
-      args=eargs;
-      break;
-    }
+    if (!isa(candidate,TFtab)) continue;
+    //-- try to resolve signature from ftab
+    candidate_entry=ftab_resolve(candidate.ftab,args,name);
+    if (candidate_entry) break;
     e=e.outer;
   }
+  //-- special handling for getters and setters
+  if ((name=="dotget") || (name=="dotset")) {
+    if ((args.length>1) && isa(args[1],TString)) {
+      name=name~"_"~as_string(args[1]);
+/*      string altname=name~"_"~as_string(eargs[1]);
+      Env* altenv=env_find(e,altname);
+      if (altenv==e) {
+        Cell altcand=env_get(e,altname);
+        writefln("ac(%s):%s\n",altname,cells.str(altcand));
+      }*/
+    }
+    //(candidate_entry.fun); // transform function
+  }
+  //--
 //   writef("find %s\n",name);
   FunListEntry fle=find_in_fun_list(candidate_entry,args);
   if (fle is null) {
@@ -400,7 +424,7 @@ Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
           eargs~=abs_eval(args[ka]);
 //          writef("### %s -> %s\n",cells.str(args[ka]),cells.str(eargs[$-1]));
         }
-//        writef("### %i\n",eargs.length);
+//        writef("### %d\n",eargs.length);
         env_put(lamenv,"ellipse",array_cell(eargs));
         break;
       }
@@ -455,19 +479,37 @@ Cell abs_eval(Cell x) {
   evalcell~=x;
   //writef("eval %s\n",pretty_str(x,0));
   scope (exit) evalcell.length=evalcell.length-1;
-  //if (state.code) {writef("!!! state.code is %i\n",state.code);return state.val;}
+  //if (state.code) {writef("!!! state.code is %d\n",state.code);return state.val;}
   if (isa(x,TSymbol)) return env_get(environment,x.sym);
   if (!isa(x,TList)) return x;
   if (!x.lst.length) return x;
   Cell[] args=x.lst[1..$];//.dup; // !!! dup needed
   Cell[] eargs;
   Cell x0=x.lst[0];
-  while (isa(x0,TList)) {
-    x0=abs_eval(x0);
-  }
+  while (isa(x0,TList)) x0=abs_eval(x0);
   if (isa(x0,TSymbol)) {
     if (x0.sym[0]=='$') return abs_get_result_from_fun_list(x0.sym);
-    x0=abs_resolve_function(x0,args,eargs);
+    if ((x0.sym=="dotget") || (x0.sym=="dotset")) {
+      if ((args.length>1) && (isa(args[1],TString))) {
+        Cell[] a;
+        Cell res;
+        try {
+          x0.sym~="_"~as_string(args[1]);
+          a=args;
+          //remove_element(a,1);
+          //remove_element(ea,1);
+          res=abs_resolve_function(x0,a);
+          return res;
+        } catch {
+          x0.sym.length=3;
+        }
+      }
+    }
+    Cell r=abs_resolve_macro(x0);
+    if (isa(r,TNull)) {
+      r=abs_resolve_function(x0,args);
+    }
+    x0=r;
     if (isa(x0,TList)) return x0.lst[0]; // result packed in list
   }
   if (isa(x0,TLfun)) {
@@ -478,12 +520,14 @@ Cell abs_eval(Cell x) {
     return x0.fun(eargs);
   }
   if (isa(x0,TLambda)) {
+    abs_eval_args(args,eargs);
     Lamb* lam=as_lambda(x0);
     Env* lamenv=abs_mk_lambda_environment(lam,args,environment);
 //    writef("******* evaluate lambda\n%s\n",pretty_str(lam.expr,0));
     FunListEntry tocs=call_stack_top();
     if (tocs.env is null) tocs.env=lamenv;
     Cell c=abs_evalin(lam.expr,lamenv);
+    if (state.code==StC.ret) state.code=StC.run;
     return c;
   }
   writef("[unexpected type %d]\n",x0.type);
@@ -513,10 +557,11 @@ void exec_ast(string filename) {
     operator_to_front(c,"deftype");
     if (showflag) writef("%s\n",pretty_str(c,0));
   }
+  writef("%s\n",pretty_str(c,0));
   Cell run=list_cell([symbol_cell("main")]);
   push_env();
   eval(c);
-  //eval(run);
+  eval(run);
   pop_env();
 //  push_env();eval(c);eval(run);pop_env();
 //  if (showflag) c.show(true);
@@ -594,5 +639,5 @@ void main(string[] args) {
     else fn="test.ast";
     abs_exec(fn);
   }
-//  writef("state.code=%i\n",state.code);
+//  writef("state.code=%d\n",state.code);
 }

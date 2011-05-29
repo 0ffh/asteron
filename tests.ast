@@ -43,14 +43,14 @@ defun summary() {
 }
 //----------------------------------------------------------------------
 //--- fibonacci parameter and expected result
-var fib_par=2,fib_res=1;
-//var fib_par=12,fib_res=144;
+//var fib_par=2,fib_res=1;
+var fib_par=12,fib_res=144;
 //var fib_par=35,fib_res=9227465;
 //----------------------------------------------------------------------
 //--- tests
 //--- each test is embedded in a scope to avoid namespace pollution
 scope {
-  start("first order functions");
+  /*start("first order functions");
   defun muln(n) {
     return function(y){return n*y;};
   }
@@ -58,7 +58,7 @@ scope {
   var tripler=muln(3);
   test(doubler(4),8);
   test(tripler(4),12);
-  finish();
+  finish();*/
 }
 scope {
   start("closures (1)");
@@ -345,11 +345,11 @@ scope {
   deftype intvec int[];
   deftype intmat intvec[];
   defun resize(intvec vec,int len) resize(unpack(vec),len);
-  defun set(intvec vec,int idx,int value) unpack(vec)[idx]=value;
-  defun get(intvec vec,int idx) return unpack(vec)[idx];
+  defun idxset(intvec vec,int idx,int value) unpack(vec)[idx]=value;
+  defun idxget(intvec vec,int idx) return unpack(vec)[idx];
   defun resize(intmat mat,int len) resize(unpack(mat),len);
-  defun set(intmat mat,int idx,intvec value) unpack(mat)[idx]=value;
-  defun get(intmat mat,int idx) return unpack(mat)[idx];
+  defun idxset(intmat mat,int idx,intvec value) unpack(mat)[idx]=value;
+  defun idxget(intmat mat,int idx) return unpack(mat)[idx];
   var intvec iv;
   var intmat im;
   test(typeof(iv),intvec);
@@ -416,8 +416,8 @@ scope {
   start("structs (deftype)");
   deftype td struct{a,int i,float f};
   //test("(struct (any a) (int i) (float f))",tostr(t));
-  defun set(td x,string idx,value) set(unpack(x),idx,value);
-  defun get(td x,string idx) return get(unpack(x),idx);
+  defun dotset(td x,string idx,value) dotset(unpack(x),idx,value);
+  defun dotget(td x,string idx) return dotget(unpack(x),idx);
   var td y;
   test(tostr(y),"{a=any,i=0,f=0}");
   y.a="prlny";
@@ -446,8 +446,8 @@ scope {
   start("unions (deftype)");
   deftype tu union{a,int i,float f};
   //test("(union (any a) (int i) (float f))",tostr(u));
-  defun set(tu x,string idx,value) set(unpack(x),idx,value);
-  defun get(tu x,string idx) return get(unpack(x),idx);
+  defun dotset(tu x,string idx,value) dotset(unpack(x),idx,value);
+  defun dotget(tu x,string idx) return dotget(unpack(x),idx);
   var tu z;
   test(tostr(z),"{a,i,f}");
   z.a="prlnz";

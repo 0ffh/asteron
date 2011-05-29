@@ -93,7 +93,7 @@ void emit_ast(Cell c) {
       emit("%s",as_symbol(c));
     }
     if (isa(c,TString)) {
-      emit("\"%s\"",as_str(c));
+      emit("\"%s\"",as_string(c));
     }
     if (isa(c,TLambda)) {
       if (callstr(c.lam.expr)=="seq") {
@@ -241,10 +241,10 @@ void emit_ast(Cell c) {
     emit(id);
     emit_ast(sub[1]);
     emit(")");
-  } else if (id=="set") {
+  } else if (id=="dotset") {
     emit_ast(sub[0]);
     if (isa(sub[1],TString)) {
-      emit("."~as_str(sub[1]));
+      emit("."~as_string(sub[1]));
     } else if (isa(sub[1],TInt)) {
       emit("[%d]",as_int(sub[1]));
     } else {
@@ -254,10 +254,34 @@ void emit_ast(Cell c) {
     }
     emit("=");
     emit_ast(sub[2]);
-  } else if (id=="get") {
+  } else if (id=="idxset") {
     emit_ast(sub[0]);
     if (isa(sub[1],TString)) {
-      emit("."~as_str(sub[1]));
+      emit("."~as_string(sub[1]));
+    } else if (isa(sub[1],TInt)) {
+      emit("[%d]",as_int(sub[1]));
+    } else {
+      emit("[");
+      emit_ast(sub[1]);
+      emit("]");
+    }
+    emit("=");
+    emit_ast(sub[2]);
+  } else if (id=="dotget") {
+    emit_ast(sub[0]);
+    if (isa(sub[1],TString)) {
+      emit("."~as_string(sub[1]));
+    } else if (isa(sub[1],TInt)) {
+      emit("[%d]",as_int(sub[1]));
+    } else {
+      emit("[");
+      emit_ast(sub[1]);
+      emit("]");
+    }
+  } else if (id=="idxget") {
+    emit_ast(sub[0]);
+    if (isa(sub[1],TString)) {
+      emit("."~as_string(sub[1]));
     } else if (isa(sub[1],TInt)) {
       emit("[%d]",as_int(sub[1]));
     } else {
@@ -350,6 +374,9 @@ void emit_ast(Cell c) {
   } else if (id=="supertype") {
     // omit
     emit("// omitting "~id);
+  } else if (id=="unpack") {
+    assert(sub.length==1);
+    emit_ast(sub[0]);
   } else {
     static if (1) {
       emit("%s(",id);

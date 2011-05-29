@@ -11,6 +11,7 @@ import std.conv;
 import std.string;
 
 const bool debf=debflag && 0;
+const bool new_dot_operator=true;
 
 string[string] opeq;
 void init_hlparse() {
@@ -78,7 +79,7 @@ Cell token2cell(Token t) {
   }
   if (tav(t,"parameter")) {
     Cell[] cs=tokens2cells(t.sub);
-    if (cs.length==3) cs=[cs[0],cs[1],symbol_cell("="),cs[2]];
+//    if (cs.length==3) cs=[cs[0],cs[1],symbol_cell("="),cs[2]];
     return list_cell(cs);
   }
   if (tav(t,"type")) {
@@ -245,23 +246,14 @@ Cell token2cell(Token t) {
   }
   if (tav(t,"binary",".")) {
     Cell c=list_cell();
-    c.lst~=symbol_cell("get");
+    c.lst~=symbol_cell("dotget");
     c.lst~=token2cell(t.sub[0]);
     c.lst~=string_cell(t.sub[1].value);
     return c;
   }
   if (tav(t,"binary","[")) {
     Cell c=list_cell();
-    static if (0) {
-      // ugly hack for array type literals
-      if (t.sub.length==1) {
-        c.lst~=symbol_cell("array");
-      } else {
-        c.lst~=symbol_cell("get");
-      }
-    } else {
-      c.lst~=symbol_cell("get");
-    }
+    c.lst~=symbol_cell("idxget");
     for (int k;k<t.sub.length;++k) {
       c.lst~=token2cell(t.sub[k]);
     }
@@ -293,15 +285,15 @@ Cell token2cell(Token t) {
   if (tav(t,"binary","=")) {
     Cell c=list_cell();
     if (tav(t.sub[0],"binary",".")) {
-      c.lst~=symbol_cell("set");
+      c.lst~=symbol_cell("dotset");
       c.lst~=token2cell(t.sub[0].sub[0]);
       c.lst~=string_cell(t.sub[0].sub[1].value);
     } else if (tav(t.sub[0],"binary","[")) {
-      c.lst~=symbol_cell("set");
+      c.lst~=symbol_cell("idxset");
       c.lst~=token2cell(t.sub[0].sub[0]);
       c.lst~=token2cell(t.sub[0].sub[1]);
     } else if (tav(t.sub[0],"unary","@")) {
-      c.lst~=symbol_cell("set");
+      c.lst~=symbol_cell("refset");
       c.lst~=token2cell(t.sub[0].sub[0]);
     } else {
       c.lst~=symbol_cell("=");

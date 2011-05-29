@@ -218,7 +218,7 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
       bestk=k;
     }
   }
-//  writef("best match for %s%s -> %i\n",id,types.str(targs),bestp);
+//  writef("best match for %s%s -> %d\n",id,types.str(targs),bestp);
   if (!bestp) {
 //    writef("No match found for function signature %s!\n",types.str(targs));
 //    assert(false);

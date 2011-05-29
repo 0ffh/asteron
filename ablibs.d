@@ -23,7 +23,7 @@ Cell[] abs_eval_all(Cell[] exps) {
   for (int k;k<exps.length;++k) {
     Cell exp=exps[k];
     Cell res=abs_eval(exp);
-//     writef("abs_eval_all %i/%i: %i / %s\n",k,exps.length,state.code,types.str(res.type));
+//     writef("abs_eval_all %d/%d: %d / %s\n",k,exps.length,state.code,types.str(res.type));
     if (state.code==StC.abt) state.code=StC.run;
     if (!isa(res,TAny)) ress~=res;
   }
@@ -119,7 +119,7 @@ Cell op_def(Cell[] args) {
     value=new_cell(type);
   }
   if (type!=TAny) value.ann["typename"]=symbol_cell(types.str(type));
-  writef("def %s / %s : %s\n",name,types.str(type),types.str(value.type));
+  writef("[op_def] %s / %s : %s\n",name,types.str(type),types.str(value.type));
   //-
   if (env_find(environment,name)==environment) {
     writef("Error: Symbol '%s' is already defined in this scope!\n",name);
@@ -257,7 +257,7 @@ Cell op_ftab_set(Cell[] args) {
   assert(false,"function table setter not implemented");
   assert(args.length==3);
   // set env key value
-  env_put(as_env(args[0]),as_str(args[1]),args[2]);
+  env_put(as_env(args[0]),as_string(args[1]),args[2]);
   return args[2];
 }
 Cell op_ftab_get(Cell[] args) {
@@ -289,7 +289,7 @@ Cell op_call(Cell[] args) {
     Cell fun=abs_evalin(args[1],objenv);
     assert(fun.type==TLambda);
     //-- make lambda environment
-    Env* lamenv=mk_lambda_environment(fun.lam,args[2..$],environment);
+    Env* lamenv=mk_lambda_environment(fun.lam,args[2..$]);
     //-- relink environments
     objenv.outer=lamenv.outer;
     lamenv.outer=objenv;
@@ -644,7 +644,7 @@ Cell op_struct_get(Cell[] args) {
   static if (debf) {debEnter("[struct_get_field]");scope (exit) debLeave();}
   assert(args.length==2);
   Struct* s=as_struct(args[0]);
-  string key=as_str(args[1]);
+  string key=as_string(args[1]);
   Cell res=struct_get_field(s,key);
   writef("struct_get_field %s -> [%s]\n",key,types.str(res.type));
   return res;
@@ -654,7 +654,7 @@ Cell op_struct_set(Cell[] args) {
   assert(args.length==3);
   //unalias_type_of(args[0]);
   Struct* s=as_struct(args[0]);
-  string key=as_str(args[1]);
+  string key=as_string(args[1]);
   Cell res=struct_get_field(s,key);
   unalias_type_of(res);
   //unalias_type_of(args[2]);
@@ -681,14 +681,14 @@ Cell op_union_get(Cell[] args) {
   static if (debf) {debEnter("[union_get]");scope (exit) debLeave();}
   assert(args.length==2);
   Union* u=as_union(args[0]);
-  string key=as_str(args[1]);
+  string key=as_string(args[1]);
   return union_get(u,key);
 }
 Cell op_union_set(Cell[] args) {
   static if (debf) {debEnter("[union_set]");scope (exit) debLeave();}
   assert(args.length==3);
   Union* u=as_union(args[0]);
-  string key=as_str(args[1]);
+  string key=as_string(args[1]);
   union_set(u,key,args[2]);
   return args[2];
 }
@@ -799,34 +799,40 @@ void add_abs_libs(Env* env) {
   env_put(env,"toc",fun_cell(&op_toc));
 
   env_put(env,"new_object",fun_cell(&op_new_object));
-  env_putfun_sigstr(env,"get",fun_cell(&op_assoc_get),"((assoc) string)","any");
-  env_putfun_sigstr(env,"set",fun_cell(&op_assoc_set),"((assoc) string any)","any");
+  env_putfun_sigstr(env,"dotget",fun_cell(&op_assoc_get),"((assoc) string)","any");
+  env_putfun_sigstr(env,"dotset",fun_cell(&op_assoc_set),"((assoc) string any)","any");
+  env_putfun_sigstr(env,"idxget",fun_cell(&op_assoc_get),"((assoc) string)","any");
+  env_putfun_sigstr(env,"idxset",fun_cell(&op_assoc_set),"((assoc) string any)","any");
 
-  env_putfun_sigstr(env,"get",fun_cell(&op_env_get),"(env string)","any");
-  env_putfun_sigstr(env,"set",fun_cell(&op_env_set),"(env string any)","any");
+  env_putfun_sigstr(env,"dotget",fun_cell(&op_env_get),"(env string)","any");
+  env_putfun_sigstr(env,"dotset",fun_cell(&op_env_set),"(env string any)","any");
+  env_putfun_sigstr(env,"idxget",fun_cell(&op_env_get),"(env string)","any");
+  env_putfun_sigstr(env,"idxset",fun_cell(&op_env_set),"(env string any)","any");
 
-  env_putfun_sigstr(env,"get",fun_cell(&op_ftab_get),"(funtab (... type))","any");
-  env_putfun_sigstr(env,"set",fun_cell(&op_ftab_set),"(funtab (... type))","any");
+  env_putfun_sigstr(env,"dotget",fun_cell(&op_ftab_get),"(funtab (... type))","any");
+  env_putfun_sigstr(env,"dotset",fun_cell(&op_ftab_set),"(funtab (... type))","any");
+  env_putfun_sigstr(env,"idxget",fun_cell(&op_ftab_get),"(funtab (... type))","any");
+  env_putfun_sigstr(env,"idxset",fun_cell(&op_ftab_set),"(funtab (... type))","any");
 
   env_put(env,"new_array",fun_cell(&op_new_array));
   env_put(env,"array",lfun_cell(&op_array));
 //  env_putfun_sigstr(env,"array",lfun_cell(&op_array),"(type = any)","type");
-  env_putfun_sigstr(env,"get",fun_cell(&op_array_get),"((array) int)","any");
-  env_putfun_sigstr(env,"set",fun_cell(&op_array_set),"((array) int any)","any");
+  env_putfun_sigstr(env,"idxget",fun_cell(&op_array_get),"((array) int)","any");
+  env_putfun_sigstr(env,"idxset",fun_cell(&op_array_set),"((array) int any)","any");
   env_putfun_sigstr(env,"resize",fun_cell(&op_array_resize),"((array any) int)","any");
   env_putfun_sigstr(env,"~",fun_cell(&op_array_cat),"((array) any)","any");
   env_putfun_sigstr(env,"~",fun_cell(&op_string_cat),"(string string)","string");
 
   env_put(env,"struct",lfun_cell(&op_struct));
-  env_putfun_sigstr(env,"get",fun_cell(&op_struct_get),"((struct) string)","any");
-  env_putfun_sigstr(env,"set",fun_cell(&op_struct_set),"((struct) string any)","any");
+  env_putfun_sigstr(env,"dotget",fun_cell(&op_struct_get),"((struct) string)","any");
+  env_putfun_sigstr(env,"dotset",fun_cell(&op_struct_set),"((struct) string any)","any");
 
   env_put(env,"union",lfun_cell(&op_union));
-  env_putfun_sigstr(env,"get",fun_cell(&op_union_get),"((union) string)","any");
-  env_putfun_sigstr(env,"set",fun_cell(&op_union_set),"((union) string any)","any");
+  env_putfun_sigstr(env,"dotget",fun_cell(&op_union_get),"((union) string)","any");
+  env_putfun_sigstr(env,"dotset",fun_cell(&op_union_set),"((union) string any)","any");
 
-  env_putfun_sigstr(env,"get",fun_cell(&op_any_get),"(any string)","any");
-  env_putfun_sigstr(env,"set",fun_cell(&op_any_set),"(any string any)","any");
+  //env_putfun_sigstr(env,"get",fun_cell(&op_any_get),"(any string)","any");
+  //env_putfun_sigstr(env,"set",fun_cell(&op_any_set),"(any string any)","any");
 
   env_put(env,"ref",lfun_cell(&op_ref));
   env_put(env,"&",lfun_cell(&op_getref));
