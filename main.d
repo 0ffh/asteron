@@ -170,7 +170,7 @@ Cell eval(Cell x) {
     writef("%s\n",str(x));
   }
   if (state.code) {
-    writefln("code = %s\n",state.code);
+//    writefln("code = %s\n",state.code);
     return state.val;
   }
   if (isa(x,TSymbol)) return env_get(environment,x.sym);
@@ -630,7 +630,7 @@ void env_info() {
 void main(string[] args) {
   string fn;
 //  state.code=StC.run;
-  if (0) {
+  if (1) {
     if (args.length>1) fn=args[1]~".ast";
     else fn="tests.ast";
     exec(fn);
