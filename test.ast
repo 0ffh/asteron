@@ -1,10 +1,5 @@
-defun fib(n) {
-  if (n<2) {return n;}
-  return fib(n-2)+fib(n-1);
-}
 
 defun main() {
-  /*
   deftype ts struct{string a,int i,float f};
   //test("(struct (any a) (int i) (float f))",tostr(t));
   defun dotset(ts x,string idx,value) dotset(unpack(x),idx,value);
@@ -13,6 +8,4 @@ defun main() {
   prln(tostr(tsy),"{a='',i=0,f=0}");
   tsy.a="prlnx";
   prln(tsy.a,"prlnx");
-  */
-  prln(fib(12));
 }

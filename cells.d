@@ -171,6 +171,9 @@ class Cell {
     TypeTable* tyt;
   }
   Cell[string] ann;
+  string toString() {
+    return cells.str(this);
+  }
   void show(int style=0) {
     writef("%s\n",cells.str(this,style));
   }

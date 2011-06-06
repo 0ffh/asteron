@@ -101,8 +101,8 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args) {
   }
   return lamenv;
 }
-Cell resolve_macro(Cell sym) {
-  static if (debf) {debEnter("resolve_macro");scope (exit) debLeave();}
+Cell resolve_symbol_except_ftabs(Cell sym) {
+  static if (debf) {debEnter("resolve_symbol_except_ftabs");scope (exit) debLeave();}
   Cell candidate;
   string name=as_symbol(sym);
   Env* e=environment;
@@ -115,18 +115,17 @@ Cell resolve_macro(Cell sym) {
   }
   return null_cell();
 }
-Cell resolve_function(Cell sym,ref Cell[] args) {
-  static if (debf) {debEnter("resolve_function");scope (exit) debLeave();}
+FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args,ref Env* e) {
+  static if (debf) {debEnter("resolve_name_as_ftab_entry");scope (exit) debLeave();}
   FTabEntry* candidate_entry;
   Cell candidate;
-  string name=as_symbol(sym);
-  Env* e=environment;
+  e=environment;
   for (;;) {
 //writef("looking up Function '%s' in environment %p\n",name,e);
     if (e) e=env_find(e,name);
     if (!e) {
-      writef("*** Error: Function '%s' lookup failed!\n",name);
-      assert(false);
+//      writef("*** Error: Function '%s' lookup failed!\n",name);
+      return null;
     }
     candidate=env_get(e,name);
     if (!isa(candidate,TFtab)) continue;
@@ -134,7 +133,21 @@ Cell resolve_function(Cell sym,ref Cell[] args) {
     if (candidate_entry) break;
     e=e.outer;
   }
-  return candidate_entry.fun;
+  return candidate_entry;
+}
+FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args) {
+  Env* e;
+  return resolve_name_as_ftab_entry(name,args,e);
+}
+Cell resolve_function(Cell sym,ref Cell[] args) {
+  static if (debf) {debEnter("resolve_function");scope (exit) debLeave();}
+  string name=as_symbol(sym);
+  FTabEntry* entry=resolve_name_as_ftab_entry(name,args);
+  if (!entry) {
+    writef("*** Error: Function '%s' lookup failed!\n",name);
+    assert(false);
+  }
+  return entry.fun;
 }
 void eval_args(ref Cell[] args,ref Cell[] eargs) {
   if (!eargs.length) {
@@ -181,7 +194,7 @@ Cell eval(Cell x) {
   Cell x0=x.lst[0];
   while (isa(x0,TList)) x0=eval(x0);
   if (isa(x0,TSymbol)) {
-    Cell r=resolve_macro(x0);
+    Cell r=resolve_symbol_except_ftabs(x0);
     if (isa(r,TNull)) {
       eval_args(args,eargs);
       r=resolve_function(x0,eargs);
@@ -305,20 +318,6 @@ void abs_eval_args(ref Cell[] args,ref Cell[] eargs) {
     }
   }
 }
-Cell abs_resolve_macro(Cell sym) {
-  static if (debf) {debEnter("resolve_macro");scope (exit) debLeave();}
-  Cell candidate;
-  string name=as_symbol(sym);
-  Env* e=environment;
-  while (e) {
-    e=env_find(e,name);
-    if (!e) break;
-    candidate=env_get(e,name);
-    if (!isa(candidate,TFtab)) return candidate;
-    e=e.outer;
-  }
-  return null_cell();
-}
 Cell abs_resolve_function(Cell sym,ref Cell[] args) {
   string lmsg;
   static if (debf) {
@@ -326,49 +325,49 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
     scope (exit) debLeave(frm("%s / %d",lmsg,state.code));
   }
   //writef("abs_resolve_function('%s')\n",sym.sym);
-  FTabEntry* candidate_entry;
-  Signature candidate_sig;
-  Cell candidate;
+  FTabEntry* entry;
   string name=as_symbol(sym);
-  Env* e=environment;
-  //-- loop upwards through scopes
-  for (;;) {
-    //-- find id in scope
-    if (e) e=env_find(e,name);
-    if (!e) {
-      writef("*** Error: Function '%s' lookup failed!\n",name);
-      assert(false,frm("Function '%s' lookup failed!\n",name));
-    }
-    //-- get candidate
-    candidate=env_get(e,name);
-    if (!isa(candidate,TFtab)) continue;
-    //-- try to resolve signature from ftab
-    candidate_entry=ftab_resolve(candidate.ftab,args,name);
-    if (candidate_entry) break;
-    e=e.outer;
-  }
   //-- special handling for getters and setters
   if ((name=="dotget") || (name=="dotset")) {
-    if ((args.length>1) && isa(args[1],TString)) {
-      name=name~"_"~as_string(args[1]);
-/*      string altname=name~"_"~as_string(eargs[1]);
-      Env* altenv=env_find(e,altname);
-      if (altenv==e) {
-        Cell altcand=env_get(e,altname);
-        writefln("ac(%s):%s\n",altname,cells.str(altcand));
-      }*/
+    assert(args.length>1);
+    assert(isa(args[1],TString));
+    string fieldname=as_string(args[1]);
+    string altname=name~"_"~fieldname;
+    entry=resolve_name_as_ftab_entry(altname,args);
+    if (entry) {
+      // alternative name entry found
+      name=altname;
+    } else {
+      // alternative name entry missing
+      Env* env;
+      entry=resolve_name_as_ftab_entry(name,args,env);
+      if (isa(entry.fun,TLambda)) {
+        name=altname;
+        entry=specialise_accessor(entry,fieldname);
+        writefln("### specialised accessor %s%s\n",name,entry.sig);
+        Cell ftab_cell=env_putfun(env,name,entry.fun,entry.sig,entry.ret);
+        remove_element(args,1); // remove index element from args
+        entry=ftab_resolve(ftab_cell.ftab,args,name);
+//        ftab_add(ftab,entry.fun,entry.sig,entry.ret);
+      }
     }
-    //(candidate_entry.fun); // transform function
+  } else {
+    entry=resolve_name_as_ftab_entry(name,args);
+  }
+  if (!entry) {
+    writef("*** Error: Function '%s' lookup failed!\n",name);
+    assert(false);
   }
   //--
 //   writef("find %s\n",name);
-  FunListEntry fle=find_in_fun_list(candidate_entry,args);
+  FunListEntry fle=find_in_fun_list(entry,args);
   if (fle is null) {
+    //-- entry does not exist -> create it
     //writef("!FLE:%s\n",name);
-    //writef("*** %s\n",cells.str(candidate_entry.fun));
+    //writef("*** %s\n",cells.str(entry.fun));
     name=frm("$%s_%d",name,fun_list.length);
-    fle=FunListEntry(name,candidate_entry,args,candidate_entry.fun);
-    if (isa(candidate_entry.fun,TLambda)) {
+    fle=FunListEntry(name,entry,args,entry.fun);
+    if (isa(entry.fun,TLambda)) {
       fun_list~=fle;
       sym.sym=name;
       fun_hash[name]=fle;
@@ -386,6 +385,7 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
     }
     call_stack_pop();
   } else {
+    //-- entry does exist -> use it
     //writef("FLE:%s (%s)\n",name,fle.nam);
     name=fle.nam;
     if (isa(fle.fun,TLambda)) {
@@ -402,7 +402,7 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
   lmsg=frm("%s",types.str(fle.res.type));
   return list_cell([fle.res]);
 }
-Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args,Env* env) {
+Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args) {
   static if (debf) {debEnter("abs_mk_lambda_environment");scope (exit) debLeave();}
   Env* lamenv=env_clone(lam.env);
   //-- at least as much parameters as arguments (rest must be defaulted)
@@ -483,31 +483,27 @@ Cell abs_eval(Cell x) {
   if (isa(x,TSymbol)) return env_get(environment,x.sym);
   if (!isa(x,TList)) return x;
   if (!x.lst.length) return x;
-  Cell[] args=x.lst[1..$];//.dup; // !!! dup needed
+  Cell[] args=x.lst[1..$];
   Cell[] eargs;
   Cell x0=x.lst[0];
   while (isa(x0,TList)) x0=abs_eval(x0);
   if (isa(x0,TSymbol)) {
     if (x0.sym[0]=='$') return abs_get_result_from_fun_list(x0.sym);
-    if ((x0.sym=="dotget") || (x0.sym=="dotset")) {
-      if ((args.length>1) && (isa(args[1],TString))) {
-        Cell[] a;
-        Cell res;
-        try {
-          x0.sym~="_"~as_string(args[1]);
-          a=args;
-          //remove_element(a,1);
-          //remove_element(ea,1);
-          res=abs_resolve_function(x0,a);
-          return res;
-        } catch {
-          x0.sym.length=3;
-        }
-      }
-    }
-    Cell r=abs_resolve_macro(x0);
+    Cell r=resolve_symbol_except_ftabs(x0);
     if (isa(r,TNull)) {
-      r=abs_resolve_function(x0,args);
+      abs_eval_args(args,eargs);
+      bool accessor=(x0.sym=="dotget") || (x0.sym=="dotset");
+      r=abs_resolve_function(x0,eargs);
+      if (accessor && (x0.sym[0]=='$')) {
+        assert(args.length>1);
+        assert(isa(args[1],TString));
+        //writefln("*********** DOT %s %s",x0.sym,x);
+        remove_element(args,1);
+        remove_element(eargs,1);
+        x.set(list_cell(x0~args));
+      } else {
+        //writefln("*********** NOT %s %s",x0.sym,x);
+      }
     }
     x0=r;
     if (isa(x0,TList)) return x0.lst[0]; // result packed in list
@@ -522,7 +518,7 @@ Cell abs_eval(Cell x) {
   if (isa(x0,TLambda)) {
     abs_eval_args(args,eargs);
     Lamb* lam=as_lambda(x0);
-    Env* lamenv=abs_mk_lambda_environment(lam,args,environment);
+    Env* lamenv=abs_mk_lambda_environment(lam,args);
 //    writef("******* evaluate lambda\n%s\n",pretty_str(lam.expr,0));
     FunListEntry tocs=call_stack_top();
     if (tocs.env is null) tocs.env=lamenv;
@@ -630,7 +626,7 @@ void env_info() {
 void main(string[] args) {
   string fn;
 //  state.code=StC.run;
-  if (1) {
+  if (0) {
     if (args.length>1) fn=args[1]~".ast";
     else fn="tests.ast";
     exec(fn);

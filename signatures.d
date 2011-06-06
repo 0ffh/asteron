@@ -42,7 +42,7 @@ struct Signature {
   bool is_open() {
     return (open.cell !is null);
   }
-  string str() {
+  string toString() {
     return signatures.str(*this);
   }
   bool opEquals(Signature sig) {

@@ -4,6 +4,8 @@ import debg;
 import cells;
 import types;
 import utils;
+import signatures;
+import environments;
 import std.stdio;
 
 const bool debf=debflag;
@@ -168,4 +170,39 @@ void move_typedefs_to_root(Cell root) {
     //writefln("lambda %s\n",cells.str(d));
   }
 }*/
-
+// ftab_add(FTab* ft,Cell fun,Signature sig,Type ret)
+void replace_symbol(Cell c,string id,Cell r) {
+  if (isa(c,TList)) {
+    foreach (e;c.lst) replace_symbol(e,id,r);
+  } else {
+    if (isa(c,TSymbol)) {
+      if (c.sym==id) c.set(r);
+    }
+  }
+}
+FTabEntry* specialise_accessor(FTabEntry* org_fte,string fieldname) {
+  FTabEntry fte;
+  //-- create specialised signature and retain index name
+  Signature org_sig=org_fte.sig;
+  Signature sig;
+  string indexname;
+  sig.open=org_sig.open;
+  for (int k;k<org_sig.length;++k) {
+    if (k==1) {
+      indexname=org_sig.ses[k].name;
+    } else {
+      sig.ses~=org_sig.ses[k];
+    }
+  }
+  //--
+  Lamb* lam=clone(as_lambda(org_fte.fun));
+  remove_element(lam.pars,1);
+  replace_symbol(lam.expr,indexname,string_cell(fieldname));
+  // todo: currently replacing ALL symbols of matching id, without further checking
+  Cell fun=lambda_cell(lam);
+  //--
+  fte.sig=sig;
+  fte.ret=org_fte.ret;
+  fte.fun=fun;
+  return [fte].ptr;
+}

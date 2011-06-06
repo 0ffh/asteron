@@ -243,52 +243,40 @@ void emit_ast(Cell c) {
     emit(")");
   } else if (id=="dotset") {
     emit_ast(sub[0]);
-    if (isa(sub[1],TString)) {
-      emit("."~as_string(sub[1]));
-    } else if (isa(sub[1],TInt)) {
-      emit("[%d]",as_int(sub[1]));
-    } else {
-      emit("[");
-      emit_ast(sub[1]);
-      emit("]");
-    }
-    emit("=");
-    emit_ast(sub[2]);
-  } else if (id=="idxset") {
-    emit_ast(sub[0]);
-    if (isa(sub[1],TString)) {
-      emit("."~as_string(sub[1]));
-    } else if (isa(sub[1],TInt)) {
-      emit("[%d]",as_int(sub[1]));
-    } else {
-      emit("[");
-      emit_ast(sub[1]);
-      emit("]");
-    }
+    emit("."~as_string(sub[1]));
+/*    emit(".");
+    emit_ast(sub[1]);*/
     emit("=");
     emit_ast(sub[2]);
   } else if (id=="dotget") {
     emit_ast(sub[0]);
-    if (isa(sub[1],TString)) {
+    emit("."~as_string(sub[1]));
+/*    emit(".");
+    emit_ast(sub[1]);*/
+  } else if (id=="idxset") {
+    emit_ast(sub[0]);
+    /*if (isa(sub[1],TString)) {
       emit("."~as_string(sub[1]));
     } else if (isa(sub[1],TInt)) {
       emit("[%d]",as_int(sub[1]));
-    } else {
+    } else {*/
       emit("[");
       emit_ast(sub[1]);
       emit("]");
-    }
+    //}
+    emit("=");
+    emit_ast(sub[2]);
   } else if (id=="idxget") {
     emit_ast(sub[0]);
-    if (isa(sub[1],TString)) {
+    /*if (isa(sub[1],TString)) {
       emit("."~as_string(sub[1]));
     } else if (isa(sub[1],TInt)) {
       emit("[%d]",as_int(sub[1]));
-    } else {
+    } else {*/
       emit("[");
       emit_ast(sub[1]);
       emit("]");
-    }
+    //}
   } else if (id=="call") {
     Cell cc=list_cell([sub[1],sub[0]]);
     writefln("call : %s",cells.str(cc));
