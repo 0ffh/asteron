@@ -6,6 +6,7 @@ import cells;
 import types;
 import llparse;
 import environments;
+import std.stdio;
 
 const bool debf=debflag && 1;
 
@@ -29,6 +30,15 @@ struct SigElement {
 struct Signature {
   SigElement[] ses;
   Type         open;
+  Signature clone() {
+    Signature n;
+    n.ses.length=ses.length;
+    for (int k;k<ses.length;++k) {
+      n.ses[k]=ses[k];
+    }
+    n.open=open;
+    return n;
+  }
   int length() {
     return ses.length;
   }
@@ -303,7 +313,7 @@ int signature_matches(Signature sig,Type[] targ) {
     if (k>=sig.length) break;
     tp=sig[k].type;
     ta=targ[k];
-    static if (verbose) writef("par= %s   arg= %s\n",types.str(tp),types.str(ta));
+    static if (verbose) writef("-- %d : par= %s   arg= %s\n",k,types.str(tp),types.str(ta));
     int m=type_matches(tp,ta);
     if (m) {
       p=(p<<score_shift)+m;
@@ -316,7 +326,7 @@ int signature_matches(Signature sig,Type[] targ) {
     tp=sig.open;
     for (;k<targ.length;++k) {
       ta=targ[k];
-      static if (verbose) writef("par= %s   arg= %s\n",types.str(tp),types.str(ta));
+      static if (verbose) writef("-- %d : par= %s   arg= %s\n",k,types.str(tp),types.str(ta));
       int m=type_matches(tp,ta);
       if (m) {
         p=(p<<score_shift)+m;
@@ -329,10 +339,54 @@ int signature_matches(Signature sig,Type[] targ) {
   }
   for (;k<sig.length;++k) {
 //    writef("default %s\n",cells.str(sig[k].defv));
-    if (sig.is_open()) return p-1; // empty ellipse
+//    if (sig.is_open()) return p-1; // empty ellipse
     if (sig[k].defv.type==TNull) return fail_score;
   }
   return p;
 }
-
+bool signature_matches_perfectly(Signature sig,Type[] targ) {
+  static if (debf) {debEnter("signature_matches_perfectly(Signature,Type[])");scope (exit) debLeave();}
+  const int verbose=true;
+  if ((targ.length>sig.length) && (!sig.is_open())) return false;
+  static if (verbose) writefln("----- signature_matches_perfectly?");
+  static if (verbose) writefln("-- sig= %s",sig);
+  static if (verbose) writefln("-- arg= %s",types2signature(targ));
+  Type tp=TNull,ta=TNull;
+  int k=0;
+  for (;k<targ.length;++k) {
+    if (k>=sig.length) break;
+    tp=sig[k].type;
+    ta=targ[k];
+    static if (verbose) writef("-- %d : par= %s   arg= %s\n",k,types.str(tp),types.str(ta));
+    if (type_matches(tp,ta)==exact_score) {
+      continue;
+    }
+    static if (verbose) writef("fail\n");
+    return false;
+  }
+  if (sig.is_open()) {
+    tp=sig.open;
+    for (;k<targ.length;++k) {
+      ta=targ[k];
+      static if (verbose) writef("par= %s   arg= %s\n",types.str(tp),types.str(ta));
+      if (type_matches(tp,ta)==exact_score) {
+        continue;
+      }
+      static if (verbose) writef("fail\n");
+      return false;
+    }
+    return true;
+  }
+  for (;k<sig.length;++k) {
+//    writef("default %s\n",cells.str(sig[k].defv));
+    if (sig[k].defv.type==TNull) return false;
+  }
+  return true;
+}
+bool signature_matches_perfectly(Signature sig,Cell[] arg) {
+  Type[] targ;
+  targ.length=arg.length;
+  for (int k;k<arg.length;++k) targ[k]=arg[k].type;
+  return signature_matches_perfectly(sig,targ);
+}
 

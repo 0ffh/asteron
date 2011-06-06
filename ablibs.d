@@ -235,7 +235,7 @@ Cell op_continue(Cell[] args) {
 }
 Cell op_return(Cell[] args) {
   static if (debf) {debEnter("[return]");scope (exit) debLeave();}
-  FunListEntry tocs=call_stack_top();
+  FTabEntry* fte=call_stack_top();
   Cell c;
   if (args.length) {
     assert(args.length==1,"Paranoia error.");
@@ -243,14 +243,14 @@ Cell op_return(Cell[] args) {
   } else {
     c=null_cell();
   }
-  if ((isa(tocs.res,TNull)) || (isa(tocs.res,TAny))) {
-    tocs.res=c;
+  if (fte.ret==TAny) {
+    fte.ret=c.type;
   } else {
-    //writef("tocs.res.type=%s c.type=%s\n",types.str(tocs.res.type),types.str(c.type));
-    assert(isa(c,TAny) || (tocs.res.type==c.type),"Return type mismatch");
+    //writef("fte.res.type=%s c.type=%s\n",types.str(fte.res.type),types.str(c.type));
+    assert(isa(c,TAny) || (fte.ret==c.type),"Return type mismatch");
   }
-  //writef("***** Returning %s\n",types.str(tocs.res.type));
-  return tocs.res;
+  //writef("***** Returning %s\n",types.str(fte.res.type));
+  return new_cell(fte.ret);
 }
 Cell op_ftab_set(Cell[] args) {
   static if (debf) {debEnter("[op_ftab_set]");scope (exit) debLeave();}

@@ -76,7 +76,7 @@ bool id_in(string id,string[] cids) {
   return false;
 }
 void emit_ast(Cell c) {
-  static if (debf) {debEnter("emit_ast(Cell)");scope (exit) debLeave();}
+  static if (debf) {debEnter("emit_ast(Cell='%s')",c);scope (exit) debLeave();}
   if (!isa(c,TList)) {
     if (isa(c,TType)) {
       emit("\"");
@@ -324,6 +324,8 @@ void emit_ast(Cell c) {
     emit(")");
   } else if (id=="def") {
     string name=as_symbol(sub[1]);
+    writefln("def %s",sub);
+    writefln("%s",pretty_str(env_cell(environment),1));
     Cell cel=env_get(environment,name);
     /*writef("### define %s %s\n",name,types.str(cel.type));
     writef("### define %s %s\n",name,cells.str(cel.type.cell));
@@ -384,27 +386,27 @@ void emit_ast(Cell c) {
   }
   fflush(stdout);
 }
-void emit_ast(FunListEntry fle) {
-  static if (debf) {debEnter("emit_ast(FunListEntry)");scope (exit) debLeave();}
-  if (!isa(fle.fun,TLambda)) return;
-  writefln("=== emitting function %s : %s",fle.nam,cells.str(fle.fun));
+void emit_ast(FTabEntry* entry) {
+  static if (debf) {debEnter("emit_ast(FTabEntry)");scope (exit) debLeave();}
+  if (!isa(entry.fun,TLambda)) return;
+  writefln("=== emitting function %s : %s",entry.nam,cells.str(entry.fun));
   //crlf();
-  //emit("//----- defun %s",fle.nam);
-  string[] nam=lambda_parameter_names(fle.fun);
-  Cell[] def=lambda_parameter_defaults(fle.fun);
+  //emit("//----- defun %s",entry.nam);
+  string[] nam=lambda_parameter_names(entry.fun);
+  Cell[] def=lambda_parameter_defaults(entry.fun);
   crlf();
-  if (isa(fle.res,TNull)) {
+  if (entry.ret==TNull) {
     emit("void");
   } else {
-    emit_ast(fle.res.type);
+    emit_ast(entry.ret);
   }
   //writefln("names = %s",nam);
-  //writefln("pars  = %s",fle.par);
-  emit(" %s(",fle.nam[1..$]);
+  //writefln("pars  = %s",entry.par);
+  emit(" %s(",entry.nam[1..$]);
   static if (1) {
-    for (int k;k<fle.par.length;++k) {
+    for (int k;k<entry.sig.ses.length;++k) {
       if (k) emit(",");
-      emit_ast(fle.par[k].type);
+      emit_ast(entry.sig.ses[k].type);
       emit(" "~nam[k]);
       if (!isa(def[k],TNull)) {
         emit("=");
@@ -413,9 +415,9 @@ void emit_ast(FunListEntry fle) {
     }
   } else {
     int knam=0;
-    for (int k;k<fle.par.length;++k) {
+    for (int k;k<entry.par.length;++k) {
       if (k) emit(",");
-      emit_ast(fle.par[k].type);
+      emit_ast(entry.par[k].type);
       if (nam[knam]=="...") {
         emit(" ellipse");
       } else {
@@ -428,7 +430,7 @@ void emit_ast(FunListEntry fle) {
     }
   }
   emit(") ");
-  emit_ast(fle.fun);
+  emit_ast(entry.fun);
 }
 void emit_ast(Type t,string name="") {
   static if (debf) {debEnter("emit_ast(Type)");scope (exit) debLeave();}
@@ -531,7 +533,7 @@ void emit_globals(Cell root) {
     }
   }
 }
-void emit_d_main(Cell root,FunListEntry[] fun_list,string fn="stdout") {
+void emit_d_main(Cell root,FTabEntry*[] fun_list,string fn="stdout") {
   static if (debf) {debEnter("emit_d_main(...)");scope (exit) debLeave();}
   environment=base_env;
   if (fn=="stdout") dst=stdout;
@@ -541,15 +543,19 @@ void emit_d_main(Cell root,FunListEntry[] fun_list,string fn="stdout") {
   crlf();
   emit_typedefs();
   emit_globals(root);
-//   emit_functions(root);
+//  emit_functions(root);
+  bool[FTabEntry*] fun_done;
   for (int kfl=fun_list.length;kfl;) {
-    FunListEntry fle=fun_list[--kfl];
-    push_env(fle.env);
-    emit_ast(fle);
-    pop_env();
+    FTabEntry* entry=fun_list[--kfl];
+    if (!(entry in fun_done)) {
+      push_env(entry.env);
+      emit_ast(entry);
+      pop_env();
+      //fun_done[entry]=true;
+    }
   }
   emit("\nvoid main() {main_0();}");
   crlf();
-  if (dst!=stdout)
-    fclose(dst);
+  if (dst!=stdout) fclose(dst);
 }
+

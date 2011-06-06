@@ -202,7 +202,7 @@ FTabEntry* specialise_dotget(FTabEntry* org_fte,string fieldname) {
   Cell fun=lambda_cell(lam);
   //--
   fte.sig=sig;
-  fte.ret=org_fte.ret;
+  fte.ret=TAny;//org_fte.ret;
   fte.fun=fun;
   return [fte].ptr;
 }
@@ -233,7 +233,7 @@ FTabEntry* specialise_dotset(FTabEntry* org_fte,string fieldname) {
   Cell fun=lambda_cell(lam);
   //--
   fte.sig=sig;
-  fte.ret=org_fte.ret;
+  fte.ret=TAny;//org_fte.ret;
   fte.fun=fun;
   return [fte].ptr;
 }

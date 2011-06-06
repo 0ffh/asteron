@@ -20,6 +20,14 @@ const bool debf=debflag && 0;
 struct Env {
   Env* outer;
   Cell[string] inner;
+  Env* clone() {
+    Env* e=[Env(outer,inner)].ptr;
+    foreach (k;e.inner.keys) e.inner[k]=e.inner[k].clone();
+    return e;
+  }
+  string toString() {
+    return assoc_cell(this.inner).toString();
+  }
   void show() {
     assoc_cell(this.inner).show();
   }
@@ -143,6 +151,16 @@ struct FTabEntry {
   Signature sig;
   Type      ret;
   Cell      fun;
+  bool      abt; // aborted
+  Env*      env;
+  string    nam;
+  FTabEntry* clone() {
+    FTabEntry* n=[FTabEntry(sig,ret,fun,abt,env,nam)].ptr;
+    n.fun=n.fun.clone();
+    n.sig=n.sig.clone();
+    n.ret=TAny;
+    return n;
+  }
 }
 struct FTab {
   Env*        env;
@@ -169,9 +187,9 @@ string str(FTab* ft) {
 bool ftab_add(FTab* ft,Cell fun,Signature sig,Type ret) {
   static if (debf) {debEnter("ftab_add(FTab*,Cell,Type[])");scope (exit) debLeave();}
 //  writef("*** %s\n",str(tpar));
-  Cell* now;// =ftab_find(ft,par);
-  if (now !is null) return false;
-  ft.dat~=FTabEntry(sig,ret,fun);
+  /*Cell* now=ftab_find(ft,par);
+  if (now !is null) return false;*/
+  ft.dat~=FTabEntry(sig,ret,fun,false,ft.env,"");
   return true;
 }
 FTabEntry* ftab_resolve(FTab *ft,Cell[] args,string id="") {

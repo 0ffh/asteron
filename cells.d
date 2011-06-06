@@ -35,7 +35,7 @@ Lamb* clone(Lamb* s) {
   d.expr=clone_cell(s.expr);
   d.pars.length=s.pars.length;
   for (int k;k<d.pars.length;++k) d.pars[k]=clone_cell(s.pars[k]);
-  d.env=s.env;
+  d.env=s.env.clone();
   return cast(Lamb*)[d].ptr;
 }
 string[] lambda_parameter_names(Lamb* lam) {
@@ -826,9 +826,9 @@ string pretty_str(Cell c,int ind) {
     string s="{";
     foreach (key;c.asc.inner.keys) {
       if (is_assoc_type(c.asc.inner[key].type)) {
-        s~=key~":[TAssoc],";
+        s~=key~":[TAssoc],\n";
       } else {
-        s~=key~":"~pretty_str(c.asc.inner[key],ind)~",";
+        s~=key~":"~pretty_str(c.asc.inner[key],ind)~",\n";
       }
     }
     if (s[$-1]==',') {

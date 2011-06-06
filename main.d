@@ -232,83 +232,21 @@ Cell eval(Cell x) {
 //----------------
 //---------------- abstract eval helpers
 //----------------
-string[Type] type_list;
-class FunListEntry {
-  string     nam;
-  FTabEntry* fte;
-  Cell[]     par; // parameters
-  Cell       fun; // function cell
-  Cell       res; // result value
-  bool       abt; // aborted
-  Env*       env;
-  static FunListEntry opCall(string nam,FTabEntry* fte,Cell[] par,Cell fun) {
-    FunListEntry fle=new FunListEntry();
-    fle.nam=nam;
-    fle.fte=fte;
-    fle.par=par;
-    fle.fun=clone_cell(fun);
-    fle.res=null_cell();
-    fle.abt=false;
-    return fle;
-  }
-}
-FunListEntry[string] fun_hash;
-FunListEntry[] fun_list;
-FunListEntry[] call_stack;
-FunListEntry call_stack_top() {
+int fun_count;
+Cell[string] dollar_res;
+FTabEntry*[] fun_list;
+FTabEntry*[] call_stack;
+FTabEntry* call_stack_top() {
   assert(call_stack.length,"Abstract interpreter error: Call stack empty.");
   return call_stack[$-1];
 }
-void call_stack_push(FunListEntry e) {
+void call_stack_push(FTabEntry* e) {
   call_stack~=e;
 }
-FunListEntry call_stack_pop() {
-  FunListEntry e=call_stack_top();
+FTabEntry* call_stack_pop() {
+  FTabEntry* e=call_stack_top();
   call_stack.length=call_stack.length-1;
   return e;
-}
-int[string] fun_name_cnt;
-void show_fun_list() {
-  for (int kfl;kfl<fun_list.length;++kfl) {
-    FunListEntry fle=fun_list[kfl];
-    static if (1) {
-      //writef("*************** function %s\n",fle.nam);
-    } else {
-      writef("*************** function %s(",fle.nam);
-      for (int k=0;k<fle.par.length;++k) {
-        writef("%s",types.str(fle.par[k].type));
-        if (k+1<fle.par.length) writef(",");
-      }
-      writef(") : %s\n",types.str(fle.res.type));
-    }
-    static if (0) {
-      writef("%s\n",pretty_str(fle.fun,0));
-    }
-    if (fle.env !is null) {
-      env_pr(fle.env);
-    }
-  }
-}
-FunListEntry find_in_fun_list(FTabEntry* fte,Cell[] par) {
-  for (int kfl;kfl<fun_list.length;++kfl) {
-    FunListEntry fle=fun_list[kfl];
-    if (fte!=fle.fte) continue;
-    if (par.length!=fle.par.length) continue;
-    if (!par.length) return fun_list[kfl];
-    for (int k;k<par.length;++k) {
-      if (par[k].type!=fle.par[k].type) break;
-      if (k==par.length-1) return fun_list[kfl];
-    }
-  }
-  return null;
-}
-Cell abs_get_result_from_fun_list(string name) {
-  static if (debf) {debEnter("abs_get_result_from_fun_list");scope (exit) debLeave();}
-  for (int kfl;kfl<fun_list.length;++kfl) {
-    FunListEntry fle=fun_list[kfl];
-    if (fle.nam==name) return fle.res;
-  }
-  assert(false);
 }
 void abs_eval_args(ref Cell[] args,ref Cell[] eargs) {
   if (!eargs.length) {
@@ -320,7 +258,7 @@ void abs_eval_args(ref Cell[] args,ref Cell[] eargs) {
 }
 Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args) {
   static if (debf) {debEnter("abs_mk_lambda_environment");scope (exit) debLeave();}
-  Env* lamenv=env_clone(lam.env);
+  Env* lamenv=lam.env;//env_clone(lam.env);
   //-- at least as much parameters as arguments (rest must be defaulted)
   for (int k=0;k<lam.pars.length;++k) {
     //-- formal parameter
@@ -378,13 +316,14 @@ Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args) {
   return lamenv;
 }
 Cell abs_resolve_function(Cell sym,ref Cell[] args) {
-  string lmsg;
+  string debug_leave_message;
   static if (debf) {
     debEnter("abs_resolve_function('"~sym.sym~"')");
-    scope (exit) debLeave(frm("%s / %d",lmsg,state.code));
+    scope (exit) debLeave(frm("%s / %d",debug_leave_message,state.code));
   }
-  //writef("abs_resolve_function('%s')\n",sym.sym);
+  writef("--------------- abs_resolve_function('%s')\n",sym.sym);
   FTabEntry* entry;
+  Env* ftab_env;
   string name=as_symbol(sym);
   //-- special handling for getters and setters
   if ((name=="dotget") || (name=="dotset")) {
@@ -397,15 +336,14 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
       altargs[0]=list_cell([symbol_cell("ref")]~altargs[0]);
     }*/
     remove_element(altargs,1); // remove index element from args
-    entry=resolve_name_as_ftab_entry(altname,altargs);
+    entry=resolve_name_as_ftab_entry(altname,altargs,ftab_env);
     if (entry) {
       // alternative name entry found
       name=altname;
       args=altargs;
     } else {
       // alternative name entry missing
-      Env* env;
-      entry=resolve_name_as_ftab_entry(name,args,env);
+      entry=resolve_name_as_ftab_entry(name,args,ftab_env);
       if (entry && isa(entry.fun,TLambda)) {
         if (name=="dotset") {
           entry=specialise_dotset(entry,fieldname);
@@ -416,61 +354,76 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
         name=altname;
 //        entry=specialise_accessor(entry,fieldname);
         writefln("### specialised accessor %s%s\n",name,entry.sig);
-        Cell ftab_cell=env_putfun(env,name,entry.fun,entry.sig,entry.ret);
+        Cell ftab_cell=env_putfun(ftab_env,name,entry.fun,entry.sig,TAny);
         entry=ftab_resolve(ftab_cell.ftab,args,name);
 //        ftab_add(ftab,entry.fun,entry.sig,entry.ret);
       }
     }
   } else {
-    entry=resolve_name_as_ftab_entry(name,args);
+    entry=resolve_name_as_ftab_entry(name,args,ftab_env);
   }
   if (!entry) {
     writef("*** Error: Function '%s' lookup failed!\n",name);
     assert(false);
   }
+  bool perfect_match=signature_matches_perfectly(entry.sig,args);
+  writefln("--> %s",perfect_match);
+  if (!entry.nam.length) entry.nam=name;
+  if (!perfect_match) {
+    writefln("+++ not perfect match : %s",name);
+    entry=entry.clone();
+    for (int k;k<entry.sig.ses.length;++k) {
+      if (k>=args.length) break;
+      entry.sig.ses[k].type=args[k].type;
+    }
+    env_putfun(ftab_env,name,entry.fun,entry.sig,TAny);
+  }
   //--
-//   writef("find %s\n",name);
-  FunListEntry fle=find_in_fun_list(entry,args);
-  if (fle is null) {
-    //-- entry does not exist -> create it
-    //writef("!FLE:%s\n",name);
-    //writef("*** %s\n",cells.str(entry.fun));
-    name=frm("$%s_%d",name,fun_list.length);
-    fle=FunListEntry(name,entry,args,entry.fun);
+  writefln("entry.ret = %s",entry.ret);
+  if ((entry.ret==TAny) || (!isa(entry.fun,TLambda))) {
     if (isa(entry.fun,TLambda)) {
-      fun_list~=fle;
-      sym.sym=name;
-      fun_hash[name]=fle;
+      if (entry.nam[0]!='$') {
+        entry.nam="$"~entry.nam~"_"~toString(fun_count++);
+      }
+//      entry.nam~="_"~toString(fun_count++);
+//      sym.sym="$"~entry.nam;
+      sym.sym=entry.nam;
+      dollar_res[sym.sym]=new_cell(TAny);
     }
-    call_stack_push(fle);
-    Cell h=abs_eval(list_cell([fle.fun]~args));
-//    writef("### %s -> [%s] %s\n",name,cells.str(h),cells.str(fle.res));
-    if (!(isa(fle.fun,TLambda) || isa(h,TNull))) {
-      fle.res=h;
-    }
-    while (fle.abt) {
-      fle.abt=false;
-      Cell r=abs_eval(list_cell([fle.fun]~args));
-      if (!isa(r,TNull)) fle.res=r;
+    //-- return type unknown
+    fun_list~=entry;
+    call_stack_push(entry);
+    Cell h=abs_eval(list_cell([entry.fun]~args));
+    entry.ret=h.type;
+    writefln("entry.ret = %s",entry.ret);
+    while (entry.abt) {
+      entry.abt=false;
+      Cell r=abs_eval(list_cell([entry.fun]~args));
+      entry.ret=r.type;
     }
     call_stack_pop();
+    //
+    if (isa(entry.fun,TLambda)) {
+      dollar_res[sym.sym]=new_cell(entry.ret);
+    }
   } else {
-    //-- entry does exist -> use it
-    //writef("FLE:%s (%s)\n",name,fle.nam);
-    name=fle.nam;
-    if (isa(fle.fun,TLambda)) {
-      sym.sym=name;
+    //-- return type known
+    if (isa(entry.fun,TLambda)) {
+      if (entry.nam[0]!='$') {
+        entry.nam="$"~entry.nam~"_"~toString(fun_count++);
+      }
+//      sym.sym="$"~entry.nam;
+      sym.sym=entry.nam;
+      dollar_res[sym.sym]=new_cell(entry.ret);
     }
-//    if ((fle.res.type==TAny) || (fle.res.type==TNull)) {
-    if (fle.res.type==TAny) {
-      //writef("+++++++ Recursion return type unavailable for %s\n",fle.nam);
-      fle.abt=true;
+/*    if (entry.ret==TAny) {
+      entry.abt=true;
       state.code=StC.abt;
-      state.val=fle.res;
-    }
+      state.val=new_cell(entry.ret);
+    }*/
   }
-  lmsg=frm("%s",types.str(fle.res.type));
-  return list_cell([fle.res]);
+  debug_leave_message=frm("%s",types.str(entry.ret));
+  return list_cell([new_cell(entry.ret)]);
 }
 
 //----------------------------------------------------------------------
@@ -499,7 +452,7 @@ Cell abs_eval(Cell x) {
   Cell x0=x.lst[0];
   while (isa(x0,TList)) x0=abs_eval(x0);
   if (isa(x0,TSymbol)) {
-    if (x0.sym[0]=='$') return abs_get_result_from_fun_list(x0.sym);
+    if (x0.sym[0]=='$') return dollar_res[x0.sym];
     Cell r=resolve_symbol_except_ftabs(x0);
     if (isa(r,TNull)) {
       bool dotget=(x0.sym=="dotget");
@@ -535,8 +488,9 @@ Cell abs_eval(Cell x) {
     Lamb* lam=as_lambda(x0);
     Env* lamenv=abs_mk_lambda_environment(lam,args);
 //    writef("******* evaluate lambda\n%s\n",pretty_str(lam.expr,0));
-    FunListEntry tocs=call_stack_top();
-    if (tocs.env is null) tocs.env=lamenv;
+    FTabEntry* fte=call_stack_top();
+    //if (fte.env is null) fte.env=lamenv;
+    fte.env=lamenv;
     Cell c=abs_evalin(lam.expr,lamenv);
     if (state.code==StC.ret) state.code=StC.run;
     return c;
@@ -600,7 +554,7 @@ void abs_exec_ast(string filename) {
     abs_eval(root);
     abs_eval(parse_string_to_cell("main();"));
     if (showflag) writef("%s\n",pretty_str(root,0));
-    if (showflag) show_fun_list();
+    //if (showflag) show_fun_list();
     emit_d_main(root,fun_list,"out.d");
     //writef("%s\n",pretty_str(root,0));
   }
