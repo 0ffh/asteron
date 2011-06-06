@@ -396,6 +396,8 @@ void emit_ast(FunListEntry fle) {
   } else {
     emit_ast(fle.res.type);
   }
+  //writefln("names = %s",nam);
+  //writefln("pars  = %s",fle.par);
   emit(" %s(",fle.nam[1..$]);
   static if (1) {
     for (int k;k<fle.par.length;++k) {

@@ -116,12 +116,12 @@ Cell resolve_symbol_except_ftabs(Cell sym) {
   return null_cell();
 }
 FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args,ref Env* e) {
-  static if (debf) {debEnter("resolve_name_as_ftab_entry");scope (exit) debLeave();}
+  static if (debf) {debEnter("resolve_name_as_ftab_entry(%s)",name);scope (exit) debLeave();}
   FTabEntry* candidate_entry;
   Cell candidate;
   e=environment;
   for (;;) {
-//writef("looking up Function '%s' in environment %p\n",name,e);
+    //writef("looking up Function '%s' in environment %s\n",name,e);
     if (e) e=env_find(e,name);
     if (!e) {
 //      writef("*** Error: Function '%s' lookup failed!\n",name);
@@ -333,20 +333,28 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
     assert(isa(args[1],TString));
     string fieldname=as_string(args[1]);
     string altname=name~"_"~fieldname;
-    entry=resolve_name_as_ftab_entry(altname,args);
+    Cell[] altargs=args.dup;
+    remove_element(altargs,1); // remove index element from args
+    entry=resolve_name_as_ftab_entry(altname,altargs);
     if (entry) {
       // alternative name entry found
       name=altname;
+      args=altargs;
     } else {
       // alternative name entry missing
       Env* env;
       entry=resolve_name_as_ftab_entry(name,args,env);
-      if (isa(entry.fun,TLambda)) {
+      if (entry && isa(entry.fun,TLambda)) {
+        if (name=="dotset") {
+          entry=specialise_dotset(entry,fieldname);
+        } else {
+          entry=specialise_dotget(entry,fieldname);
+        }
+//        entry=specialise_accessor(entry,fieldname);
         name=altname;
-        entry=specialise_accessor(entry,fieldname);
+        args=altargs;
         writefln("### specialised accessor %s%s\n",name,entry.sig);
         Cell ftab_cell=env_putfun(env,name,entry.fun,entry.sig,entry.ret);
-        remove_element(args,1); // remove index element from args
         entry=ftab_resolve(ftab_cell.ftab,args,name);
 //        ftab_add(ftab,entry.fun,entry.sig,entry.ret);
       }

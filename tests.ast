@@ -416,7 +416,7 @@ scope {
   start("structs (deftype)");
   deftype td struct{a,int i,float f};
   //test("(struct (any a) (int i) (float f))",tostr(t));
-  defun dotset(td x,string idx,value) dotset(unpack(x),idx,value);
+  defun dotset(td x,string idx,value) return dotset(unpack(x),idx,value);
   defun dotget(td x,string idx) return dotget(unpack(x),idx);
   var td y;
   test(tostr(y),"{a=any,i=0,f=0}");

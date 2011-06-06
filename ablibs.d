@@ -792,11 +792,11 @@ void add_abs_libs(Env* env) {
   env_put(env,"list?",fun_cell(&op_listp));
   env_put(env,"symbol?",fun_cell(&op_symbolp));
   env_put(env,"null?",fun_cell(&op_nullp));
-  env_put(env,"tostr",fun_cell(&op_tostr));
   env_put(env,"pr",fun_cell(&op_pr));
   env_put(env,"prln",fun_cell(&op_prln));
   env_put(env,"tic",fun_cell(&op_tic));
   env_put(env,"toc",fun_cell(&op_toc));
+  env_putfun_sigstr(env,"tostr",fun_cell(&op_tostr),"(any)","any");
 
   env_put(env,"new_object",fun_cell(&op_new_object));
   env_putfun_sigstr(env,"dotget",fun_cell(&op_assoc_get),"((assoc) string)","any");

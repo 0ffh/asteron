@@ -180,7 +180,33 @@ void replace_symbol(Cell c,string id,Cell r) {
     }
   }
 }
-FTabEntry* specialise_accessor(FTabEntry* org_fte,string fieldname) {
+FTabEntry* specialise_dotget(FTabEntry* org_fte,string fieldname) {
+  FTabEntry fte;
+  //-- create specialised signature and retain index name
+  Signature org_sig=org_fte.sig;
+  Signature sig;
+  string indexname;
+  sig.open=org_sig.open;
+  for (int k;k<org_sig.length;++k) {
+    if (k==1) {
+      indexname=org_sig.ses[k].name;
+    } else {
+      sig.ses~=org_sig.ses[k];
+    }
+  }
+  //--
+  Lamb* lam=clone(as_lambda(org_fte.fun));
+  remove_element(lam.pars,1);
+  replace_symbol(lam.expr,indexname,string_cell(fieldname));
+  // todo: currently replacing ALL symbols of matching id, without further checking
+  Cell fun=lambda_cell(lam);
+  //--
+  fte.sig=sig;
+  fte.ret=org_fte.ret;
+  fte.fun=fun;
+  return [fte].ptr;
+}
+FTabEntry* specialise_dotset(FTabEntry* org_fte,string fieldname) {
   FTabEntry fte;
   //-- create specialised signature and retain index name
   Signature org_sig=org_fte.sig;
