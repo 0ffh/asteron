@@ -1,11 +1,7 @@
 
 //--  (w) Frank F. Hirsch (2011)
 
-/*
-*** todo
- - type literals
- - all types global (?)
-*/
+// todo: more than you can shake a stick at
 
 module main;
 
@@ -416,11 +412,11 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
       sym.sym=entry.nam;
       dollar_res[sym.sym]=new_cell(entry.ret);
     }
-/*    if (entry.ret==TAny) {
+    if (entry.ret==TAny) {
       entry.abt=true;
       state.code=StC.abt;
       state.val=new_cell(entry.ret);
-    }*/
+    }
   }
   debug_leave_message=frm("%s",types.str(entry.ret));
   return list_cell([new_cell(entry.ret)]);
