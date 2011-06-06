@@ -287,6 +287,7 @@ Cell token2cell(Token t) {
     if (tav(t.sub[0],"binary",".")) {
       c.lst~=symbol_cell("dotset");
       c.lst~=token2cell(t.sub[0].sub[0]);
+      //c.lst[$-1]=list_cell([symbol_cell("&")]~c.lst[$-1]);
       c.lst~=string_cell(t.sub[0].sub[1].value);
     } else if (tav(t.sub[0],"binary","[")) {
       c.lst~=symbol_cell("idxset");

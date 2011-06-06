@@ -318,98 +318,6 @@ void abs_eval_args(ref Cell[] args,ref Cell[] eargs) {
     }
   }
 }
-Cell abs_resolve_function(Cell sym,ref Cell[] args) {
-  string lmsg;
-  static if (debf) {
-    debEnter("abs_resolve_function('"~sym.sym~"')");
-    scope (exit) debLeave(frm("%s / %d",lmsg,state.code));
-  }
-  //writef("abs_resolve_function('%s')\n",sym.sym);
-  FTabEntry* entry;
-  string name=as_symbol(sym);
-  //-- special handling for getters and setters
-  if ((name=="dotget") || (name=="dotset")) {
-    assert(args.length>1);
-    assert(isa(args[1],TString));
-    string fieldname=as_string(args[1]);
-    string altname=name~"_"~fieldname;
-    Cell[] altargs=args.dup;
-    remove_element(altargs,1); // remove index element from args
-    entry=resolve_name_as_ftab_entry(altname,altargs);
-    if (entry) {
-      // alternative name entry found
-      name=altname;
-      args=altargs;
-    } else {
-      // alternative name entry missing
-      Env* env;
-      entry=resolve_name_as_ftab_entry(name,args,env);
-      if (entry && isa(entry.fun,TLambda)) {
-        if (name=="dotset") {
-          entry=specialise_dotset(entry,fieldname);
-        } else {
-          entry=specialise_dotget(entry,fieldname);
-        }
-//        entry=specialise_accessor(entry,fieldname);
-        name=altname;
-        args=altargs;
-        writefln("### specialised accessor %s%s\n",name,entry.sig);
-        Cell ftab_cell=env_putfun(env,name,entry.fun,entry.sig,entry.ret);
-        entry=ftab_resolve(ftab_cell.ftab,args,name);
-//        ftab_add(ftab,entry.fun,entry.sig,entry.ret);
-      }
-    }
-  } else {
-    entry=resolve_name_as_ftab_entry(name,args);
-  }
-  if (!entry) {
-    writef("*** Error: Function '%s' lookup failed!\n",name);
-    assert(false);
-  }
-  //--
-//   writef("find %s\n",name);
-  FunListEntry fle=find_in_fun_list(entry,args);
-  if (fle is null) {
-    //-- entry does not exist -> create it
-    //writef("!FLE:%s\n",name);
-    //writef("*** %s\n",cells.str(entry.fun));
-    name=frm("$%s_%d",name,fun_list.length);
-    fle=FunListEntry(name,entry,args,entry.fun);
-    if (isa(entry.fun,TLambda)) {
-      fun_list~=fle;
-      sym.sym=name;
-      fun_hash[name]=fle;
-    }
-    call_stack_push(fle);
-    Cell h=abs_eval(list_cell([fle.fun]~args));
-//    writef("### %s -> [%s] %s\n",name,cells.str(h),cells.str(fle.res));
-    if (!(isa(fle.fun,TLambda) || isa(h,TNull))) {
-      fle.res=h;
-    }
-    while (fle.abt) {
-      fle.abt=false;
-      Cell r=abs_eval(list_cell([fle.fun]~args));
-      if (!isa(r,TNull)) fle.res=r;
-    }
-    call_stack_pop();
-  } else {
-    //-- entry does exist -> use it
-    //writef("FLE:%s (%s)\n",name,fle.nam);
-    name=fle.nam;
-    if (isa(fle.fun,TLambda)) {
-      sym.sym=name;
-    }
-//    if ((fle.res.type==TAny) || (fle.res.type==TNull)) {
-    if (fle.res.type==TAny) {
-      //writef("+++++++ Recursion return type unavailable for %s\n",fle.nam);
-      fle.abt=true;
-      state.code=StC.abt;
-      state.val=fle.res;
-    }
-  }
-  lmsg=frm("%s",types.str(fle.res.type));
-  return list_cell([fle.res]);
-}
 Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args) {
   static if (debf) {debEnter("abs_mk_lambda_environment");scope (exit) debLeave();}
   Env* lamenv=env_clone(lam.env);
@@ -469,6 +377,101 @@ Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args) {
   }
   return lamenv;
 }
+Cell abs_resolve_function(Cell sym,ref Cell[] args) {
+  string lmsg;
+  static if (debf) {
+    debEnter("abs_resolve_function('"~sym.sym~"')");
+    scope (exit) debLeave(frm("%s / %d",lmsg,state.code));
+  }
+  //writef("abs_resolve_function('%s')\n",sym.sym);
+  FTabEntry* entry;
+  string name=as_symbol(sym);
+  //-- special handling for getters and setters
+  if ((name=="dotget") || (name=="dotset")) {
+    assert(args.length>1);
+    assert(isa(args[1],TString));
+    string fieldname=as_string(args[1]);
+    string altname=name~"_"~fieldname;
+    Cell[] altargs=args.dup;
+/*    if (name=="dotset") {
+      altargs[0]=list_cell([symbol_cell("ref")]~altargs[0]);
+    }*/
+    remove_element(altargs,1); // remove index element from args
+    entry=resolve_name_as_ftab_entry(altname,altargs);
+    if (entry) {
+      // alternative name entry found
+      name=altname;
+      args=altargs;
+    } else {
+      // alternative name entry missing
+      Env* env;
+      entry=resolve_name_as_ftab_entry(name,args,env);
+      if (entry && isa(entry.fun,TLambda)) {
+        if (name=="dotset") {
+          entry=specialise_dotset(entry,fieldname);
+        } else {
+          entry=specialise_dotget(entry,fieldname);
+        }
+        args=altargs;
+        name=altname;
+//        entry=specialise_accessor(entry,fieldname);
+        writefln("### specialised accessor %s%s\n",name,entry.sig);
+        Cell ftab_cell=env_putfun(env,name,entry.fun,entry.sig,entry.ret);
+        entry=ftab_resolve(ftab_cell.ftab,args,name);
+//        ftab_add(ftab,entry.fun,entry.sig,entry.ret);
+      }
+    }
+  } else {
+    entry=resolve_name_as_ftab_entry(name,args);
+  }
+  if (!entry) {
+    writef("*** Error: Function '%s' lookup failed!\n",name);
+    assert(false);
+  }
+  //--
+//   writef("find %s\n",name);
+  FunListEntry fle=find_in_fun_list(entry,args);
+  if (fle is null) {
+    //-- entry does not exist -> create it
+    //writef("!FLE:%s\n",name);
+    //writef("*** %s\n",cells.str(entry.fun));
+    name=frm("$%s_%d",name,fun_list.length);
+    fle=FunListEntry(name,entry,args,entry.fun);
+    if (isa(entry.fun,TLambda)) {
+      fun_list~=fle;
+      sym.sym=name;
+      fun_hash[name]=fle;
+    }
+    call_stack_push(fle);
+    Cell h=abs_eval(list_cell([fle.fun]~args));
+//    writef("### %s -> [%s] %s\n",name,cells.str(h),cells.str(fle.res));
+    if (!(isa(fle.fun,TLambda) || isa(h,TNull))) {
+      fle.res=h;
+    }
+    while (fle.abt) {
+      fle.abt=false;
+      Cell r=abs_eval(list_cell([fle.fun]~args));
+      if (!isa(r,TNull)) fle.res=r;
+    }
+    call_stack_pop();
+  } else {
+    //-- entry does exist -> use it
+    //writef("FLE:%s (%s)\n",name,fle.nam);
+    name=fle.nam;
+    if (isa(fle.fun,TLambda)) {
+      sym.sym=name;
+    }
+//    if ((fle.res.type==TAny) || (fle.res.type==TNull)) {
+    if (fle.res.type==TAny) {
+      //writef("+++++++ Recursion return type unavailable for %s\n",fle.nam);
+      fle.abt=true;
+      state.code=StC.abt;
+      state.val=fle.res;
+    }
+  }
+  lmsg=frm("%s",types.str(fle.res.type));
+  return list_cell([fle.res]);
+}
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -499,10 +502,14 @@ Cell abs_eval(Cell x) {
     if (x0.sym[0]=='$') return abs_get_result_from_fun_list(x0.sym);
     Cell r=resolve_symbol_except_ftabs(x0);
     if (isa(r,TNull)) {
+      bool dotget=(x0.sym=="dotget");
+      bool dotset=(x0.sym=="dotset");
+      if (dotset) {
+        args[0]=list_cell([symbol_cell("&")]~args[0]);
+      }
       abs_eval_args(args,eargs);
-      bool accessor=(x0.sym=="dotget") || (x0.sym=="dotset");
       r=abs_resolve_function(x0,eargs);
-      if (accessor && (x0.sym[0]=='$')) {
+      if ((dotget || dotset) && (x0.sym[0]=='$')) {
         assert(args.length>1);
         assert(isa(args[1],TString));
         //writefln("*********** DOT %s %s",x0.sym,x);

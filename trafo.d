@@ -220,10 +220,15 @@ FTabEntry* specialise_dotset(FTabEntry* org_fte,string fieldname) {
       sig.ses~=org_sig.ses[k];
     }
   }
+  //sig.ses[0].type=ref_type_from_subtype(sig.ses[0].type);
   //--
   Lamb* lam=clone(as_lambda(org_fte.fun));
   remove_element(lam.pars,1);
+  assert(isa(lam.pars[0],TList));
+  //lam.pars[0].lst[0]=list_cell([symbol_cell("ref")]~lam.pars[0].lst[0]);
   replace_symbol(lam.expr,indexname,string_cell(fieldname));
+  string objname=org_sig.ses[0].name;
+  //replace_symbol(lam.expr,objname,list_cell([symbol_cell("@")]~symbol_cell(objname)));
   // todo: currently replacing ALL symbols of matching id, without further checking
   Cell fun=lambda_cell(lam);
   //--

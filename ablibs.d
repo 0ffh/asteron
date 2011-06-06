@@ -653,7 +653,7 @@ Cell op_struct_set(Cell[] args) {
   static if (debf) {debEnter("[struct_set_field]");scope (exit) debLeave();}
   assert(args.length==3);
   //unalias_type_of(args[0]);
-  Struct* s=as_struct(args[0]);
+  Struct* s=as_struct(op_deref([args[0]]));
   string key=as_string(args[1]);
   Cell res=struct_get_field(s,key);
   unalias_type_of(res);
@@ -708,7 +708,13 @@ Cell op_getref(Cell[] args) {
   static if (debf) {debEnter("[ref]");scope (exit) debLeave();}
   assert(args.length==1);
   Cell c=args[0];
-  assert(isa(c,TSymbol),"Cannot get reference of non-symbol cells (yet)");
+  //assert(isa(c,TSymbol),"Cannot get reference of non-symbol cells (yet)");
+  if (!isa(c,TSymbol)) {
+    string random_name="random_name";
+    c=abs_eval(args[0]);
+    env_put(environment,random_name,c);
+    c=symbol_cell(random_name);
+  }
   return ref_cell(environment,as_symbol(c));
 }
 Cell op_deref(Cell[] args) {
@@ -825,7 +831,7 @@ void add_abs_libs(Env* env) {
 
   env_put(env,"struct",lfun_cell(&op_struct));
   env_putfun_sigstr(env,"dotget",fun_cell(&op_struct_get),"((struct) string)","any");
-  env_putfun_sigstr(env,"dotset",fun_cell(&op_struct_set),"((struct) string any)","any");
+  env_putfun_sigstr(env,"dotset",fun_cell(&op_struct_set),"((ref (struct)) string any)","any");
 
   env_put(env,"union",lfun_cell(&op_union));
   env_putfun_sigstr(env,"dotget",fun_cell(&op_union_get),"((union) string)","any");

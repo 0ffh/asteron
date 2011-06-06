@@ -2,7 +2,10 @@
 defun main() {
   deftype ts struct{string a,int i,float f};
   //test("(struct (any a) (int i) (float f))",tostr(t));
-  defun dotset(ts x,string idx,value) return dotset(unpack(x),idx,value);
+  defun dotset(ts@ x,string idx,value) {
+    var y=x@;
+    return dotset(unpack(x@),idx,value);
+  }
   defun dotget(ts x,string idx) return dotget(unpack(x),idx);
   defun tostr(ts x) return "{a='"~tostr(x.a)~"',i="~tostr(x.i)~",f="~tostr(x.f)~"}";
   var ts tsy;

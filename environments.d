@@ -189,15 +189,16 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
   // parameters vs. arguments
   //   in definition: parameter
   //   at call site: argument
-  const bool show=!true;
+//  writefln("resolving %s%s",id,targs);
+  const bool show=true;
   bool trace=true;
   //--
   static if (show) {
     if (trace) {
-      writef("--- ftab_resolve %s\n",id);
-      writef("call arguments:\n ");
+      writef("--- ftab_resolve %s%s\n",id,targs);
+/*      writef("call arguments:\n ");
       foreach (ta;targs) writef(" %s",types.str(ta));
-      writef("\navailable parameters:\n");
+      writef("\navailable parameters:\n");*/
     }
   }
   int bestp=0,bestk=0,ambiguous=0;
@@ -207,7 +208,7 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
     static if (show) {
       if (trace) {
         writef(" ");
-        writef(" %s",sig.str());
+        writef(" %s",sig);
         writef(" -> %d\n",p);
       }
     }

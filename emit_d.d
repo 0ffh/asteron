@@ -1,5 +1,6 @@
 module emit_d;
 
+import trafo;
 import std.file;
 import std.stdio;
 import std.string;
@@ -219,7 +220,7 @@ void emit_ast(Cell c) {
     emit_ast(sub[0]);
     emit(")");
   } else if (id=="@") {
-    emit("*(");
+    emit("(*");
     emit_ast(sub[0]);
     emit(")");
   } else if (id_in(id,["=","+=","-=","*=","/=","~="])) {
@@ -242,6 +243,7 @@ void emit_ast(Cell c) {
     emit_ast(sub[1]);
     emit(")");
   } else if (id=="dotset") {
+    if (is_list_with_operator(sub[0],"&")) sub[0]=sub[0].lst[1];
     emit_ast(sub[0]);
     emit("."~as_string(sub[1]));
 /*    emit(".");

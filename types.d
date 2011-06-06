@@ -7,7 +7,7 @@ import llparse;
 import environments;
 import std.stdio;
 
-const bool debf=debflag && 0;
+const bool debf=debflag && 1;
 
 bool types_initialised=false;
 
@@ -57,8 +57,11 @@ const string[] type_ids=[
 
 struct Type {
   Cell cell;
+  string toString() {
+    return types.str(*this);
+  }
   void show() {
-    writef("%s\n",types.str(*this));
+    writef("%s\n",this);
   }
 }
 void prln(Type t) {
