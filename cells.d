@@ -131,6 +131,7 @@ struct Union {
 }
 Cell union_get(Union* u,string key) {
   if ((u.tag>=0) && (u.key[u.tag]==key)) return u.val;
+  writefln("%s / %s(%s)",key,u.key,u.tag);
   for (int k;k<u.key.length;++k) {
     if (key==u.key[k]) {
       assert(false,"trying to get union field "~key~", but last set was "~u.key[u.tag]);
@@ -138,6 +139,13 @@ Cell union_get(Union* u,string key) {
   }
   assert(false,"union has not field "~key);
   return null_cell();
+}
+Type union_get_type_of_field(Union* u,string key) {
+  for (int k;k<u.key.length;++k) {
+    if (key==u.key[k]) return u.typ[k];
+  }
+  assert(false,"union has not field "~key);
+  return TNull;
 }
 Cell union_set(Union* u,string key,Cell val) {
   for (int k;k<u.key.length;++k) {

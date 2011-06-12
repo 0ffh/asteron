@@ -690,12 +690,13 @@ Cell op_union_get(Cell[] args) {
   assert(args.length==2);
   Union* u=as_union(args[0]);
   string key=as_string(args[1]);
-  return union_get(u,key);
+  Type t=union_get_type_of_field(u,key);
+  return new_cell(t);
 }
 Cell op_union_set(Cell[] args) {
   static if (debf) {debEnter("[union_set]");scope (exit) debLeave();}
   assert(args.length==3);
-  Union* u=as_union(args[0]);
+  Union* u=as_union(op_deref([args[0]]));
   string key=as_string(args[1]);
   union_set(u,key,args[2]);
   return args[2];
@@ -843,7 +844,7 @@ void add_abs_libs(Env* env) {
 
   env_put(env,"union",lfun_cell(&op_union));
   env_putfun_sigstr(env,"dotget",fun_cell(&op_union_get),"((union) string)","any");
-  env_putfun_sigstr(env,"dotset",fun_cell(&op_union_set),"((union) string any)","any");
+  env_putfun_sigstr(env,"dotset",fun_cell(&op_union_set),"((ref (union)) string any)","any");
 
   //env_putfun_sigstr(env,"get",fun_cell(&op_any_get),"(any string)","any");
   //env_putfun_sigstr(env,"set",fun_cell(&op_any_set),"(any string any)","any");
