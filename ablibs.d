@@ -17,7 +17,7 @@ const bool debf=debflag;
 //----------------
 //---------------- core functions
 //----------------
-
+/*
 Cell[] abs_eval_all(Cell[] exps) {
   Cell[] ress;
   for (int k;k<exps.length;++k) {
@@ -31,6 +31,14 @@ Cell[] abs_eval_all(Cell[] exps) {
     assert(false,frm("Internal humbug error #ress=%d.",ress.length));
   }
   return ress;
+}
+*/
+void abs_eval_all(Cell[] exps) {
+  for (int k;k<exps.length;++k) {
+    Cell exp=exps[k];
+    Cell res=abs_eval(exp);
+    if (state.code==StC.abt) state.code=StC.run;
+  }
 }
 Cell op_if(Cell[] args) {
   static if (debf) {debEnter("[if]");scope (exit) debLeave();}
@@ -55,7 +63,7 @@ Cell op_for(Cell[] args) {
 //  state.brk=0;
 //  state.cnt=0;
   pop_env();
-  return c;
+  return null_cell();
 }
 Cell op_while(Cell[] args) {
   static if (debf) {debEnter("[while]");scope (exit) debLeave();}
@@ -67,7 +75,7 @@ Cell op_while(Cell[] args) {
 //  state.brk=0;
 //  state.cnt=0;
   pop_env();
-  return c;
+  return null_cell();
 }
 Cell op_dowhile(Cell[] args) {
   static if (debf) {debEnter("[dowhile]");scope (exit) debLeave();}
@@ -78,7 +86,7 @@ Cell op_dowhile(Cell[] args) {
   abs_eval(args[1]);
 //  state.brk=0;
   pop_env();
-  return c;
+  return null_cell();
 }
 Cell op_assign(Cell[] args) {
   static if (debf) {debEnter("[set!]");scope (exit) debLeave();}
