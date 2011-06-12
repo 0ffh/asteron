@@ -112,7 +112,7 @@ Cell resolve_symbol_except_ftabs(Cell sym) {
   return null_cell();
 }
 FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args,ref Env* e) {
-  static if (debf) {debEnter("resolve_name_as_ftab_entry(%s)",name);scope (exit) debLeave();}
+  static if (debf) {debEnter("resolve_name_as_ftab_entry('%s')",name);scope (exit) debLeave();}
   FTabEntry* candidate_entry;
   Cell candidate;
   e=environment;
@@ -229,7 +229,8 @@ Cell eval(Cell x) {
 //---------------- abstract eval helpers
 //----------------
 int fun_count;
-Cell[string] dollar_res;
+//Cell[string] dollar_res;
+FTabEntry*[string] dollar_res;
 FTabEntry*[] fun_list;
 FTabEntry*[] call_stack;
 FTabEntry* call_stack_top() {
@@ -314,7 +315,7 @@ Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args) {
 Cell abs_resolve_function(Cell sym,ref Cell[] args) {
   string debug_leave_message;
   static if (debf) {
-    debEnter("abs_resolve_function('"~sym.sym~"')");
+    debEnter("abs_resolve_function('%s',%s)",sym.sym,args);
     scope (exit) debLeave(frm("%s / %d",debug_leave_message,state.code));
   }
   writef("--------------- abs_resolve_function('%s')\n",sym.sym);
@@ -372,11 +373,13 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
       if (k>=args.length) break;
       entry.sig.ses[k].type=args[k].type;
     }
-    env_putfun(ftab_env,name,entry.fun,entry.sig,TAny);
+//    env_putfun(ftab_env,name,entry.fun,entry.sig,TAny);
+    entry.ret=TAny;
+    env_putfun(ftab_env,name,entry);
   }
   //--
-  writefln("entry.ret = %s",entry.ret);
   if ((entry.ret==TAny) || (!isa(entry.fun,TLambda))) {
+    writefln("A entry.ret(%s,'$%s') = %s",entry,entry.nam,entry.ret);
     if (isa(entry.fun,TLambda)) {
       if (entry.nam[0]!='$') {
         entry.nam="$"~entry.nam~"_"~toString(fun_count++);
@@ -384,25 +387,23 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
 //      entry.nam~="_"~toString(fun_count++);
 //      sym.sym="$"~entry.nam;
       sym.sym=entry.nam;
-      dollar_res[sym.sym]=new_cell(TAny);
+      dollar_res[sym.sym]=entry;//new_cell(TAny);
     }
     //-- return type unknown
     fun_list~=entry;
     call_stack_push(entry);
     Cell h=abs_eval(list_cell([entry.fun]~args));
-    entry.ret=h.type;
-    writefln("entry.ret = %s",entry.ret);
+    if ((entry.ret==TAny) || (!isa(entry.fun,TLambda))) entry.ret=h.type;
+    writefln("B entry.ret(%s,'%s') = %s",entry,entry.nam,entry.ret);
     while (entry.abt) {
+      assert(false);
       entry.abt=false;
       Cell r=abs_eval(list_cell([entry.fun]~args));
       entry.ret=r.type;
     }
     call_stack_pop();
-    //
-    if (isa(entry.fun,TLambda)) {
-      dollar_res[sym.sym]=new_cell(entry.ret);
-    }
   } else {
+    writefln("C entry.ret(%s,'%s') = %s",entry,entry.nam,entry.ret);
     //-- return type known
     if (isa(entry.fun,TLambda)) {
       if (entry.nam[0]!='$') {
@@ -410,9 +411,10 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
       }
 //      sym.sym="$"~entry.nam;
       sym.sym=entry.nam;
-      dollar_res[sym.sym]=new_cell(entry.ret);
+      dollar_res[sym.sym]=entry;//new_cell(entry.ret);
     }
     if (entry.ret==TAny) {
+      assert(false);
       entry.abt=true;
       state.code=StC.abt;
       state.val=new_cell(entry.ret);
@@ -448,7 +450,7 @@ Cell abs_eval(Cell x) {
   Cell x0=x.lst[0];
   while (isa(x0,TList)) x0=abs_eval(x0);
   if (isa(x0,TSymbol)) {
-    if (x0.sym[0]=='$') return dollar_res[x0.sym];
+    if (x0.sym[0]=='$') return new_cell(dollar_res[x0.sym].ret);
     Cell r=resolve_symbol_except_ftabs(x0);
     if (isa(r,TNull)) {
       bool dotget=(x0.sym=="dotget");
@@ -456,7 +458,9 @@ Cell abs_eval(Cell x) {
       if (dotset) {
         args[0]=list_cell([symbol_cell("&")]~args[0]);
       }
+      writefln("/// %s args=%s",x0,args);
       abs_eval_args(args,eargs);
+      writefln("/// %s eargs=%s",x0,eargs);
       r=abs_resolve_function(x0,eargs);
       if ((dotget || dotset) && (x0.sym[0]=='$')) {
         assert(args.length>1);
@@ -488,7 +492,11 @@ Cell abs_eval(Cell x) {
     //if (fte.env is null) fte.env=lamenv;
     fte.env=lamenv;
     Cell c=abs_evalin(lam.expr,lamenv);
-    if (state.code==StC.ret) state.code=StC.run;
+    if (state.code==StC.ret) {
+      assert(false);
+      state.code=StC.run;
+      c=state.val;
+    }
     return c;
   }
   writef("[unexpected type %d]\n",x0.type);

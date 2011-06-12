@@ -8,7 +8,7 @@ import llparse;
 import environments;
 import std.stdio;
 
-const bool debf=debflag && 1;
+const bool debf=debflag && !1;
 
 const int score_shift=3;
 const int exact_score=6;
@@ -346,7 +346,7 @@ int signature_matches(Signature sig,Type[] targ) {
 }
 bool signature_matches_perfectly(Signature sig,Type[] targ) {
   static if (debf) {debEnter("signature_matches_perfectly(Signature,Type[])");scope (exit) debLeave();}
-  const int verbose=true;
+  const int verbose=!true;
   if ((targ.length>sig.length) && (!sig.is_open())) return false;
   static if (verbose) writefln("----- signature_matches_perfectly?");
   static if (verbose) writefln("-- sig= %s",sig);

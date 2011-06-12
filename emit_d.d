@@ -389,7 +389,10 @@ void emit_ast(Cell c) {
 void emit_ast(FTabEntry* entry) {
   static if (debf) {debEnter("emit_ast(FTabEntry)");scope (exit) debLeave();}
   if (!isa(entry.fun,TLambda)) return;
-  writefln("=== emitting function %s : %s",entry.nam,cells.str(entry.fun));
+  writefln("=== emitting fun %s env %s : %s",entry.nam,entry.env,cells.str(entry.fun));
+  foreach (string key;entry.env.inner.keys) {
+    writefln(" # %s : %s",key,entry.env.inner[key]);
+  }
   //crlf();
   //emit("//----- defun %s",entry.nam);
   string[] nam=lambda_parameter_names(entry.fun);

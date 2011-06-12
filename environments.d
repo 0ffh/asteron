@@ -136,6 +136,25 @@ Cell env_putfun(Env* e,string key,Cell fun,Signature sig,Type ret) {
   //
   return *c;
 }
+Cell env_putfun(Env* e,string key,FTabEntry* fte) {
+  static if (debf) {debEnter("env_putfun(Env*,string,Cell,Type[])");scope (exit) debLeave();}
+  //-- read or generate function table
+  FTab* ft;
+  Cell* c=(key in e.inner);
+  if (c) {
+    if (!isa(*c,TFtab)) assert(false,"Trying to defun '"~key~"' over existing symbol.");
+    ft=c.ftab;
+  } else {
+    ft=mk_ftab();
+    c=cast(Cell*)([ftab_cell(ft)].ptr);
+    e.inner[key]=*c;
+  }
+  //--
+  //writef("putfun %s%s\n",key,str(par));
+  ftab_add(ft,fte);
+  //
+  return *c;
+}
 Cell env_putfun_sigstr(Env* e,string key,Cell fun,string sigstr,string retstr) {
   static if (debf) {debEnter("env_putfun_sigstr(Env*,string,Cell,string,string)");scope (exit) debLeave();}
   return env_putfun(e,key,fun,signature_string2signature(sigstr),type(retstr));
@@ -163,8 +182,8 @@ struct FTabEntry {
   }
 }
 struct FTab {
-  Env*        env;
-  FTabEntry[] dat;
+  Env*         env;
+  FTabEntry*[] dat;
 }
 FTab* mk_ftab(Env* e=null) {
   if (!e) e=environment;
@@ -174,7 +193,7 @@ FTab* mk_ftab(Env* e=null) {
 }
 string str(FTab* ft) {
   string s;
-  foreach (FTabEntry e;ft.dat) {
+  foreach (FTabEntry* e;ft.dat) {
     s~="("~signatures.str(e.sig)~" -> "~types.str(e.ret)~" "~cells.str(e.fun)~") ";
   }
   if (s.length) {
@@ -184,12 +203,17 @@ string str(FTab* ft) {
   }
   return s;
 }
+bool ftab_add(FTab* ft,FTabEntry* fte) {
+  static if (debf) {debEnter("ftab_add(FTab*,FTabEntry)");scope (exit) debLeave();}
+  ft.dat~=fte;
+  return true;
+}
 bool ftab_add(FTab* ft,Cell fun,Signature sig,Type ret) {
   static if (debf) {debEnter("ftab_add(FTab*,Cell,Type[])");scope (exit) debLeave();}
 //  writef("*** %s\n",str(tpar));
   /*Cell* now=ftab_find(ft,par);
   if (now !is null) return false;*/
-  ft.dat~=FTabEntry(sig,ret,fun,false,ft.env,"");
+  ft.dat~=[FTabEntry(sig,ret,fun,false,ft.env,"")].ptr;
   return true;
 }
 FTabEntry* ftab_resolve(FTab *ft,Cell[] args,string id="") {
@@ -208,8 +232,8 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
   //   in definition: parameter
   //   at call site: argument
 //  writefln("resolving %s%s",id,targs);
-  const bool show=true;
-  bool trace=true;
+  const bool show=!true;
+  bool trace=!true;
   //--
   static if (show) {
     if (trace) {
@@ -248,6 +272,6 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
     assert(false);
 //    return null;
   }
-  return &(ft.dat[bestk]);
+  return ft.dat[bestk];
 }
 
