@@ -102,14 +102,14 @@ Signature parameter_cell2signature(Cell arg) {
     SigElement se;
     if (a.lst.length==3) {
       se.defv=a.lst[2];
-      a.lst.length=1;
-    } else {
+      se.name=as_symbol(a.lst[1]);
+      se.type=type(a.lst[0]);
+    } else if (a.lst.length==2) {
       se.defv=null_cell();
-    }
-    if (a.lst.length==2) {
       se.name=as_symbol(a.lst[1]);
       se.type=type(a.lst[0]);
     } else {
+      se.defv=null_cell();
       se.name=as_symbol(a.lst[0]);
       se.type=TAny;
     }

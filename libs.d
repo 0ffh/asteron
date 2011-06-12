@@ -178,12 +178,15 @@ Cell op_function(Cell[] args) {
   // collect parameter names
   Cell[] pars=as_list(args[0]);
   // create and return lambda cell
+  Cell res;
   if (args.length>2) {
     // more than one expression -> implicit sequence
-    return lambda_cell(mk_lamb(list_cell(symbol_cell("seq")~args[1..$]),pars,mk_env(environment)));
+    res=lambda_cell(mk_lamb(list_cell(symbol_cell("seq")~args[1..$]),pars,mk_env(environment)));
   } else {
-    return lambda_cell(mk_lamb(args[1],pars,mk_env(environment)));
+    res=lambda_cell(mk_lamb(args[1],pars,mk_env(environment)));
   }
+  writefln("fun -> %s",res);
+  return res;
 }
 Cell op_seq(Cell[] args) {
   static if (debf) {debEnter("[seq]");scope (exit) debLeave();}

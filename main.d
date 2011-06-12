@@ -129,6 +129,7 @@ FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args,ref Env* e) {
     if (candidate_entry) break;
     e=e.outer;
   }
+  writef("******* candidate_entry %s\n",candidate_entry.fun);
   return candidate_entry;
 }
 FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args) {
@@ -257,6 +258,7 @@ void abs_eval_args(ref Cell[] args,ref Cell[] eargs) {
 }
 Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args) {
   static if (debf) {debEnter("abs_mk_lambda_environment");scope (exit) debLeave();}
+//  writefln("0 env for %s %s %s",lam.pars,lam.expr,lambda_cell(lam));
   Env* lamenv=lam.env;//env_clone(lam.env);
   //-- at least as much parameters as arguments (rest must be defaulted)
   for (int k=0;k<lam.pars.length;++k) {
@@ -312,6 +314,7 @@ Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args) {
     //
     assert(false,"Invokation error");
   }
+//  writefln("1 env for %s %s %s",lam.pars,lam.expr,lambda_cell(lam));
   return lamenv;
 }
 Cell abs_resolve_function(Cell sym,ref Cell[] args) {
@@ -486,7 +489,6 @@ Cell abs_eval(Cell x) {
     abs_eval_args(args,eargs);
     Lamb* lam=as_lambda(x0);
     Env* lamenv=abs_mk_lambda_environment(lam,args);
-//    writef("******* evaluate lambda\n%s\n",pretty_str(lam.expr,0));
     FTabEntry* fte=call_stack_top();
     //if (fte.env is null) fte.env=lamenv;
     fte.env=lamenv;

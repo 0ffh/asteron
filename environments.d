@@ -72,6 +72,7 @@ Cell env_put(Env* e,string key,Cell value) {
 //   if (types_initialised && !(key=="type_table")) {
 //     writef("env_put %s = %s [%s]\n",key,cells.str(value),types.str(value.type));
 //   }
+  //if (key=="foo") writefln("env_put %s %s\n",key,value);
   e.inner[key]=value;
   if (types_initialised && !(key=="type_table")) {
     value=e.inner[key];
@@ -87,6 +88,7 @@ Cell env_get(Env* e,string key) {
 //     if (types_initialised && !(key=="type_table")) {
 //       writef("env_get %s = %s [%s]\n", key, cells.str(*c),types.str(c.type));
 //     }
+    //if (key=="foo") writefln("env_get %s %s\n",key,*c);
     return *c;
 //     return c.clone();
   }
@@ -118,23 +120,7 @@ void env_pr(Env* env) {
   }
 }
 Cell env_putfun(Env* e,string key,Cell fun,Signature sig,Type ret) {
-  static if (debf) {debEnter("env_putfun(Env*,string,Cell,Type[])");scope (exit) debLeave();}
-  //-- read or generate function table
-  FTab* ft;
-  Cell* c=(key in e.inner);
-  if (c) {
-    if (!isa(*c,TFtab)) assert(false,"Trying to defun '"~key~"' over existing symbol.");
-    ft=c.ftab;
-  } else {
-    ft=mk_ftab();
-    c=cast(Cell*)([ftab_cell(ft)].ptr);
-    e.inner[key]=*c;
-  }
-  //--
-  //writef("putfun %s%s\n",key,str(par));
-  ftab_add(ft,fun,sig,ret);
-  //
-  return *c;
+  return env_putfun(e,key,[FTabEntry(sig,ret,fun,false,null,"")].ptr);
 }
 Cell env_putfun(Env* e,string key,FTabEntry* fte) {
   static if (debf) {debEnter("env_putfun(Env*,string,Cell,Type[])");scope (exit) debLeave();}
@@ -150,8 +136,9 @@ Cell env_putfun(Env* e,string key,FTabEntry* fte) {
     e.inner[key]=*c;
   }
   //--
-  //writef("putfun %s%s\n",key,str(par));
+  //writef("env_putfun %s %s\n",key,lambda_cell(fte.fun.lam));
   ftab_add(ft,fte);
+  //if (isa(fte.fun,TLambda)) writef("env_putfun %s %s\n",key,lambda_cell(fte.fun.lam));
   //
   return *c;
 }
@@ -205,15 +192,9 @@ string str(FTab* ft) {
 }
 bool ftab_add(FTab* ft,FTabEntry* fte) {
   static if (debf) {debEnter("ftab_add(FTab*,FTabEntry)");scope (exit) debLeave();}
+//  writef("*** ftab_add %s\n",fte.fun);
+  fte.env=ft.env;
   ft.dat~=fte;
-  return true;
-}
-bool ftab_add(FTab* ft,Cell fun,Signature sig,Type ret) {
-  static if (debf) {debEnter("ftab_add(FTab*,Cell,Type[])");scope (exit) debLeave();}
-//  writef("*** %s\n",str(tpar));
-  /*Cell* now=ftab_find(ft,par);
-  if (now !is null) return false;*/
-  ft.dat~=[FTabEntry(sig,ret,fun,false,ft.env,"")].ptr;
   return true;
 }
 FTabEntry* ftab_resolve(FTab *ft,Cell[] args,string id="") {
@@ -232,8 +213,8 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
   //   in definition: parameter
   //   at call site: argument
 //  writefln("resolving %s%s",id,targs);
-  const bool show=!true;
-  bool trace=!true;
+  const bool show=true;
+  bool trace=true;
   //--
   static if (show) {
     if (trace) {
@@ -272,6 +253,7 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
     assert(false);
 //    return null;
   }
+  writef("best match for %s%s -> %s\n",id,targs,ft.dat[bestk].fun);
   return ft.dat[bestk];
 }
 

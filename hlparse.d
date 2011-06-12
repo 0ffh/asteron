@@ -13,6 +13,7 @@ import std.string;
 const bool debf=debflag && 0;
 const bool new_dot_operator=true;
 
+string[string] opname;
 string[string] opeq;
 void init_hlparse() {
   opeq["+="]="+";
@@ -20,6 +21,10 @@ void init_hlparse() {
   opeq["*="]="*";
   opeq["/="]="/";
   opeq["~="]="~";
+  opname["+"]="opAdd";
+  opname["-"]="opSub";
+  opname["*"]="opMul";
+  opname["/"]="opDiv";
 }
 bool tav(Token t,string a,string v="") {
   // check token arity and value
@@ -272,6 +277,9 @@ Cell token2cell(Token t) {
     return list_cell([symbol_cell("="),id,sum]);
   }*/
   if (tav(t,"binary")) {
+    if (string* op=(t.value in opname)) {
+      //t.value=*op;
+    }
     if (string* op=(t.value in opeq)) {
       // (?= a b) -> (= a (? a b))
       Token h=new Token(*op,"binary",*op);

@@ -61,13 +61,14 @@ var fib_par=12,fib_res=144;
 defun test1() {
   start("fibonacci");
   defun fib(n) {
-    if (n<2) {
-      return n;
-    } else {
+    if (n>1) {
       return fib(n-2)+fib(n-1);
+    } else {
+      return n;
     }
   }
   test(fib(fib_par),fib_res);
+  test(fib(fib_par*1.0),fib_res);
   finish();
 }
 defun test2() {
@@ -253,8 +254,8 @@ defun test13() {
 defun test14() {
   start("default arguments");
   defun foo(a,b=2) return tostr([a,b]);
-  test(foo(0,1),"[0 1]");
-  test(foo(1),"[1 2]");
+  test(foo(0,1),"[0,1]");
+  test(foo(1),"[1,2]");
 //   test(typeof(new(array(int))),array(int));
 //   test(typeof(new(array())),array(any));
   finish();
@@ -397,7 +398,7 @@ defun mainx() {
   test11();
   test12();
   test13();
-//  test14();
+  test14();
   test15();
   test16();
   test17();

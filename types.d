@@ -7,7 +7,7 @@ import llparse;
 import environments;
 import std.stdio;
 
-const bool debf=debflag && 1;
+const bool debf=debflag && !1;
 
 bool types_initialised=false;
 

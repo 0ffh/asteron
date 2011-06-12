@@ -178,9 +178,9 @@ Cell op_defun(Cell[] args) {
   assert(args.length>=2);
   string name=as_symbol(args[0]);
   Cell val=list_cell(symbol_cell("function")~args[1..$]);
-  //writef("---A %s\n",pretty_str(val,0));
+  writef("---A %s\n",val);
   val=abs_eval(val);
-  //writef("---B %s\n",pretty_str(val,0));
+  writef("---B %s\n",val);
   Signature sig=parameter_cell2signature(args[1]);
   return env_putfun(environment,name,val,sig,TAny);
 }
@@ -195,12 +195,15 @@ Cell op_function(Cell[] args) {
   // collect parameter names
   Cell[] pars=as_list(args[0]);
   // create and return lambda cell
+  Cell res;
   if (args.length>2) {
     // more than one expression -> implicit sequence
-    return lambda_cell(mk_lamb(list_cell(symbol_cell("seq")~args[1..$]),pars,mk_env(environment)));
+    res=lambda_cell(mk_lamb(list_cell(symbol_cell("seq")~args[1..$]),pars,mk_env(environment)));
   } else {
-    return lambda_cell(mk_lamb(args[1],pars,mk_env(environment)));
+    res=lambda_cell(mk_lamb(args[1],pars,mk_env(environment)));
   }
+  writefln("fun -> %s",res);
+  return res;
 }
 Cell op_seq(Cell[] args) {
   static if (debf) {debEnter("[seq]");scope (exit) debLeave();}

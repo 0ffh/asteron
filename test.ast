@@ -1,21 +1,16 @@
 
 defun fib(n) {
-  if (n>=2) {
+  if (n>1) {
     return fib(n-2)+fib(n-1);
   } else {
     return n;
   }
 }
-
+defun foo(a,b=2) {
+  return tostr([a,b]);
+}
 defun main() {
-  deftype ts struct{string a,int i,float f};
-  //test("(struct (any a) (int i) (float f))",tostr(t));
-  defun dotset(ts@ x,string idx,value) return dotset(unpack(x@),idx,value);
-  defun dotget(ts x,string idx) return dotget(unpack(x),idx);
-  defun tostr(ts x) return "{a='"~tostr(x.a)~"',i="~tostr(x.i)~",f="~tostr(x.f)~"}";
-  var ts tsy;
-  prln(tostr(tsy),"{a='',i=0,f=0}");
-  tsy.a="prlnx";
-  prln(tsy.a,"prlnx");
-  prln(fib(12));
+  prln(fib(12),144);
+  prln(foo(0,1),"[0 1]");
+  prln(foo(1),"[1 2]");
 }
