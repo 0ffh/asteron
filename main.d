@@ -372,11 +372,11 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,Cell x) {
 //  writefln("--> %s",perfect_match);
   if (!entry.nam.length) entry.nam=name;
   if (entry.sig.ses.length>args.length) {
-    writef("appending to %s parameters %s",name,x.lst);
+    //writef("appending to %s parameters %s",name,x.lst);
     for (int k=args.length;k<entry.sig.ses.length;++k) {
       x.lst~=entry.sig.ses[k].defv;
     }
-    writef("-> %s\n",x.lst);
+    //writef(" -> %s\n",x.lst);
   }
   if (!perfect_match) {
 //    writefln("+++ not perfect match : %s",name);
