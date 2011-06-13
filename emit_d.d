@@ -411,10 +411,12 @@ void emit_ast(FTabEntry* entry) {
       if (k) emit(",");
       emit_ast(entry.sig.ses[k].type);
       emit(" "~nam[k]);
+      /*
       if (!isa(def[k],TNull)) {
         emit("=");
         emit_ast(def[k]);
       }
+      */
     }
   } else {
     int knam=0;

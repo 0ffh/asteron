@@ -129,7 +129,7 @@ FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args,ref Env* e) {
     if (candidate_entry) break;
     e=e.outer;
   }
-  writef("******* candidate_entry %s\n",candidate_entry.fun);
+//  writef("******* candidate_entry %s\n",candidate_entry.fun);
   return candidate_entry;
 }
 FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args) {
@@ -317,13 +317,13 @@ Env* abs_mk_lambda_environment(Lamb* lam,Cell[] args) {
 //  writefln("1 env for %s %s %s",lam.pars,lam.expr,lambda_cell(lam));
   return lamenv;
 }
-Cell abs_resolve_function(Cell sym,ref Cell[] args) {
+Cell abs_resolve_function(Cell sym,ref Cell[] args,Cell x) {
   string debug_leave_message;
   static if (debf) {
     debEnter("abs_resolve_function('%s',%s)",sym.sym,args);
     scope (exit) debLeave(frm("%s / %d",debug_leave_message,state.code));
   }
-  writef("--------------- abs_resolve_function('%s')\n",sym.sym);
+//  writef("--------------- abs_resolve_function('%s')\n",sym.sym);
   FTabEntry* entry;
   Env* ftab_env;
   string name=as_symbol(sym);
@@ -355,7 +355,7 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
         args=altargs;
         name=altname;
 //        entry=specialise_accessor(entry,fieldname);
-        writefln("### specialised accessor %s%s\n",name,entry.sig);
+//        writefln("### specialised accessor %s%s\n",name,entry.sig);
         Cell ftab_cell=env_putfun(ftab_env,name,entry.fun,entry.sig,TAny);
         entry=ftab_resolve(ftab_cell.ftab,args,name);
 //        ftab_add(ftab,entry.fun,entry.sig,entry.ret);
@@ -369,10 +369,17 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
     assert(false);
   }
   bool perfect_match=signature_matches_perfectly(entry.sig,args);
-  writefln("--> %s",perfect_match);
+//  writefln("--> %s",perfect_match);
   if (!entry.nam.length) entry.nam=name;
+  if (entry.sig.ses.length>args.length) {
+    writef("appending to %s parameters %s",name,x.lst);
+    for (int k=args.length;k<entry.sig.ses.length;++k) {
+      x.lst~=entry.sig.ses[k].defv;
+    }
+    writef("-> %s\n",x.lst);
+  }
   if (!perfect_match) {
-    writefln("+++ not perfect match : %s",name);
+//    writefln("+++ not perfect match : %s",name);
     entry=entry.clone();
     for (int k;k<entry.sig.ses.length;++k) {
       if (k>=args.length) break;
@@ -384,7 +391,7 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
   }
   //--
   if ((entry.ret==TAny) || (!isa(entry.fun,TLambda))) {
-    writefln("A entry.ret(%s,'%s') = %s",entry,entry.nam,entry.ret);
+//    writefln("A entry.ret(%s,'%s') = %s",entry,entry.nam,entry.ret);
     if (isa(entry.fun,TLambda)) {
       if (entry.nam[0]!='$') {
         entry.nam="$"~entry.nam~"_"~toString(fun_count++);
@@ -399,11 +406,11 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args) {
     call_stack_push(entry);
     Cell h=abs_eval(list_cell([entry.fun]~args));
     if ((entry.ret==TAny) || (!isa(entry.fun,TLambda))) entry.ret=h.type;
-    writefln("B entry.ret(%s,'%s') = %s",entry,entry.nam,entry.ret);
+//    writefln("B entry.ret(%s,'%s') = %s",entry,entry.nam,entry.ret);
     assert(!(entry.ret==TAny));
     call_stack_pop();
   } else {
-    writefln("C entry.ret(%s,'%s') = %s",entry,entry.nam,entry.ret);
+//    writefln("C entry.ret(%s,'%s') = %s",entry,entry.nam,entry.ret);
     //-- return type known
     if (isa(entry.fun,TLambda)) {
       if (entry.nam[0]!='$') {
@@ -459,11 +466,11 @@ Cell abs_eval(Cell x) {
       if (dotset) {
         args[0]=list_cell([symbol_cell("&")]~args[0]);
       }
-      writefln("/// %s args=%s",x0,args);
+//      writefln("/// %s args=%s",x0,args);
       abs_eval_args(args,eargs);
       if (state.code) {writef("!!!a state.code is %d\n",state.code);return state.val;}
-      writefln("/// %s eargs=%s",x0,eargs);
-      r=abs_resolve_function(x0,eargs);
+//      writefln("/// %s eargs=%s",x0,eargs);
+      r=abs_resolve_function(x0,eargs,x);
       if ((dotget || dotset) && (x0.sym[0]=='$')) {
         assert(args.length>1);
         assert(isa(args[1],TString));
@@ -605,7 +612,8 @@ void main(string[] args) {
     exec(fn);
   } else {
     if (args.length>1) fn=args[1]~".ast";
-    else fn="ctests.ast";
+    else if (1) fn="ctests.ast";
+    else fn="test.ast";
     abs_exec(fn);
   }
 //  writef("state.code=%d\n",state.code);

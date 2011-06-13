@@ -127,7 +127,7 @@ Cell op_def(Cell[] args) {
     value=new_cell(type);
   }
   if (type!=TAny) value.ann["typename"]=symbol_cell(types.str(type));
-  writef("[op_def] %s / %s : %s\n",name,types.str(type),types.str(value.type));
+//  writef("[op_def] %s / %s : %s\n",name,types.str(type),types.str(value.type));
   //-
   if (env_find(environment,name)==environment) {
     writef("Error: Symbol '%s' is already defined in this scope!\n",name);
@@ -156,7 +156,7 @@ Cell op_aliastype(Cell[] args) {
     alt=type_aliastype(name,type(args[1]));
     add_atype_name(typ,name);
   }
-  writef("aliastype %s / %s / %s\n",name,types.str(alt),types.str(typ));
+//  writef("aliastype %s / %s / %s\n",name,types.str(alt),types.str(typ));
 //   return env_put(environment,name,val);
   return env_put(base_env,name,type_cell(alt));
 }
@@ -178,9 +178,9 @@ Cell op_defun(Cell[] args) {
   assert(args.length>=2);
   string name=as_symbol(args[0]);
   Cell val=list_cell(symbol_cell("function")~args[1..$]);
-  writef("---A %s\n",val);
+//  writefln("---A %s",val);
   val=abs_eval(val);
-  writef("---B %s\n",val);
+//  writefln("---B %s",val);
   Signature sig=parameter_cell2signature(args[1]);
   return env_putfun(environment,name,val,sig,TAny);
 }
@@ -202,7 +202,7 @@ Cell op_function(Cell[] args) {
   } else {
     res=lambda_cell(mk_lamb(args[1],pars,mk_env(environment)));
   }
-  writefln("fun -> %s",res);
+//  writefln("fun -> %s",res);
   return res;
 }
 Cell op_seq(Cell[] args) {
@@ -657,7 +657,7 @@ Cell op_struct_get(Cell[] args) {
   Struct* s=as_struct(args[0]);
   string key=as_string(args[1]);
   Cell res=struct_get_field(s,key);
-  writef("struct_get_field %s -> [%s]\n",key,types.str(res.type));
+//  writef("struct_get_field %s -> [%s]\n",key,types.str(res.type));
   return res;
 }
 Cell op_struct_set(Cell[] args) {
@@ -669,7 +669,7 @@ Cell op_struct_set(Cell[] args) {
   Cell res=struct_get_field(s,key);
   unalias_type_of(res);
   //unalias_type_of(args[2]);
-  writef("struct_set_field %s [%s] -> [%s]\n",key,types.str(args[2].type),types.str(res.type));
+//  writef("struct_set_field %s [%s] -> [%s]\n",key,types.str(args[2].type),types.str(res.type));
   assert(res.type==args[2].type);
   return args[2];
 }

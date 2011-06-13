@@ -1,16 +1,5 @@
-
-defun fib(n) {
-  if (n>1) {
-    return fib(n-2)+fib(n-1);
-  } else {
-    return n;
-  }
-}
-defun foo(a,b=2) {
-  return tostr([a,b]);
-}
+defun foo(a,b=1) return a+b;
 defun main() {
-  prln(fib(12),144);
-  prln(foo(0,1),"[0 1]");
-  prln(foo(1),"[1 2]");
+  prln(foo(2,3),5);
+  prln(foo(2),3);
 }

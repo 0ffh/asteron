@@ -213,8 +213,8 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
   //   in definition: parameter
   //   at call site: argument
 //  writefln("resolving %s%s",id,targs);
-  const bool show=true;
-  bool trace=true;
+  const bool show=!true;
+  bool trace=!true;
   //--
   static if (show) {
     if (trace) {
@@ -253,7 +253,7 @@ FTabEntry* ftab_resolve(FTab* ft,Type[] targs,string id="") {
     assert(false);
 //    return null;
   }
-  writef("best match for %s%s -> %s\n",id,targs,ft.dat[bestk].fun);
+//  writef("best match for %s%s -> %s\n",id,targs,ft.dat[bestk].fun);
   return ft.dat[bestk];
 }
 
