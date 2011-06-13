@@ -34,10 +34,15 @@ Cell[] abs_eval_all(Cell[] exps) {
 }
 */
 void abs_eval_all(Cell[] exps) {
-  for (int k;k<exps.length;++k) {
-    Cell exp=exps[k];
-    Cell res=abs_eval(exp);
-    if (state.code==StC.abt) state.code=StC.run;
+  int ok=0;
+  while (ok<exps.length) {
+    ok=0;
+    for (int k;k<exps.length;++k) {
+      Cell exp=exps[k];
+      Cell res=abs_eval(exp);
+      if (state.code==StC.abt) state.code=StC.run;
+      else ++ok;
+    }
   }
 }
 Cell op_if(Cell[] args) {

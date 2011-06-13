@@ -442,7 +442,7 @@ Cell abs_eval(Cell x) {
   evalcell~=x;
   //writef("eval %s\n",pretty_str(x,0));
   scope (exit) evalcell.length=evalcell.length-1;
-  if (state.code) {writef("!!! state.code is %d\n",state.code);return state.val;}
+  if (state.code) {/*writef("!!! state.code is %d\n",state.code);*/return state.val;}
   if (isa(x,TSymbol)) return env_get(environment,x.sym);
   if (!isa(x,TList)) return x;
   if (!x.lst.length) return x;
@@ -468,7 +468,7 @@ Cell abs_eval(Cell x) {
       }
 //      writefln("/// %s args=%s",x0,args);
       abs_eval_args(args,eargs);
-      if (state.code) {writef("!!!a state.code is %d\n",state.code);return state.val;}
+      if (state.code) {/*writef("!!!a state.code is %d\n",state.code);*/return state.val;}
 //      writefln("/// %s eargs=%s",x0,eargs);
       r=abs_resolve_function(x0,eargs,x);
       if ((dotget || dotset) && (x0.sym[0]=='$')) {
