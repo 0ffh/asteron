@@ -10,7 +10,7 @@ import utils;
 import std.math;
 import std.stdio;
 
-const bool debf=debflag;
+const bool debf=debflag && 0;
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------

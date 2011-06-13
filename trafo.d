@@ -8,7 +8,7 @@ import signatures;
 import environments;
 import std.stdio;
 
-const bool debf=debflag;
+const bool debf=debflag && 0;
 
 bool operator_in_tree(Cell c,string op) {
   if (!isa(c,TList)) return false;

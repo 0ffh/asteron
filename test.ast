@@ -1,5 +1,9 @@
-defun foo(a,b=1) return a+b;
+
 defun main() {
-  prln(foo(2,3),5);
-  prln(foo(2),3);
+  var int[10] a;
+  //resize(a,10);
+  for (var int k;k<10;k=k+1) {
+    a[k]=k;
+  }
+  prln(a);
 }

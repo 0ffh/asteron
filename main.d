@@ -23,7 +23,7 @@ import std.stdio;
 import std.string;
 import std.format;
 
-const bool debf=debflag;
+const bool debf=debflag && 0;
 
 const bool require_declaration_before_use=true;
 
@@ -229,12 +229,13 @@ Cell eval(Cell x) {
 //----------------
 //---------------- abstract eval helpers
 //----------------
-int fun_count;
-//Cell[string] dollar_res;
+int[string] fun_index;
+int next_fun_index(string n) {
+  if (n in fun_index) return fun_index[n]=fun_index[n]+1;
+  return fun_index[n]=0;
+}
 FTabEntry*[string] dollar_res;
-FTabEntry*[] fun_list;
 int[FTabEntry*] fun_flag;
-int fun_flag_count;
 FTabEntry*[] call_stack;
 FTabEntry* call_stack_top() {
   assert(call_stack.length,"Abstract interpreter error: Call stack empty.");
@@ -253,6 +254,7 @@ void abs_eval_args(ref Cell[] args,ref Cell[] eargs) {
     eargs.length=args.length;
     for (int k;k<args.length;++k) {
       eargs[k]=abs_eval(args[k]);
+//      args[k].ann["ret"]=type_cell(eargs[k].type);
     }
   }
 }
@@ -385,7 +387,6 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,Cell x) {
       if (k>=args.length) break;
       entry.sig.ses[k].type=args[k].type;
     }
-//    env_putfun(ftab_env,name,entry.fun,entry.sig,TAny);
     entry.ret=TAny;
     env_putfun(ftab_env,name,entry);
   }
@@ -394,15 +395,13 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,Cell x) {
 //    writefln("A entry.ret(%s,'%s') = %s",entry,entry.nam,entry.ret);
     if (isa(entry.fun,TLambda)) {
       if (entry.nam[0]!='$') {
-        entry.nam="$"~entry.nam~"_"~toString(fun_count++);
+        entry.nam="$"~entry.nam~"_"~toString(next_fun_index(entry.nam));
       }
-//      entry.nam~="_"~toString(fun_count++);
-//      sym.sym="$"~entry.nam;
       sym.sym=entry.nam;
       dollar_res[sym.sym]=entry;//new_cell(TAny);
     }
     //-- return type unknown
-    if (!(entry in fun_flag)) fun_flag[entry]=fun_flag_count++;
+    if (!(entry in fun_flag)) fun_flag[entry]=fun_flag.length-1; // aa length is always one too big, it seems
     call_stack_push(entry);
     Cell h=abs_eval(list_cell([entry.fun]~args));
     if ((entry.ret==TAny) || (!isa(entry.fun,TLambda))) entry.ret=h.type;
@@ -414,9 +413,8 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,Cell x) {
     //-- return type known
     if (isa(entry.fun,TLambda)) {
       if (entry.nam[0]!='$') {
-        entry.nam="$"~entry.nam~"_"~toString(fun_count++);
+        entry.nam="$"~entry.nam~"_"~toString(next_fun_index(entry.nam));
       }
-//      sym.sym="$"~entry.nam;
       sym.sym=entry.nam;
       dollar_res[sym.sym]=entry;//new_cell(entry.ret);
     }
@@ -438,10 +436,19 @@ Cell abs_evalin(Cell x,Env* env) {
 }
 //Cell current_x;
 Cell abs_eval(Cell x) {
+  if (Cell* rtc=("res" in x.ann)) {
+    //writefln("cutting short %s -> %s",x,*rtc);
+    return *rtc;
+  }
+  Cell res=abs_eval_sub(x);
+  if (!state.code) x.ann["res"]=res;
+  return res;
+}
+Cell abs_eval_sub(Cell x) {
   static if (debf) {debEnter("abs_eval('%s')",cells.str(x));scope (exit) debLeave();}
   evalcell~=x;
   //writef("eval %s\n",pretty_str(x,0));
-  scope (exit) evalcell.length=evalcell.length-1;
+  scope (exit) {evalcell.length=evalcell.length-1;}
   if (state.code) {/*writef("!!! state.code is %d\n",state.code);*/return state.val;}
   if (isa(x,TSymbol)) return env_get(environment,x.sym);
   if (!isa(x,TList)) return x;
@@ -497,7 +504,6 @@ Cell abs_eval(Cell x) {
     Lamb* lam=as_lambda(x0);
     Env* lamenv=abs_mk_lambda_environment(lam,args);
     FTabEntry* fte=call_stack_top();
-    //if (fte.env is null) fte.env=lamenv;
     fte.env=lamenv;
     Cell c=abs_evalin(lam.expr,lamenv);
     return c;
@@ -562,8 +568,11 @@ void abs_exec_ast(string filename) {
     abs_eval(parse_string_to_cell("main();"));
     if (showflag) writef("%s\n",pretty_str(root,0));
     //if (showflag) show_fun_flag();
-    fun_list.length=fun_flag_count;
+    FTabEntry*[] fun_list;
+    fun_list.length=fun_flag.length;
+    int k;
     foreach (key;fun_flag.keys) {
+//      writefln("key %s/%s:%s",k++,fun_flag.length,fun_flag[key]);
       fun_list[fun_flag[key]]=key;
     }
     emit_d_main(root,fun_list,"out.d");

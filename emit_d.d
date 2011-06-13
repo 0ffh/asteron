@@ -16,7 +16,7 @@ import cells;
 import types;
 import environments;
 
-const bool debf=debflag;
+const bool debf=debflag && 0;
 
 FILE* dst;
 
@@ -281,7 +281,7 @@ void emit_ast(Cell c) {
     //}
   } else if (id=="call") {
     Cell cc=list_cell([sub[1],sub[0]]);
-    writefln("call : %s",cells.str(cc));
+//    writefln("call : %s",cells.str(cc));
     emit_ast(cc);
   } else if (id=="resize") {
     emit_ast(sub[0]);
@@ -323,18 +323,19 @@ void emit_ast(Cell c) {
     }
     emit(")");
   } else if (id=="def") {
+/*
     string name=as_symbol(sub[1]);
-    writefln("def %s",sub);
-    writefln("%s",pretty_str(env_cell(environment),1));
+//    writefln("def %s",sub);
+//    writefln("%s",pretty_str(env_cell(environment),1));
     Cell cel=env_get(environment,name);
-    /*writef("### define %s %s\n",name,types.str(cel.type));
-    writef("### define %s %s\n",name,cells.str(cel.type.cell));
-    emit_ast(cel.type);*/
+//    writef("### define %s %s\n",name,types.str(cel.type));
+//    writef("### define %s %s\n",name,cells.str(cel.type.cell));
+//    emit_ast(cel.type);
     string tn;
     Cell* tnp="typename" in cel.ann;
-    writefln("%s : %s [%s]\n",name,cells.str(cel,1),types.str(cel.type));
+//    writefln("%s : %s [%s]\n",name,cells.str(cel,1),types.str(cel.type));
     if (tnp is null) {
-      writefln("~~~ no type annotation for %s",name);
+//      writefln("~~~ no type annotation for %s",name);
       //assert(false);
       //tn=types.str(cel.type);
       emit_ast(cel.type);
@@ -342,6 +343,22 @@ void emit_ast(Cell c) {
       tn=as_symbol(*tnp);
       emit("%s",tn);
     }
+    emit(" %s",name);
+    if (sub.length>2) {
+      emit("=");
+      emit_ast(sub[2]);
+    }
+    */
+    string name=as_symbol(sub[1]);
+    Cell cel=env_get(environment,name);
+    Cell* tnp="typename" in cel.ann;
+    if (tnp) {
+      string tn=as_symbol(*tnp);
+      emit("%s",tn);
+    } else {
+      emit_ast(cel.type);
+    }
+//    emit_ast(sub[0]);
     emit(" %s",name);
     if (sub.length>2) {
       emit("=");
@@ -389,10 +406,10 @@ void emit_ast(Cell c) {
 void emit_ast(FTabEntry* entry) {
   static if (debf) {debEnter("emit_ast(FTabEntry)");scope (exit) debLeave();}
   if (!isa(entry.fun,TLambda)) return;
-  writefln("=== emitting fun %s env %s : %s",entry.nam,entry.env,cells.str(entry.fun));
-  foreach (string key;entry.env.inner.keys) {
+//  writefln("=== emitting fun %s env %s : %s",entry.nam,entry.env,cells.str(entry.fun));
+/*  foreach (string key;entry.env.inner.keys) {
     writefln(" # %s : %s",key,entry.env.inner[key]);
-  }
+  }*/
   //crlf();
   //emit("//----- defun %s",entry.nam);
   string[] nam=lambda_parameter_names(entry.fun);
@@ -444,13 +461,21 @@ void emit_ast(Type t,string name="") {
   } else if (is_array_type(t)) {
     Type st=get_array_subtype(t);
     emit_ast(st);
-    emit("[]");
+    Cell[] cf=get_compound_fields(t);
+    writefln("cf=%s",cf);
+    if (cf.length>1) {
+      emit("[");
+      emit(cf[1]);
+      emit("]");
+    } else {
+      emit("[]");
+    }
   } else if (is_ref_type(t)) {
     Type st=get_ref_subtype(t);
     emit_ast(st);
     emit("*");
   } else if (is_struct_type(t)) {
-    writef("emit struct type %s [%s]\n",name,types.str(t));
+//    writef("emit struct type %s [%s]\n",name,types.str(t));
     //string type_name=get_atype_name(t);
     Cell[] sc=get_compound_fields(t);
     emit("struct ");
@@ -463,7 +488,7 @@ void emit_ast(Type t,string name="") {
     }
     emit("}");
   } else if (is_union_type(t)) {
-    writef("emit union type %s [%s]\n",name,types.str(t));
+//    writef("emit union type %s [%s]\n",name,types.str(t));
     //string type_name=get_atype_name(t);
     Cell[] sc=get_compound_fields(t);
     emit("union ");

@@ -10,7 +10,7 @@ import utils;
 import std.math;
 import std.stdio;
 
-const bool debf=debflag;
+const bool debf=debflag && 0;
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -115,7 +115,10 @@ Cell op_def(Cell[] args) {
 //    writef("new %s\n",types.str(type));
     value=new_cell(type);
   }
-  if (type!=TAny) value.ann["typename"]=symbol_cell(types.str(type));
+  if (type!=TAny) {
+    string tstr=types.str(type);
+    if (tstr[0]!='(') value.ann["typename"]=symbol_cell(tstr);
+  }
 //  writef("[op_def] %s / %s : %s\n",name,types.str(type),types.str(value.type));
   //-
   if (env_find(environment,name)==environment) {
@@ -721,18 +724,11 @@ Cell op_getref(Cell[] args) {
 Cell op_deref(Cell[] args) {
   static if (debf) {debEnter("[deref]");scope (exit) debLeave();}
   assert(args.length==1);
-  Ref* r=as_ref(args[0]);
-  assert(r.env,"Trying to deref null reference (env)");
-  assert(r.id.length,"Trying to deref null reference (id)");
-  return abs_evalin(symbol_cell(r.id),r.env);
+  return new_cell(get_ref_subtype(args[0].type));
 }
 Cell op_ref_set(Cell[] args) {
   static if (debf) {debEnter("[deref]");scope (exit) debLeave();}
   assert(args.length==2);
-  Ref* r=as_ref(args[0]);
-  assert(r.env,"Trying to deref (left) null reference (env)");
-  assert(r.id.length,"Trying to deref (left) null reference (id)");
-  env_put(r.env,r.id,args[1]);
   return args[1];
 }
 Cell op_result(Cell[] args) {
