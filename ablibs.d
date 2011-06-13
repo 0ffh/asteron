@@ -17,22 +17,6 @@ const bool debf=debflag;
 //----------------
 //---------------- core functions
 //----------------
-/*
-Cell[] abs_eval_all(Cell[] exps) {
-  Cell[] ress;
-  for (int k;k<exps.length;++k) {
-    Cell exp=exps[k];
-    Cell res=abs_eval(exp);
-//     writef("abs_eval_all %d/%d: %d / %s\n",k,exps.length,state.code,types.str(res.type));
-    if (state.code==StC.abt) state.code=StC.run;
-    if (!isa(res,TAny)) ress~=res;
-  }
-  if ((!ress.length) && (exps.length)) {
-    assert(false,frm("Internal humbug error #ress=%d.",ress.length));
-  }
-  return ress;
-}
-*/
 void abs_eval_all(Cell[] exps) {
   int ok=0;
   while (ok<exps.length) {
