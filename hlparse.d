@@ -8,6 +8,7 @@ import llparse;
 import environments;
 import utils;
 import std.conv;
+import std.stdio;
 import std.string;
 
 const bool debf=debflag && 0;

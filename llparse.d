@@ -10,7 +10,7 @@ import std.conv;
 import std.stdio;
 import std.string;
 
-const bool debf=debflag && 0;
+const bool debf=debflag && 01;
 
 int max(int a,int b){return (a>b)?a:b;}
 
@@ -29,6 +29,19 @@ Lexeme[] lexemes;
 int lexeme_nr=0;
 Lexeme lexeme;
 Scope skope;
+string[] type_names=["type","any","int","float","string","array","struct","union","assoc"];
+
+bool is_type(string n) {
+  Token t=skope.find(n);
+  if (t) {
+    writefln("is_type: token '%s' found: %s",n,t);
+    return (t.arity=="type");
+  } else {
+    writefln("is_type: token '%s' not found",n);
+    return false;
+  }
+  //foreach (tn;type_names) if (tn==n) return true;
+}
 
 //------------------------------------------------------------
 //------------------------------------------------------------
@@ -103,6 +116,25 @@ class Token {
   string[] k2name=["first","second","third"];
   void show_js(int n=0) {
     writef("%s\n",jstr());
+  }
+  string toString(int n) {
+    string s;
+    s~="Token";
+    s~=frm(" id:'%s'",id);
+    s~=frm(" arity:'%s'",arity);
+    if (value.length) s~=frm(" value:'%s'",value);
+    if (name.length) s~=frm(" name:'%s'",name);
+    if (key.length) s~=frm(" key:'%s'",key);
+    s~=frm(" bp:%d\n",lbp);
+    for (int k;k<sub.length;++k) {
+      s~=spaces(n+1);
+      s~=frm("[%d]=",k);
+      s~=sub[k].toString(n+1);
+    }
+    return s;
+  }
+  string toString() {
+    return toString(0);
   }
   string jstr(int n=0) {
     n+=2;
@@ -502,14 +534,52 @@ Token constant(string s,string v) {
   x.value=v;
   return x;
 };
+Token type_statement(Token self) {
+  const bool verbose=false;
+  static if (debf) {debEnter("type.std");scope (exit) debLeave();}
+  Token[] a;
+  Token t;
+//  writefln("using type %s",self.value);
+//  retreat();
+//  retreat();
+  while (true) {
+    static if (verbose) writef("---\n");
+    t=type_name_value();
+    t.arity="statement";
+    t.value="def";
+    if (t.sub.length==4) {
+      Token val=t.sub[2];
+      t.sub.length=3;
+      static if (verbose) t.show();
+      a~=t;
+      t=t.clone();
+      t.arity="binary";
+      t.value="=";
+    }
+    static if (verbose) t.show();
+    a ~= t;
+    if (token.id != ",") {
+      break;
+    }
+    advance(",");
+  }
+  advance(";");
+  return arraytoken(a);
+}
 Token statement() {
   static if (debf) {debEnter("statement");scope (exit) debLeave();}
   Token n=token;
   Token v;
+//  writefln("%s",n);
+  if (is_type(n.value)) {
+    v=type_statement(n);
+    return v;
+  }
   if (n.std) {
     advance();
     skope.reserve(n);
-    return n.std(n);
+    v=n.std(n);
+    return v;
   }
   v=expression(0);
   if ((!v.assignment) && (v.id != "(") && (v.id != "++") && (v.id != "--")) {
@@ -889,7 +959,8 @@ void init_symbols() {
       advance(",");
     }
     advance(";");
-    return arraytoken(a);
+    Token at=arraytoken(a);
+    return at;
   });
   stmt("for", function Token(Token self) {
     static if (debf) {debEnter("for.std");scope (exit) debLeave();}
@@ -1248,9 +1319,9 @@ void show(Lexeme[] lexemes) {
 }
 void init_skope() {
   skope=new Scope();
-  //- add types
-  string[] tnames=["type","any","int","float","string","array","struct","union","assoc"];
-  foreach (tn;tnames) skope.define(type_token(tn));
+  foreach (tn;type_names) {
+    skope.define(type_token(tn));
+  }
 }
 void init_tokens(string src) {
   static if (debf) {debEnter("init_tokens");scope (exit) debLeave();}
@@ -1261,7 +1332,7 @@ void init_tokens(string src) {
   advance();
 }
 Token parse_string_to_token(string source) {
-  static if (debf) {debEnter("parse");scope (exit) debLeave();}
+  static if (debf) {debEnter("parse_string_to_token");scope (exit) debLeave();}
   if (!types_initialised) {
     writef("Base types must be initialised before parsing!\n");
     assert(false);

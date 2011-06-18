@@ -116,8 +116,7 @@ Cell aliastype_cell(string name,Cell def) {
 void replace_anonymous_structs_and_unions(Cell root) {
   static if (debf) {debEnter("find_anonymous_structs_and_unions(...)");scope (exit) debLeave();}
   root=first_with_operator(root,"seq");
-  //root=root.lst[1];
-  //writef("%s\n",cells.str(root));
+  if (!root) return;
   Cell[] aslist;
   Cell[] cs=cells_with_operator(root,"def");
   int anon_count;
@@ -146,6 +145,7 @@ void replace_anonymous_structs_and_unions(Cell root) {
 void move_typedefs_to_root(Cell root) {
   static if (debf) {debEnter("find_anonymous_structs(...)");scope (exit) debLeave();}
   root=first_with_operator(root,"seq");
+  if (!root) return;
   Cell[] defs=cells_with_operator(root,"deftype")~cells_with_operator(root,"supertype");
   Cell[] rdefs;
   foreach (ref def;defs) {
@@ -157,8 +157,7 @@ void move_typedefs_to_root(Cell root) {
 /*void insert_outer_seq_in_defuns(Cell root) {
   static if (debf) {debEnter("insert_outer_seq_in_lambdas(...)");scope (exit) debLeave();}
   root=first_with_operator(root,"seq");
-  //root=root.lst[1];
-  //writef("%s\n",cells.str(root));
+  if (!root) return;
   Cell[] cs=cells_with_operator(root,"defun");
   foreach (c;cs) {
     assert(isa(c,TList));

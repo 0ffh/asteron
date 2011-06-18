@@ -554,7 +554,7 @@ void abs_exec_ast(string filename) {
   //insert_outer_seq_in_defuns(root);
   //if (test) return;
   //if (root !is null) return;
-  //writef("%s\n",pretty_str(root,0));
+  writef("%s\n",pretty_str(root,0));
   operators_to_front(root,["defun","def"]);
   move_typedefs_to_root(root);
   operator_to_front(root,"supertype");
