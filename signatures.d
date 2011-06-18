@@ -297,7 +297,7 @@ int type_matches(Type tp,Type ta) {
   assert(isa(cp.lst[0],TSymbol)&&isa(ca.lst[0],TSymbol));
   if (cp.lst[0].sym!=ca.lst[0].sym) return fail_score;
   if (cp.lst.length<2) return super_score;
-  assert((cp.lst.length==2) && (ca.lst.length==2));
+  //assert((cp.lst.length==2) && (ca.lst.length==2));
   return type_matches(type(cp.lst[1]),type(ca.lst[1]))-1;
 }
 int signature_matches(Signature sig,Type[] targ) {

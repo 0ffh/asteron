@@ -29,19 +29,6 @@ Lexeme[] lexemes;
 int lexeme_nr=0;
 Lexeme lexeme;
 Scope skope;
-string[] type_names=["type","any","int","float","string","array","struct","union","assoc"];
-
-bool is_type(string n) {
-  Token t=skope.find(n);
-  if (t) {
-    writefln("is_type: token '%s' found: %s",n,t);
-    return (t.arity=="type");
-  } else {
-    writefln("is_type: token '%s' not found",n);
-    return false;
-  }
-  //foreach (tn;type_names) if (tn==n) return true;
-}
 
 //------------------------------------------------------------
 //------------------------------------------------------------
@@ -388,6 +375,16 @@ Scope new_skope() {
   skope.parent=s;
   return skope;
 };
+bool is_defined_as_type_name(string n) {
+  Token t=skope.find(n);
+  if (t) {
+//    writefln("is_defined_as_type_name: token '%s' found: %s",n,t);
+    return (t.arity=="type");
+  } else {
+//    writefln("is_defined_as_type_name: token '%s' not found",n);
+    return false;
+  }
+}
 
 //------------------------------------------------------------
 //------------------------------------------------------------
@@ -534,14 +531,11 @@ Token constant(string s,string v) {
   x.value=v;
   return x;
 };
-Token type_statement(Token self) {
+Token variable_declaration_stmt(Token self) {
   const bool verbose=false;
   static if (debf) {debEnter("type.std");scope (exit) debLeave();}
   Token[] a;
   Token t;
-//  writefln("using type %s",self.value);
-//  retreat();
-//  retreat();
   while (true) {
     static if (verbose) writef("---\n");
     t=type_name_value();
@@ -571,8 +565,8 @@ Token statement() {
   Token n=token;
   Token v;
 //  writefln("%s",n);
-  if (is_type(n.value)) {
-    v=type_statement(n);
+  if (is_defined_as_type_name(n.value)) {
+    v=variable_declaration_stmt(n);
     return v;
   }
   if (n.std) {
@@ -675,7 +669,7 @@ Token type_constructor() {
     return struct_type_constructor(token.value);
   }
   Token t=token;
-  if (skope.find(t.value).arity!="type") t.error("Type expected to be based on another type",__FILE__,__LINE__);
+  if (!is_defined_as_type_name(t.value)) t.error("Type expected to be based on another type",__FILE__,__LINE__);
   t=type_token(t.value);
   advance();
   if (token.id == ";") {
@@ -725,7 +719,7 @@ Token type_name_value() {
   static if (verbose) n.show();
   static if (verbose) skope.find(n.value).show();
   static if (verbose) writef("### name }\n");
-  if (skope.find(n.value).arity=="type") {
+  if (is_defined_as_type_name(n.value)) {
     static if (verbose) writef("### type {\n");
     typ=type_constructor();
     static if (verbose) typ.show();
@@ -932,36 +926,7 @@ void init_symbols() {
     return arraytoken(a);
   });
   //---
-  stmt("var", function Token(Token self) {
-    const bool verbose=false;
-    static if (debf) {debEnter("var.std");scope (exit) debLeave();}
-    Token[] a;
-    Token t;
-    while (true) {
-      static if (verbose) writef("---\n");
-      t=type_name_value();
-      t.arity="statement";
-      t.value="def";
-      if (t.sub.length==4) {
-        Token val=t.sub[2];
-        t.sub.length=3;
-        static if (verbose) t.show();
-        a~=t;
-        t=t.clone();
-        t.arity="binary";
-        t.value="=";
-      }
-      static if (verbose) t.show();
-      a ~= t;
-      if (token.id != ",") {
-        break;
-      }
-      advance(",");
-    }
-    advance(";");
-    Token at=arraytoken(a);
-    return at;
-  });
+  stmt("var", &variable_declaration_stmt);
   stmt("for", function Token(Token self) {
     static if (debf) {debEnter("for.std");scope (exit) debLeave();}
     new_skope();
@@ -1138,7 +1103,7 @@ void init_symbols() {
     self.value="supertype";
     self.arity="statement";
     if (skope.exist(token.value)) {
-      if (skope.find(token.value).arity!="type") token.error("Supertype name is already used",__FILE__,__LINE__);
+      if (!is_defined_as_type_name(token.value)) token.error("Supertype name is already used",__FILE__,__LINE__);
     } else {
       skope.define(type_token(token.value));
     }
@@ -1318,6 +1283,7 @@ void show(Lexeme[] lexemes) {
   writef("\n");
 }
 void init_skope() {
+  string[] type_names=["type","any","int","float","string","array","struct","union","assoc"];
   skope=new Scope();
   foreach (tn;type_names) {
     skope.define(type_token(tn));

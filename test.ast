@@ -1,7 +1,7 @@
 
 defun main() {
-  int[] a;
-  resize(a,10);
+  int[10] a;
+  //resize(a,10);
   for (int k=0;k<10;k=k+1) {
     a[k]=k;
   }
