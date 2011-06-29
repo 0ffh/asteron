@@ -7,7 +7,7 @@ import llparse;
 import environments;
 import std.stdio;
 
-const bool debf=debflag && !1;
+const bool debf=debflag && 0;
 
 bool types_initialised=false;
 
@@ -436,6 +436,7 @@ void init_types() {
 //--------------------
 //--------------------
 //--------------------
+
 string[string] type_names;
 void add_atype_name(Type typ,string name) {
 //  writef("*** add_atype_name %s %s\n",types.str(typ),name);
@@ -465,3 +466,4 @@ Type get_atype_by_name(string name) {
   }
   assert(false);
 }
+

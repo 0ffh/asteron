@@ -258,7 +258,7 @@ void abs_eval_args(ref Cell[] args,ref Cell[] eargs) {
     for (int k;k<args.length;++k) {
       eargs[k]=abs_eval(args[k]);
 //      args[k].ann["ret"]=type_cell(eargs[k].type);
-      unalias_type_of(eargs[k]);
+//      unalias_type_of(eargs[k]);
     }
   }
 }

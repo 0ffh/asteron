@@ -104,18 +104,15 @@ Cell op_def(Cell[] args) {
   string name;
   Cell value;
   assert(args.length>1);
-  //args[0].show();
   type=as_type(abs_eval(args[0]));
   name=as_symbol(args[1]);
   if (args.length>2) {
     assert(args.length==3);
-    //args[2].show();
     value=abs_eval(args[2]);
   } else {
-//    writef("new %s\n",types.str(type));
     value=new_cell(type);
   }
-//  writef("[op_def] %s / %s : %s\n",name,types.str(type),types.str(value.type));
+  if (isa(args[0],TSymbol)) value.ann["typename"]=args[0];
   //-
   if (env_find(environment,name)==environment) {
     writef("Error: Symbol '%s' is already defined in this scope!\n",name);
@@ -129,7 +126,7 @@ Cell op_deftype(Cell[] args) {
   string name=as_symbol(args[0]);
   Type typ=type_deftype(name,type(args[1]));
   Cell val=type_cell(typ);
-  add_atype_name(typ,name);
+  //add_atype_name(typ,name);
   return env_put(base_env,name,val);
 }
 Cell op_aliastype(Cell[] args) {

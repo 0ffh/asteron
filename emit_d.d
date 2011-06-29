@@ -54,6 +54,10 @@ void crlf() {fprintf(dst,"\n");newlnf=true;}
 //---------------- job
 //----------------
 
+bool is_forced_atype(Type typ) {
+  typ=unalias_type(typ);
+  return (is_struct_type(typ) || is_union_type(typ));
+}
 string callstr(Cell c) {
   string s;
   if (isa(c,TList)) {
@@ -325,8 +329,11 @@ void emit_ast(Cell c) {
   } else if (id=="def") {
     string name=as_symbol(sub[1]);
     Cell cel=env_get(environment,name);
-    emit_ast(cel.type);
-//    emit_ast(sub[0]);
+    if (has_atype_name(cel.type) && is_forced_atype(cel.type)) {
+      emit(get_atype_name(cel.type));
+    } else {
+      emit_ast(cel.type);
+    }
     emit(" %s",name);
     if (sub.length>2) {
       emit("=");
@@ -510,7 +517,7 @@ void emit_typedefs() {
         t=get_def_subtype(t);
         emit_typedef(key,t);
       }
-      if (is_alias_type(t)) {
+      if (is_alias_type(t) && is_forced_atype(t)) {
 //        writef("emit alias typedef %s\n",key);
         if (is_atype_name(key)) {
           t=get_alias_subtype(t);

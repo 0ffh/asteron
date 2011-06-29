@@ -1,11 +1,7 @@
 
 defun main() {
-  prln("structs (anonymous)");
-  var struct{string a,int i,float f} asx;
-  asx.a="prlnx";
-  prln(asx.a,"prlnx");
-  asx.i=1;
-  prln(asx.i,1);
-  asx.f=2.0;
+  aliastype intarr int[];
+  var intarr ia;
+  var int[] ib;
 }
 
