@@ -10,7 +10,7 @@ import std.conv;
 import std.stdio;
 import std.string;
 
-const bool debf=debflag && 01;
+const bool debf=debflag && 0;
 
 int max(int a,int b){return (a>b)?a:b;}
 

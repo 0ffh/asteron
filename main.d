@@ -23,7 +23,7 @@ import std.stdio;
 import std.string;
 import std.format;
 
-const bool debf=debflag && 0;
+const bool debf=debflag && 01;
 
 const bool require_declaration_before_use=true;
 
@@ -149,7 +149,10 @@ Cell resolve_function(Cell sym,ref Cell[] args) {
 void eval_args(ref Cell[] args,ref Cell[] eargs) {
   if (!eargs.length) {
     eargs.length=args.length;
-    for (int k;k<args.length;++k) eargs[k]=eval(args[k]);
+    for (int k;k<args.length;++k) {
+      eargs[k]=eval(args[k]);
+      unalias_type_of(eargs[k]);
+    }
   }
 }
 //----------------------------------------------------------------------
@@ -255,6 +258,7 @@ void abs_eval_args(ref Cell[] args,ref Cell[] eargs) {
     for (int k;k<args.length;++k) {
       eargs[k]=abs_eval(args[k]);
 //      args[k].ann["ret"]=type_cell(eargs[k].type);
+      unalias_type_of(eargs[k]);
     }
   }
 }
@@ -621,7 +625,7 @@ void main(string[] args) {
     exec(fn);
   } else {
     if (args.length>1) fn=args[1]~".ast";
-    else if (1) fn="ctests.ast";
+    else if (0) fn="ctests.ast";
     else fn="test.ast";
     abs_exec(fn);
   }

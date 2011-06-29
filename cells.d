@@ -97,12 +97,16 @@ struct Ref {
   string id;
   Env* env;
 }
-Cell unalias_type_of(Cell c) {
+void unalias_type_of(Cell c) {
+  while (is_alias_type(c.type)) c.type=get_alias_subtype(c.type);
+  if (is_ref_type(c.type)) c.type=ref_type_from_subtype(unalias_type(get_ref_subtype(c.type)));
+}
+/*Cell unalias_type_of(Cell c) {
   string s=types.str(c.type);
 //  writefln("+++++++ unaliasing type %s",s);
   c.type=unalias_type(c.type);
   return c;
-}
+}*/
 Type struct_get_fieldtype(Struct* s,string key) {
   for (int k;k<s.key.length;++k) {
     if (key==s.key[k]) return s.typ[k];
@@ -382,7 +386,7 @@ Cell cell_from_def_type(Type typ) {
 Cell cell_from_alias_type(Type typ) {
   static if (debf) {debEnter("cell_from_alias_type(Type)");scope (exit) debLeave();}
   Cell c=new_cell(get_alias_subtype(typ));
-//  c.type=typ;
+  c.type=typ;
   return c;
 //  return new_cell(get_alias_subtype(typ));
 }
@@ -571,7 +575,6 @@ Cell new_cell(Type t) {
 //  if (t==TAny) return null_cell();
   if (t==TNull) return null_cell();
   if (t==TSymbol) return symbol_cell("");
-  if (t==TNull) return null_cell();
   if (t==TString) return string_cell("");
   if (t==TInt) return int_cell(0);
   if (t==TFloat) return float_cell(0.0);

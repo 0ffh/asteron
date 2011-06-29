@@ -323,41 +323,9 @@ void emit_ast(Cell c) {
     }
     emit(")");
   } else if (id=="def") {
-/*
-    string name=as_symbol(sub[1]);
-//    writefln("def %s",sub);
-//    writefln("%s",pretty_str(env_cell(environment),1));
-    Cell cel=env_get(environment,name);
-//    writef("### define %s %s\n",name,types.str(cel.type));
-//    writef("### define %s %s\n",name,cells.str(cel.type.cell));
-//    emit_ast(cel.type);
-    string tn;
-    Cell* tnp="typename" in cel.ann;
-//    writefln("%s : %s [%s]\n",name,cells.str(cel,1),types.str(cel.type));
-    if (tnp is null) {
-//      writefln("~~~ no type annotation for %s",name);
-      //assert(false);
-      //tn=types.str(cel.type);
-      emit_ast(cel.type);
-    } else {
-      tn=as_symbol(*tnp);
-      emit("%s",tn);
-    }
-    emit(" %s",name);
-    if (sub.length>2) {
-      emit("=");
-      emit_ast(sub[2]);
-    }
-    */
     string name=as_symbol(sub[1]);
     Cell cel=env_get(environment,name);
-    Cell* tnp="typename" in cel.ann;
-    if (tnp) {
-      string tn=as_symbol(*tnp);
-      emit("%s",tn);
-    } else {
-      emit_ast(cel.type);
-    }
+    emit_ast(cel.type);
 //    emit_ast(sub[0]);
     emit(" %s",name);
     if (sub.length>2) {

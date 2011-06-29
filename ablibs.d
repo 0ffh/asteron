@@ -115,10 +115,6 @@ Cell op_def(Cell[] args) {
 //    writef("new %s\n",types.str(type));
     value=new_cell(type);
   }
-  if (type!=TAny) {
-    string tstr=types.str(type);
-    if (tstr[0]!='(') value.ann["typename"]=symbol_cell(tstr);
-  }
 //  writef("[op_def] %s / %s : %s\n",name,types.str(type),types.str(value.type));
   //-
   if (env_find(environment,name)==environment) {
