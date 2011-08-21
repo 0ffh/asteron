@@ -3,8 +3,9 @@
 
 // todo: more than you can shake a stick at
 
-module main;
+module ac;
 
+import eval_helpers;
 import emit_d;
 import debg;
 import ablibs;
@@ -39,100 +40,6 @@ int depth=0;
 int maxdepth=0;
 Cell[] evalcell;
 
-Env* mk_lambda_environment(Lamb* lam,Cell[] args) {
-  static if (debf) {debEnter("mk_lambda_environment");scope (exit) debLeave();}
-  Env* lamenv=env_clone(lam.env);
-  //-- at least as much parameters as arguments (rest must be defaulted)
-  for (int k=0;k<lam.pars.length;++k) {
-    //-- formal parameter
-    Cell par=lam.pars[k];
-    //-- handle ellipse (...)
-    if (k==(lam.pars.length-1)) {
-      string n;
-      if (isa(par,TSymbol)) {
-        n=par.sym;
-      }
-      if (isa(par,TList) && (par.lst.length==2)) {
-        n=as_symbol(par.lst[1]);
-      }
-      if (n=="...") {
-        env_put(lamenv,"ellipse",array_cell(args[k..$]));
-        break;
-      }
-    }
-    //-- handle defaulted parameter declaration ((type name value))
-    if (k>=args.length) {
-      //- no argument for this parameter
-      if (isa(par,TList) && (par.lst.length==3)) {
-        //- default argument available
-//        Cell t=par.lst[0];
-        string n=as_symbol(par.lst[1]);
-        env_put(lamenv,n,par.lst[2]);
-        continue;
-      }
-      //- no default argument
-      assert(false,"Missing invokation argument(s)");
-    }
-    //-- call argument
-    Cell arg=args[k];
-    //-- handle untyped parameter declaration (name)
-    if (isa(par,TSymbol)) {
-//      writefln("  put %s <- %s",par.sym,cells.str(arg));
-      env_put(lamenv,par.sym,arg);
-      continue;
-    }
-    //-- handle typed parameter declaration (type name)
-    if (isa(par,TList)) {
-      assert(par.lst.length>1);
-//      Cell t=par.lst[0];
-      string n=as_symbol(par.lst[1]);
-      env_put(lamenv,n,arg);
-      continue;
-    }
-    //
-    assert(false,"Invokation error");
-  }
-  return lamenv;
-}
-FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args,ref Env* e) {
-  static if (debf) {debEnter("resolve_name_as_ftab_entry('%s')",name);scope (exit) debLeave();}
-  FTabEntry* candidate_entry;
-  Cell candidate;
-  e=environment;
-  for (;;) {
-    //writef("looking up Function '%s' in environment %s\n",name,e);
-    if (e) e=env_find(e,name);
-    if (!e) {
-//      writef("*** Error: Function '%s' lookup failed!\n",name);
-      return null;
-    }
-    candidate=env_get(e,name);
-    if (!isa(candidate,TFtab)) continue;
-    candidate_entry=ftab_resolve(candidate.ftab,args,name);
-    if (candidate_entry) break;
-    e=e.outer;
-  }
-//  writef("******* candidate_entry %s\n",candidate_entry.fun);
-  return candidate_entry;
-}
-FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args) {
-  Env* e;
-  return resolve_name_as_ftab_entry(name,args,e);
-}
-Cell resolve_symbol_except_ftabs(Cell sym) {
-  static if (debf) {debEnter("resolve_symbol_except_ftabs");scope (exit) debLeave();}
-  Cell candidate;
-  string name=as_symbol(sym);
-  Env* e=environment;
-  while (e) {
-    e=env_find(e,name);
-    if (!e) break;
-    candidate=env_get(e,name);
-    if (!isa(candidate,TFtab)) return candidate;
-    e=e.outer;
-  }
-  return null_cell();
-}
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //----------------

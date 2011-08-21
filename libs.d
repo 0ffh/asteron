@@ -1,7 +1,7 @@
 module libs;
 
+import ai;
 import debg;
-import main;
 import cells;
 import types;
 import signatures;

@@ -4,6 +4,7 @@ optimise=0
 dmd_not_gdc=0
 -- files
 files={"ac","emit_d","ablibs",
+       "eval_helpers",
        "cells","types","trafo",
        "environments","signatures",
        "sexpr_parser","lexer",

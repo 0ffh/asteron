@@ -4,6 +4,7 @@ optimise=0
 dmd_not_gdc=0
 -- files
 files={"ai","libs",
+       "eval_helpers",
        "cells","types","trafo",
        "environments","signatures",
        "sexpr_parser","lexer",

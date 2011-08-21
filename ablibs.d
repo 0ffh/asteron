@@ -1,7 +1,7 @@
 module ablibs;
 
+import ac;
 import debg;
-import main;
 import cells;
 import types;
 import signatures;
@@ -285,7 +285,7 @@ Cell op_call(Cell[] args) {
     Cell fun=abs_evalin(args[1],objenv);
     assert(fun.type==TLambda);
     //-- make lambda environment
-    Env* lamenv=mk_lambda_environment(fun.lam,args[2..$]);
+    Env* lamenv=abs_mk_lambda_environment(fun.lam,args[2..$]);
     //-- relink environments
     objenv.outer=lamenv.outer;
     lamenv.outer=objenv;

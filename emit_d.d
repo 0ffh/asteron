@@ -8,8 +8,8 @@ import std.regexp;
 import std.c.stdio;
 import std.c.string;
 
+import ac;
 import debg;
-import main;
 import trafo;
 import utils;
 import cells;
