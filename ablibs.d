@@ -653,9 +653,9 @@ Cell op_struct_set(Cell[] args) {
   string key=as_string(args[1]);
   Cell res=struct_get_field(s,key);
   unalias_type_of(res);
-  //unalias_type_of(args[2]);
+  unalias_type_of(args[2]);
 //  writef("struct_set_field %s [%s] -> [%s]\n",key,types.str(args[2].type),types.str(res.type));
-  assert(res.type==args[2].type);
+//  assert(res.type==args[2].type);
   return args[2];
 }
 Cell op_union(Cell[] args) {

@@ -7,15 +7,13 @@ module main;
 
 import emit_d;
 import debg;
-import libs;
 import ablibs;
 import lexer;
 import cells;
 import types;
 import trafo;
 import utils;
-import lparse_sexpr;
-import hparse_sexpr;
+import sexpr_parser;
 import signatures;
 import environments;
 import std.file;
@@ -37,36 +35,10 @@ State state;
 
 Env* base_env;
 
-FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args,ref Env* e) {
-  static if (debf) {debEnter("resolve_name_as_ftab_entry('%s')",name);scope (exit) debLeave();}
-  FTabEntry* candidate_entry;
-  Cell candidate;
-  e=environment;
-  for (;;) {
-    //writef("looking up Function '%s' in environment %s\n",name,e);
-    if (e) e=env_find(e,name);
-    if (!e) {
-//      writef("*** Error: Function '%s' lookup failed!\n",name);
-      return null;
-    }
-    candidate=env_get(e,name);
-    if (!isa(candidate,TFtab)) continue;
-    candidate_entry=ftab_resolve(candidate.ftab,args,name);
-    if (candidate_entry) break;
-    e=e.outer;
-  }
-//  writef("******* candidate_entry %s\n",candidate_entry.fun);
-  return candidate_entry;
-}
-FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args) {
-  Env* e;
-  return resolve_name_as_ftab_entry(name,args,e);
-}
-//----------------------------------------------------------------------
-//----------------------------------------------------------------------
-//----------------
-//---------------- eval helpers
-//----------------
+int depth=0;
+int maxdepth=0;
+Cell[] evalcell;
+
 Env* mk_lambda_environment(Lamb* lam,Cell[] args) {
   static if (debf) {debEnter("mk_lambda_environment");scope (exit) debLeave();}
   Env* lamenv=env_clone(lam.env);
@@ -122,6 +94,31 @@ Env* mk_lambda_environment(Lamb* lam,Cell[] args) {
   }
   return lamenv;
 }
+FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args,ref Env* e) {
+  static if (debf) {debEnter("resolve_name_as_ftab_entry('%s')",name);scope (exit) debLeave();}
+  FTabEntry* candidate_entry;
+  Cell candidate;
+  e=environment;
+  for (;;) {
+    //writef("looking up Function '%s' in environment %s\n",name,e);
+    if (e) e=env_find(e,name);
+    if (!e) {
+//      writef("*** Error: Function '%s' lookup failed!\n",name);
+      return null;
+    }
+    candidate=env_get(e,name);
+    if (!isa(candidate,TFtab)) continue;
+    candidate_entry=ftab_resolve(candidate.ftab,args,name);
+    if (candidate_entry) break;
+    e=e.outer;
+  }
+//  writef("******* candidate_entry %s\n",candidate_entry.fun);
+  return candidate_entry;
+}
+FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args) {
+  Env* e;
+  return resolve_name_as_ftab_entry(name,args,e);
+}
 Cell resolve_symbol_except_ftabs(Cell sym) {
   static if (debf) {debEnter("resolve_symbol_except_ftabs");scope (exit) debLeave();}
   Cell candidate;
@@ -135,97 +132,6 @@ Cell resolve_symbol_except_ftabs(Cell sym) {
     e=e.outer;
   }
   return null_cell();
-}
-Cell resolve_function(Cell sym,ref Cell[] args) {
-  static if (debf) {debEnter("resolve_function");scope (exit) debLeave();}
-  string name=as_symbol(sym);
-  FTabEntry* entry=resolve_name_as_ftab_entry(name,args);
-  if (!entry) {
-    writef("*** Error: Function '%s' lookup failed!\n",name);
-    assert(false);
-  }
-  return entry.fun;
-}
-void eval_args(ref Cell[] args,ref Cell[] eargs) {
-  if (!eargs.length) {
-    eargs.length=args.length;
-    for (int k;k<args.length;++k) {
-      eargs[k]=eval(args[k]);
-      unalias_type_of(eargs[k]);
-    }
-  }
-}
-//----------------------------------------------------------------------
-//----------------------------------------------------------------------
-//----------------
-//---------------- eval
-//----------------
-int depth=0;
-int maxdepth=0;
-Cell[] evalcell;
-Cell evalin(Cell x,Env* env) {
-  push_env(env);
-  x=eval(x);
-  pop_env();
-  return x;
-}
-Cell eval(Cell x) {
-  static if (debf) {debEnter("eval('%s')",cells.str(x));scope (exit) debLeave();}
-  evalcell~=x;
-  scope (exit) evalcell.length=evalcell.length-1;
-  x=x.clone(); // *** TODO: get by without cloning here
-  static if (0) {
-    maxdepth=max(maxdepth,++depth);
-    scope (exit) --depth;
-  }
-  static if (0) {
-    indent(depth);
-    writef("%s\n",str(x));
-  }
-  if (state.code) {
-//    writefln("code = %s\n",state.code);
-    return state.val;
-  }
-  if (isa(x,TSymbol)) return env_get(environment,x.sym);
-  if (!isa(x,TList)) return x;
-  if (!x.lst.length) return x;
-  Cell[] args=x.lst[1..$].dup; // !!! dup needed
-  Cell[] eargs;
-  Cell x0=x.lst[0];
-  while (isa(x0,TList)) x0=eval(x0);
-  if (isa(x0,TSymbol)) {
-    Cell r=resolve_symbol_except_ftabs(x0);
-    if (isa(r,TNull)) {
-      eval_args(args,eargs);
-      r=resolve_function(x0,eargs);
-    }
-    x0=r;
-  }
-  if (isa(x0,TLfun)) {
-//    writefln("lazy %s",cells.str(x.lst[0]));
-    return x0.lfn(args);
-  }
-  if (isa(x0,TFun)) {
-    eval_args(args,eargs);
-    return x0.fun(eargs);
-  }
-  if (isa(x0,TLambda)) {
-    eval_args(args,eargs);
-    Lamb* lam=as_lambda(x0);
-    Env* lamenv=mk_lambda_environment(lam,eargs);
-    static if (0) {
-      writef("----- lamenv\n");
-      lamenv.show();
-      writef("----- lamenv.outer\n");
-      if (lamenv.outer) lamenv.outer.show();
-    }
-    Cell c=evalin(lam.expr,lamenv);
-    if (state.code==StC.ret) state.code=StC.run;
-    return c;
-  }
-  writef("[unexpected type %d]\n",x0.type);
-  writef("[type name is %s]\n",types.str(x0.type));
-  assert(false);
 }
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -521,37 +427,10 @@ Cell abs_eval_sub(Cell x) {
 //----------------
 //---------------- test
 //----------------
-void exec_l(string filename) {
-  Cell c=parse_sexpr(cast(string)std.file.read(filename));
-  c.show(true);
-  eval(c);
-}
-void exec_ast(string filename) {
-  bool showflag=!true;
-  bool reorder=true;
-  Cell c=parse_file_to_cell(filename);
-//  if (showflag) c.show(true);
-  reduce_seq_of_one(c);
-  if (reorder) {
-    operators_to_front(c,["defun","def"]);
-    operator_to_front(c,"supertype");
-    operator_to_front(c,"aliastype");
-    operator_to_front(c,"deftype");
-    if (showflag) writef("%s\n",pretty_str(c,0));
-  }
-  writef("%s\n",pretty_str(c,0));
-//  Cell run=list_cell([symbol_cell("main")]);
-  push_env();
-  eval(c);
-//  eval(run);
-  pop_env();
-//  push_env();eval(c);eval(run);pop_env();
-//  if (showflag) c.show(true);
-}
 void abs_exec_ast(string filename) {
   bool showflag=!true;
   bool test=true;
-  Cell root=parse_file_to_cell(filename);
+  Cell root=parse_sexpr_file(filename);
   if (showflag) root.show(true);
   //
   reduce_seq_of_one(root);
@@ -569,7 +448,7 @@ void abs_exec_ast(string filename) {
   static if (1) {
     writef("%s\n",pretty_str(root,0));
     abs_eval(root);
-    abs_eval(parse_string_to_cell("main();"));
+    abs_eval(parse_sexpr("(main)"));
     if (showflag) writef("%s\n",pretty_str(root,0));
     //if (showflag) show_fun_flag();
     FTabEntry*[] fun_list;
@@ -593,23 +472,16 @@ void abs_exec_ast(string filename) {
 Env* mk_base_env() {
   Env* e=mk_env();
   push_env(e);
-  init_hparse_sexpr();
   init_types();
   return e;
 }
 void dump_info() {
   env_pr(environment);
 }
-void exec(string fn) {
-  base_env=mk_base_env();
-  init_libs();
-  push_env();
-  exec_ast(fn);
-}
 void abs_exec(string fn) {
   base_env=mk_base_env();
   init_abs_libs();
-//   push_env();
+//  push_env();
   abs_exec_ast(fn);
 }
 void env_info() {
@@ -618,16 +490,7 @@ void env_info() {
 }
 void main(string[] args) {
   string fn;
-//  state.code=StC.run;
-  if (1) {
-    if (args.length>1) fn=args[1]~".ast";
-    else fn="itests.ast";
-    exec(fn);
-  } else {
-    if (args.length>1) fn=args[1]~".ast";
-    else if (0) fn="ctests.ast";
-    else fn="test.ast";
-    abs_exec(fn);
-  }
-//  writef("state.code=%d\n",state.code);
+  if (args.length>1) fn=args[1]~".l";
+  else fn="ctests.l";
+  abs_exec(fn);
 }

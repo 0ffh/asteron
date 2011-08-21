@@ -417,3 +417,5 @@ defun mainy() {
 defun main() {
   mainx();
 }
+main();
+

@@ -531,7 +531,7 @@ Token constant(string s,string v) {
   x.value=v;
   return x;
 };
-Token variable_declaration_stmt(Token self) {
+Token variable_declaration_statement(Token self) {
   const bool verbose=false;
   static if (debf) {debEnter("type.std");scope (exit) debLeave();}
   Token[] a;
@@ -566,7 +566,8 @@ Token statement() {
   Token v;
 //  writefln("%s",n);
   if (is_defined_as_type_name(n.value)) {
-    v=variable_declaration_stmt(n);
+    // TODO: allow functions as well as variables to start with type name
+    v=variable_declaration_statement(n);
     return v;
   }
   if (n.std) {
@@ -926,7 +927,7 @@ void init_symbols() {
     return arraytoken(a);
   });
   //---
-  stmt("var", &variable_declaration_stmt);
+  stmt("var", &variable_declaration_statement);
   stmt("for", function Token(Token self) {
     static if (debf) {debEnter("for.std");scope (exit) debLeave();}
     new_skope();
@@ -1310,49 +1311,3 @@ Token parse_string_to_token(string source) {
   return t;
 };
 
-//----------------------------------------------------------------------
-//----------------------------------------------------------------------
-//----------------
-//---------------- lisp parser
-//----------------
-
-Cell atom(Lexeme token) {
-  static if (debf) {debEnter("atom");scope (exit) debLeave();}
-  if (token.type=="operator") return symbol_cell(token.val);
-  if (token.type=="name") return symbol_cell(token.val);
-  if (token.type=="string") return string_cell(token.val);
-  if (token.type=="number") {
-    try {
-      return int_cell(toInt(token.val));
-    } catch {
-      return float_cell(toFloat(token.val));
-    }
-  }
-  writef("*** [%s] ***\n",token.val);
-  assert(false);
-}
-Cell lparse(Lexeme[] tokens,ref int pos) {
-  static if (debf) {debEnter("read_from(Lexeme[],int)");scope (exit) debLeave();}
-  assert(tokens.length>pos,"unexpected EOF while reading");
-  if (!pos) tokens=rm_whitespaces(tokens);
-  Lexeme token=tokens[pos++];
-  if (token.val=="(") {
-    Cell c=list_cell([]);
-    while (tokens[pos].val!=")") c.lst~=lparse(tokens,pos);
-    ++pos; // pop off ')'
-    return c;
-  }
-  if (token.val==")") assert(false,"unexpected )");
-  return atom(token);
-}
-Cell lparse(Lexeme[] tokens) {
-  if (!types_initialised) {
-    writef("Base types must be initialised before parsing!\n");
-    assert(false);
-  }
-  int pos=0;
-  return lparse(rm_whitespaces(tokens),pos);
-}
-Cell lparse(string text) {
-  return lparse(llex(text));
-}

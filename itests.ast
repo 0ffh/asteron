@@ -36,7 +36,7 @@ defun summary() {
   if (errors) {
     prln(errors,"of",tests,"tests failed!");
   } else {
-    prln("All tests succeeded!");
+    prln("All",tests,"tests succeeded!");
   }
   pr("Total time spent on all tests: ");
   toc();

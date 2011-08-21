@@ -3,7 +3,7 @@ module types;
 import debg;
 import utils;
 import cells;
-import llparse;
+import sexpr_parser;
 import environments;
 import std.stdio;
 
@@ -335,7 +335,7 @@ Type ref_type_from_subtype(Type subtyp) {
 //--------------------
 Type type(string typestring) {
   static if (debf) {debEnter("type(string '"~typestring~"')");scope (exit) debLeave();}
-  return type(lparse(typestring));
+  return type(parse_sexpr(typestring));
 }
 Type type(Cell val) {
   static if (debf) {debEnter("type(Cell)");scope (exit) debLeave();}

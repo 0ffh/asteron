@@ -875,3 +875,149 @@ string pretty_str(Cell c,int ind) {
   }
   return "["~types.str(c.type)~"]";
 }
+//--------------------
+//-------------------- bondage_str
+//--------------------
+string bondage_str(Cell c,int ind) {
+  int clothedString=1;
+  int rec=1;
+  if (!types_initialised) {
+    writef("Base types must be initialised before using cells.str!\n");
+    assert(false);
+  }
+  if (c.type==TInt) {
+    return frm("%d",c.fix);
+  }
+  if (c.type==TFloat) {
+    string s=frm("%g",cast(double)c.flt);
+    if (find(s,'.')<0) s~=".0";
+    return s;
+  }
+  if (c.type==TList) {
+    string s;
+    if ((c.lst.length) && (is_sym(c.lst[0],"seq"))) {
+      s~="\n"~spaces(ind+1);
+      s~="(";
+      for (int k=0;k<c.lst.length;++k) {
+        s~=bondage_str(c.lst[k],ind+2);
+        if (k+1<c.lst.length) s~="\n"~spaces(ind+2);
+      }
+      s~=")";
+    } else if ((c.lst.length) && (is_sym(c.lst[0],"switch"))) {
+        s~="(";
+        for (int k=0;k<c.lst.length;++k) {
+          s~=bondage_str(c.lst[k],ind+2);
+          if (k+1<c.lst.length) {
+            if (k&1) {
+              s~="\n"~spaces(ind+2);
+            } else {
+              s~=" ";
+            }
+          }
+        }
+        s~=")";
+    } else {
+      s="(";
+      for (int k;k<c.lst.length;++k) s~=bondage_str(c.lst[k],ind)~" ";
+      if (c.lst.length) s.length=s.length-1;
+      s~=")";
+    }
+    return s;
+  }
+  if (is_array_type(c.type)) {
+    string s;
+    s="[";
+    for (int k;k<c.arr.inner.length;++k) s~=bondage_str(c.arr.inner[k],ind)~" ";
+    if (s.length>1) s.length=s.length-1;
+    s~="]";
+    return s;
+  }
+  if (c.type==TSymbol) {
+    return c.sym;
+  }
+  if (c.type==TString) {
+    if (clothedString) {
+      return "\""~c.str~"\"";
+    } else {
+      return c.str;
+    }
+  }
+  if (c.type==TAny) return "any";
+  if (c.type==TNull) return "null";
+  if (is_struct_type(c.type)) {
+    Struct struc=*as_struct(c);
+    string s="{";
+    for (int k;k<struc.key.length;++k) {
+//      s~=types.str(struc.typ[k])~" ";
+      string key=struc.key[k];
+      Cell val=struc.val[k];
+      s~=key~"="~bondage_str(val,ind)~",";
+    }
+    if (s[$-1]==',') {
+      s[$-1]='}';
+    } else {
+      s~="}";
+    }
+    return s;
+  }
+  if (is_union_type(c.type)) {
+    Union uni=*as_union(c);
+    string s="{";
+    for (int k;k<uni.key.length;++k) {
+//      s~=types.str(uni.typ[k])~" ";
+      string key=uni.key[k];
+      if (k==uni.tag) {
+        s~=key~"="~bondage_str(uni.val,ind)~",";
+      } else {
+        s~=key~",";
+      }
+    }
+    if (s[$-1]==',') {
+      s[$-1]='}';
+    } else {
+      s~="}";
+    }
+    return s;
+  }
+  if (is_assoc_type(c.type)) {
+    string s="{";
+    foreach (key;c.asc.inner.keys) {
+      if (is_assoc_type(c.asc.inner[key].type)) {
+        s~=key~":[TAssoc],\n";
+      } else {
+        s~=key~":"~bondage_str(c.asc.inner[key],ind)~",\n";
+      }
+    }
+    if (s[$-1]==',') {
+      s[$-1]='}';
+    } else {
+      s~="}";
+    }
+    return s;
+  }
+  if (c.type==TFtab) return "[TFtab "~environments.str(as_ftab(c))~"]";
+  if (c.type==TFun) return "[TFun]";
+  if (c.type==TLfun) return "[TLfun]";
+  if (c.type==TEnv) return bondage_str(assoc_cell(c.env.inner),ind);
+  if (c.type==TLambda) {
+    if (clothedString||1) {
+      string s="lambda(";
+      foreach (p;c.lam.pars) s~=cells.str(p)~" ";
+      if (s[$-1]==' ') s.length=s.length-1;
+      s~=")"~cells.str(c.lam.expr,1);
+      return s;
+    } else {
+      return "[TLambda]";
+    }
+  }
+  if (c.type==TType) {
+    Type t=as_type(c);
+    return types.str(t);
+  }
+  //
+  if (is_def_type(c.type)) {
+    c.type=get_def_subtype(c.type);
+    return cells.str(c);
+  }
+  return "["~types.str(c.type)~"]";
+}

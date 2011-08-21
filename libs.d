@@ -185,7 +185,7 @@ Cell op_function(Cell[] args) {
   } else {
     res=lambda_cell(mk_lamb(args[1],pars,mk_env(environment)));
   }
-  writefln("fun -> %s",res);
+//  writefln("fun -> %s",res);
   return res;
 }
 Cell op_seq(Cell[] args) {

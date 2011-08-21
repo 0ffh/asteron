@@ -4,7 +4,7 @@ import debg;
 import utils;
 import cells;
 import types;
-import llparse;
+import sexpr_parser;
 import environments;
 import std.stdio;
 
@@ -76,12 +76,12 @@ string str(Signature sig) {
 }
 /*Signature argument_string2signature(string argstr) {
   static if (debf) {debEnter("argument_string2signature(string)");scope (exit) debLeave();}
-  return parameter_cell2signature(lparse(argstr));
+  return parameter_cell2signature(parse_sexpr(argstr));
 }*/
 Signature signature_string2signature(string sigstr) {
   static if (debf) {debEnter("signature_string2signature(string)");scope (exit) debLeave();}
 //  writef("x ");
-  return signature_cell2signature(lparse(sigstr));
+  return signature_cell2signature(parse_sexpr(sigstr));
 }
 Signature parameter_cell2signature(Cell arg) {
   static if (debf) {debEnter("parameter_cell2signature(Cell)");scope (exit) debLeave();}

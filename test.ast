@@ -1,7 +1,13 @@
 
+defun foo(x) {
+  var struct{any a,any b} s;
+  s.a=x;
+  s.b=x;
+//  prln(s);
+}
+
 defun main() {
-  aliastype intarr int[];
-  var intarr ia;
-  var int[] ib;
+  foo(1);
+  foo("aaa");
 }
 
