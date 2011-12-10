@@ -1,4 +1,5 @@
-Asteron programming language parser, interpreter & compiler
+
+Asteron programming language parser, interpreter & compiler (translation to D, later C)
 
 Asteron in a nutshell: Take C, add duck typing, ???, profit!
 
@@ -6,3 +7,7 @@ This project is still not even deserving of a version number... I wish I had mor
 
 Announcements, bragging & documentation are deferred until this changes (I hope not forever).
 
+  0ffh
+
+p.s.
+I wish I had more time!
