@@ -150,7 +150,10 @@ Type type_deftype(string name,Type t) {
 //-------------------- aliastype
 //--------------------
 Type unalias_type(Type t) {
-  while (is_alias_type(t)) t=get_alias_subtype(t);
+  while (is_alias_type(t)) {
+    t=get_alias_subtype(t);
+    writef("alias type %s\n",str(t));
+  }
   return t;
 }
 Cell unalias_type(Cell t) {
@@ -431,39 +434,3 @@ void init_types() {
   //
   foreach (tid;type_ids) env_put(environment,tid,type_cell(type(tid)));
 }
-//----------------------------------------------------------------------
-//----------------------------------------------------------------------
-//--------------------
-//--------------------
-//--------------------
-
-string[string] type_names;
-void add_atype_name(Type typ,string name) {
-//  writef("*** add_atype_name %s %s\n",types.str(typ),name);
-  assert(!has_atype_name(typ));
-  type_names[str(typ)]=name;
-}
-string get_atype_name(Type typ) {
-  string name;
-  string *pname=str(typ) in type_names;
-  assert(pname !is null);
-  if (pname is null) name=""; else name=*pname;
-//  writef("*** get_atype_name %s %s\n",types.str(typ),name);
-  return name;
-}
-bool has_atype_name(Type typ) {
-  return ((str(typ) in type_names) !is null);
-}
-bool is_atype_name(string name) {
-  foreach (string key;type_names.keys) {
-    if (type_names[key]==name) return true;
-  }
-  return false;
-}
-Type get_atype_by_name(string name) {
-  foreach (string key;type_names.keys) {
-    if (type_names[key]==name) return type(key);
-  }
-  assert(false);
-}
-

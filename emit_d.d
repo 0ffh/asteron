@@ -18,16 +18,13 @@ import environments;
 
 const bool debf=debflag && 0;
 
-FILE* dst;
-
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //----------------
 //---------------- emitter functions
 //----------------
 
-Cell dummy;
-
+string emitstring="";
 int indval=0;
 bool newlnf=true;
 void indent(int n) {
@@ -42,11 +39,11 @@ void emit(...) {
     newlnf=false;
     indent(indval);
   }
-  fprintf(dst,"%s",tsz(buffer));
+  emitstring~=buffer;
 }
 void ind() {++indval;}
 void unind() {--indval;}
-void crlf() {fprintf(dst,"\n");newlnf=true;}
+void crlf() {emit("\n");newlnf=true;}
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -54,9 +51,17 @@ void crlf() {fprintf(dst,"\n");newlnf=true;}
 //---------------- job
 //----------------
 
-bool is_forced_atype(Type typ) {
-  typ=unalias_type(typ);
-  return (is_struct_type(typ) || is_union_type(typ));
+Type[string] anon_type;
+int anon_type_count=0;
+
+string new_anon_type(Type type) {
+  string name;
+  name=frm("anon_type_%d",anon_type_count++);
+  anon_type[name]=type;
+  return name;
+}
+bool must_force_as_anon_type(Type type) {
+  return (is_struct_type(type) || is_union_type(type));
 }
 string callstr(Cell c) {
   string s;
@@ -329,8 +334,8 @@ void emit_ast(Cell c) {
   } else if (id=="def") {
     string name=as_symbol(sub[1]);
     Cell cel=env_get(environment,name);
-    if (has_atype_name(cel.type) && is_forced_atype(cel.type)) {
-      emit(get_atype_name(cel.type));
+    if (must_force_as_anon_type(cel.type)) {
+      emit(new_anon_type(cel.type));
     } else {
       emit_ast(cel.type);
     }
@@ -517,14 +522,17 @@ void emit_typedefs() {
         t=get_def_subtype(t);
         emit_typedef(key,t);
       }
-      if (is_alias_type(t) && is_forced_atype(t)) {
+/*      if (is_alias_type(t) && is_forced_atype(t)) {
 //        writef("emit alias typedef %s\n",key);
-        if (is_atype_name(key)) {
-          t=get_alias_subtype(t);
-          emit_typedef(key,t);
-        }
-      }
+        t=get_alias_subtype(t);
+        emit_typedef(key,t);
+      }*/
     }
+  }
+}
+void emit_anon_typedefs() {
+  foreach (string key;anon_type.keys) {
+    emit_typedef(key,anon_type[key]);
   }
 }
 void emit_globals(Cell root) {
@@ -540,15 +548,8 @@ void emit_globals(Cell root) {
 }
 void emit_d_main(Cell root,FTabEntry*[] fun_list,string fn="stdout") {
   static if (debf) {debEnter("emit_d_main(...)");scope (exit) debLeave();}
+  string source="";
   environment=base_env;
-  if (fn=="stdout") dst=stdout;
-  else dst=fopen(tsz(fn),"wb");
-  emit("import std.stdio;");crlf();
-  emit("import rtlib;");crlf();
-  crlf();
-  emit_typedefs();
-  emit_globals(root);
-//  emit_functions(root);
   bool[FTabEntry*] fun_done;
   for (int kfl=fun_list.length;kfl;) {
     FTabEntry* entry=fun_list[--kfl];
@@ -556,11 +557,27 @@ void emit_d_main(Cell root,FTabEntry*[] fun_list,string fn="stdout") {
       push_env(entry.env);
       emit_ast(entry);
       pop_env();
-      //fun_done[entry]=true;
     }
   }
   emit("\nvoid main() {main_0();}");
   crlf();
+  //---
+  source=emitstring;
+  emitstring="";
+  //---
+  emit("import std.stdio;");crlf();
+  emit("import rtlib;");crlf();
+  crlf();
+  emit_typedefs();
+  emit_anon_typedefs();
+  emit_globals(root);
+  crlf();
+  //---
+  source=emitstring~source;
+  emitstring="";
+  //--
+  FILE* dst;
+  if (fn=="stdout") dst=stdout; else dst=fopen(tsz(fn),"wb");
+  fwritef(dst,"%s",source);
   if (dst!=stdout) fclose(dst);
 }
-

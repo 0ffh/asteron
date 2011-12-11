@@ -177,6 +177,7 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,Cell x) {
 //        writefln("### specialised accessor %s%s\n",name,entry.sig);
         Cell ftab_cell=env_putfun(ftab_env,name,entry.fun,entry.sig,TAny);
         entry=ftab_resolve(ftab_cell.ftab,args,name);
+//        writef("----- entry\n%s\n",cells.pretty_str(entry.fun));
 //        ftab_add(ftab,entry.fun,entry.sig,entry.ret);
       }
     }
@@ -350,10 +351,10 @@ void abs_exec_ast(string filename) {
   operator_to_front(root,"supertype");
   operator_to_front(root,"aliastype");
   operator_to_front(root,"deftype");
-  replace_anonymous_structs_and_unions(root);
+  replace_alias_types(root);
   if (showflag) writef("%s\n",pretty_str(root,0));
+  writef("%s\n",pretty_str(root,0));
   static if (1) {
-    writef("%s\n",pretty_str(root,0));
     abs_eval(root);
     abs_eval(parse_sexpr("(main)"));
     if (showflag) writef("%s\n",pretty_str(root,0));

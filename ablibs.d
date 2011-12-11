@@ -134,13 +134,7 @@ Cell op_aliastype(Cell[] args) {
   assert(args.length==2);
   string name=as_symbol(args[0]);
   Type typ=type(abs_eval(args[1]));
-  Type alt;
-  if (has_atype_name(typ)) {
-    alt=type(get_atype_name(typ));
-  } else {
-    alt=type_aliastype(name,type(args[1]));
-    add_atype_name(typ,name);
-  }
+  Type alt=type_aliastype(name,type(args[1]));
 //  writef("aliastype %s / %s / %s\n",name,types.str(alt),types.str(typ));
 //   return env_put(environment,name,val);
   return env_put(base_env,name,type_cell(alt));
@@ -626,10 +620,6 @@ Cell op_struct(Cell[] args) {
     assert(as_list(arg).length==2);
     arg.lst[0]=abs_eval(arg.lst[0]);
     arg.lst[0]=unalias_type(arg.lst[0]);
-    if (!is_basic_type(type(arg.lst[0]))) {
-      string tname=get_atype_name(type(arg.lst[0]));
-      arg.lst[0]=abs_eval(symbol_cell(tname));
-    }
     assert(isa(arg.lst[0],TType));
 //    writefln("------- struct field %s of type %s",as_symbol(arg.lst[1]),cells.str(arg.lst[0]));
   }
@@ -648,14 +638,19 @@ Cell op_struct_get(Cell[] args) {
 Cell op_struct_set(Cell[] args) {
   static if (debf) {debEnter("[struct_set_field]");scope (exit) debLeave();}
   assert(args.length==3);
-  //unalias_type_of(args[0]);
   Struct* s=as_struct(op_deref([args[0]]));
   string key=as_string(args[1]);
   Cell res=struct_get_field(s,key);
+  if (isa(res,TAny)) {
+    writef("Currently specialisation of structs is not supported!");
+    assert(false);
+  }
   unalias_type_of(res);
   unalias_type_of(args[2]);
-//  writef("struct_set_field %s [%s] -> [%s]\n",key,types.str(args[2].type),types.str(res.type));
-//  assert(res.type==args[2].type);
+  if (res.type!=args[2].type) {
+    writef("Incompatible assignment!");
+    assert(false);
+  }
   return args[2];
 }
 Cell op_union(Cell[] args) {
@@ -664,10 +659,6 @@ Cell op_union(Cell[] args) {
     assert(as_list(arg).length==2);
     arg.lst[0]=abs_eval(arg.lst[0]);
     arg.lst[0]=unalias_type(arg.lst[0]);
-    if (!is_basic_type(type(arg.lst[0]))) {
-      string tname=get_atype_name(type(arg.lst[0]));
-      arg.lst[0]=abs_eval(symbol_cell(tname));
-    }
     assert(isa(arg.lst[0],TType));
   }
   Type t=union_type_from_fields(args);

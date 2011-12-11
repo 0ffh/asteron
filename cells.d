@@ -726,7 +726,7 @@ string str(Cell c,int clothedString=clothedStringDefault,int rec=1) {
 //--------------------
 //-------------------- pretty_str
 //--------------------
-string pretty_str(Cell c,int ind) {
+string pretty_str(Cell c,int ind=0) {
   int clothedString=1;
   int rec=1;
   if (!types_initialised) {

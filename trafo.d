@@ -113,33 +113,29 @@ Cell anontype_cell(string name,Cell def) {
 Cell aliastype_cell(string name,Cell def) {
   return list_cell([symbol_cell("aliastype"),symbol_cell(name),def.clone()]);
 }
-void replace_anonymous_structs_and_unions(Cell root) {
+void replace_alias_types(Cell root) {
   static if (debf) {debEnter("find_anonymous_structs_and_unions(...)");scope (exit) debLeave();}
   root=first_with_operator(root,"seq");
   if (!root) return;
-  Cell[] aslist;
-  Cell[] cs=cells_with_operator(root,"def");
-  int anon_count;
-  string anon_name;
-  foreach (c;cs) {
-    Cell[] anon=cells_with_operator(c,"struct")~cells_with_operator(c,"union");
-    if (anon.length) {
-      //writef("def with anonymous struct or union: %s\n",cells.str(c));
-      anon_name=frm("anon_type_%d",anon_count++);
-      //root.lst=[root.lst[0],aliastype_cell(anon_name,anon[0])]~root.lst[1..$];
-      aslist~=aliastype_cell(anon_name,anon[0]);
-      anon[0].set(symbol_cell(anon_name));
-      //writef("  -->  %s\n",cells.str(c));
+  Cell[string] aliases;
+  Cell[] list=root.lst;
+  //writef("%s\n",cells.pretty_str(root));
+  //assert(false,"ok");
+  foreach (cell;list) {
+    replace_alias_types(cell);
+  }
+  foreach (cell;list) {
+    if (is_list_with_operator(cell,"aliastype")) {
+      if (!isa(cell.lst[1],TSymbol)) {
+        writef("%s\n",cells.pretty_str(cell));
+      }
+      aliases[as_symbol(cell.lst[1])]=cell.lst[2];
+      cell.lst.length=0;
     }
   }
-  int k=1;
-  for (;k<root.lst.length;++k) {
-    if (is_list_with_operator(root.lst[k],"deftype") ||
-        is_list_with_operator(root.lst[k],"aliastype") ||
-        is_list_with_operator(root.lst[k],"supertype")) continue;
-    break;
+  foreach (key;aliases.keys) {
+    replace_symbol(root,key,aliases[key]);
   }
-  root.lst=root.lst[0..k]~aslist~root.lst[k..$];
 }
 // enforce root typedefs in laguage spec!
 void move_typedefs_to_root(Cell root) {
@@ -154,22 +150,6 @@ void move_typedefs_to_root(Cell root) {
   }
   root.lst=root.lst[0]~rdefs~root.lst[1..$];
 }
-/*void insert_outer_seq_in_defuns(Cell root) {
-  static if (debf) {debEnter("insert_outer_seq_in_lambdas(...)");scope (exit) debLeave();}
-  root=first_with_operator(root,"seq");
-  if (!root) return;
-  Cell[] cs=cells_with_operator(root,"defun");
-  foreach (c;cs) {
-    assert(isa(c,TList));
-    assert(c.lst.length==4);
-    Cell d=c.lst[3];
-    if (!(is_list_with_operator(d,"seq"))) {
-      d=list_cell([symbol_cell("seq"),d]);
-    }
-    //writefln("lambda %s\n",cells.str(d));
-  }
-}*/
-// ftab_add(FTab* ft,Cell fun,Signature sig,Type ret)
 void replace_symbol(Cell c,string id,Cell r) {
   if (isa(c,TList)) {
     foreach (e;c.lst) replace_symbol(e,id,r);

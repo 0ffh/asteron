@@ -27,12 +27,6 @@ int rand(int n) {
 void flush() {
   fflush(stdout);
 }
-string doformat(TypeInfo[] arguments,void* argptr) {
-  string s;
-  void putc(dchar c) {s~=c;}
-  std.format.doFormat(&putc,arguments,argptr);
-  return s;
-}
 string frm(...) {
   string s;
   void putc(dchar c) {s~=c;}
