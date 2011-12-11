@@ -48,21 +48,32 @@ void crlf() {emit("\n");newlnf=true;}
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //----------------
-//---------------- job
+//---------------- anonymous types - variables & helpers
 //----------------
 
-Type[string] anon_type;
+Type[string] anon_types;
 int anon_type_count=0;
 
 string new_anon_type(Type type) {
-  string name;
-  name=frm("anon_type_%d",anon_type_count++);
-  anon_type[name]=type;
+  // avoid duplicates
+  foreach (name;anon_types.keys) {
+    if (anon_types[name]==type) return name;
+  }
+  // generate new
+  string name=frm("anon_type_%d",anon_type_count++);
+  anon_types[name]=type;
   return name;
 }
 bool must_force_as_anon_type(Type type) {
   return (is_struct_type(type) || is_union_type(type));
 }
+
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
+//----------------
+//---------------- job
+//----------------
+
 string callstr(Cell c) {
   string s;
   if (isa(c,TList)) {
@@ -531,8 +542,8 @@ void emit_typedefs() {
   }
 }
 void emit_anon_typedefs() {
-  foreach (string key;anon_type.keys) {
-    emit_typedef(key,anon_type[key]);
+  foreach (string key;anon_types.keys) {
+    emit_typedef(key,anon_types[key]);
   }
 }
 void emit_globals(Cell root) {

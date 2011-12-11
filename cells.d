@@ -88,11 +88,6 @@ struct Assoc {
 struct Array {
   Cell[] inner;
 }
-struct Struct {
-  string[] key;
-  Cell[] val;
-  Type[] typ;
-}
 struct Ref {
   string id;
   Env* env;
@@ -107,6 +102,11 @@ void unalias_type_of(Cell c) {
   c.type=unalias_type(c.type);
   return c;
 }*/
+struct Struct {
+  string[] key;
+  Cell[] val;
+  Type[] typ;
+}
 Type struct_get_fieldtype(Struct* s,string key) {
   for (int k;k<s.key.length;++k) {
     if (key==s.key[k]) return s.typ[k];
@@ -398,6 +398,11 @@ Cell cell_from_ref_type(Type typ) {
   //writef("%s\n",types.str(c.type));
   c.ptr=cast(Ref*)([r].ptr);
   return c;
+}
+void ref_cell_set(Cell c,Cell v) {
+  assert(is_ref_type(c.type));
+  Ref* r=cast(Ref*)c.ptr;
+  env_put(r.env,r.id,v);
 }
 Cell ref_cell(Env* env,string id) {
   static if (debf) {debEnter("ref_cell(Env*,string)");scope (exit) debLeave();}

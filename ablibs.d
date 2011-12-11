@@ -637,18 +637,20 @@ Cell op_struct_get(Cell[] args) {
 }
 Cell op_struct_set(Cell[] args) {
   static if (debf) {debEnter("[struct_set_field]");scope (exit) debLeave();}
-  assert(args.length==3);
+  //
   Struct* s=as_struct(op_deref([args[0]]));
   string key=as_string(args[1]);
-  Cell res=struct_get_field(s,key);
-  if (isa(res,TAny)) {
-    writef("Currently specialisation of structs is not supported!");
-    assert(false);
+  Cell field=struct_get_field(s,key);
+  if (isa(field,TAny)) {
+    struct_set_field(s,key,args[2]);
+    Type t=struct_type_from_keys_and_values(s.key,s.val);
+    ref_cell_set(args[0],cell_from_struct_type(t));
+    return args[2];
   }
-  unalias_type_of(res);
-  unalias_type_of(args[2]);
-  if (res.type!=args[2].type) {
-    writef("Incompatible assignment!");
+//  unalias_type_of(field);
+//  unalias_type_of(args[2]);
+  if (field.type!=args[2].type) {
+    writef("Incompatible assignment!\n");
     assert(false);
   }
   return args[2];

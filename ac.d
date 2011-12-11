@@ -349,7 +349,7 @@ void abs_exec_ast(string filename) {
   operators_to_front(root,["defun","def"]);
   move_typedefs_to_root(root);
   operator_to_front(root,"supertype");
-  operator_to_front(root,"aliastype");
+//  operator_to_front(root,"aliastype");
   operator_to_front(root,"deftype");
   replace_alias_types(root);
   if (showflag) writef("%s\n",pretty_str(root,0));
@@ -399,6 +399,6 @@ void env_info() {
 void main(string[] args) {
   string fn;
   if (args.length>1) fn=args[1]~".l";
-  else fn="ctests.l";
+  else fn="test.l";
   abs_exec(fn);
 }

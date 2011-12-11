@@ -300,7 +300,18 @@ bool is_struct_type(Type t) {
 }
 Type struct_type_from_fields(Cell[] fields) {
   static if (debf) {debEnter("struct_type_from_fields(Cell[])");scope (exit) debLeave();}
-  return type(cells.str(list_cell(symbol_cell("struct")~fields)));
+  string s=cells.str(list_cell(symbol_cell("struct")~fields));
+//  writef("new struct type %s\n",s);
+  return type(s);
+}
+Type struct_type_from_keys_and_values(string[] keys,Cell[] vals) {
+  Cell c=list_cell([symbol_cell("struct")]);
+  assert(keys.length==vals.length,"Internal error in struct_type_from_keys_and_values");
+  for (int k;k<keys.length;++k) {
+    c.lst~=list_cell([vals[k].type.cell,symbol_cell(keys[k])]);
+  }
+//  writef("new struct type %s\n",cells.str(c));
+  return type(cells.str(c));
 }
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------

@@ -1,13 +1,15 @@
 
-defun foo(x) {
+defun foo(a,b) {
   var struct{any a,any b} s;
-  s.a=x;
-  s.b=x;
-//  prln(s);
+  s.a=a;
+  s.b=b;
+  prln("a =",s.a," b =",s.b);
 }
 
 defun main() {
-  foo(1);
-  foo("aaa");
+  foo(0,0);
+  foo(1,"a");
+  foo("b",2);
+  foo("c","c");
 }
 
