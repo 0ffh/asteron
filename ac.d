@@ -153,10 +153,7 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,Cell x) {
     string fieldname=as_string(args[1]);
     string altname=name~"_"~fieldname;
     Cell[] altargs=args.dup;
-/*    if (name=="dotset") {
-      altargs[0]=list_cell([symbol_cell("ref")]~altargs[0]);
-    }*/
-    remove_element(altargs,1); // remove index element from args
+    remove_element(altargs,1); // remove index element from altargs
     entry=resolve_name_as_ftab_entry(altname,altargs,ftab_env);
     if (entry) {
       // alternative name entry found
@@ -173,14 +170,11 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,Cell x) {
         }
         args=altargs;
         name=altname;
-//        entry=specialise_accessor(entry,fieldname);
-//        writefln("### specialised accessor %s%s\n",name,entry.sig);
         Cell ftab_cell=env_putfun(ftab_env,name,entry.fun,entry.sig,TAny);
         entry=ftab_resolve(ftab_cell.ftab,args,name);
-//        writef("----- entry\n%s\n",cells.pretty_str(entry.fun));
-//        ftab_add(ftab,entry.fun,entry.sig,entry.ret);
       }
     }
+    //printf("entry=%p\n",cast(void*)entry);
   } else {
     entry=resolve_name_as_ftab_entry(name,args,ftab_env);
   }
@@ -210,31 +204,34 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,Cell x) {
   }
   //--
   if ((entry.ret==TAny) || (!isa(entry.fun,TLambda))) {
-//    writefln("A entry.ret(%s,'%s') = %s",entry,entry.nam,entry.ret);
     if (isa(entry.fun,TLambda)) {
+//      writefln("*** visitation handling 0: %s is lambda",entry.nam);
       if (entry.nam[0]!='$') {
+        // generate new unique callee name for this signature
         entry.nam="$"~entry.nam~"_"~toString(next_fun_index(entry.nam));
       }
+      // change call site symbol to new name
       sym.sym=entry.nam;
-      dollar_res[sym.sym]=entry;//new_cell(TAny);
+      dollar_res[sym.sym]=entry;
     }
     //-- return type unknown
     if (!(entry in fun_flag)) fun_flag[entry]=fun_flag.length-1; // aa length is always one too big, it seems
     call_stack_push(entry);
     Cell h=abs_eval(list_cell([entry.fun]~args));
     if ((entry.ret==TAny) || (!isa(entry.fun,TLambda))) entry.ret=h.type;
-//    writefln("B entry.ret(%s,'%s') = %s",entry,entry.nam,entry.ret);
     assert(!(entry.ret==TAny));
     call_stack_pop();
   } else {
-//    writefln("C entry.ret(%s,'%s') = %s",entry,entry.nam,entry.ret);
     //-- return type known
     if (isa(entry.fun,TLambda)) {
+//      writefln("*** visitation handling 1: %s is lambda",entry.nam);
       if (entry.nam[0]!='$') {
+        // generate new unique callee name for this signature
         entry.nam="$"~entry.nam~"_"~toString(next_fun_index(entry.nam));
       }
+      // change call site symbol to new name
       sym.sym=entry.nam;
-      dollar_res[sym.sym]=entry;//new_cell(entry.ret);
+      dollar_res[sym.sym]=entry;
     }
   }
   debug_leave_message=frm("%s",types.str(entry.ret));
@@ -252,7 +249,6 @@ Cell abs_evalin(Cell x,Env* env) {
   pop_env();
   return x;
 }
-//Cell current_x;
 Cell abs_eval(Cell x) {
   if (Cell* rtc=("res" in x.ann)) {
     //writefln("cutting short %s -> %s",x,*rtc);
@@ -277,6 +273,8 @@ Cell abs_eval_sub(Cell x) {
   while (isa(x0,TList)) x0=abs_eval(x0);
   if (isa(x0,TSymbol)) {
     if (x0.sym[0]=='$') {
+      // $ is mark we have already visited this call site, so we can break recursions
+//      writefln("*** visitation handling 2: symbol %s has $",x0.sym);
       Cell r=new_cell(dollar_res[x0.sym].ret);
       if (isa(r,TAny)) {
         state.code=StC.abt;
@@ -285,7 +283,7 @@ Cell abs_eval_sub(Cell x) {
       return r;
     }
     Cell r=resolve_symbol_except_ftabs(x0);
-    if (isa(r,TNull)) {
+    if (isa(r,TNull) || isa(r,TType)) {
       bool dotget=(x0.sym=="dotget");
       bool dotset=(x0.sym=="dotset");
       if (dotset) {
@@ -297,14 +295,13 @@ Cell abs_eval_sub(Cell x) {
 //      writefln("/// %s eargs=%s",x0,eargs);
       r=abs_resolve_function(x0,eargs,x);
       if ((dotget || dotset) && (x0.sym[0]=='$')) {
+        // is accessor call site with visitation mark
         assert(args.length>1);
         assert(isa(args[1],TString));
-        //writefln("*********** DOT %s %s",x0.sym,x);
+//        writefln("*** visitation handling 3: accessor %s %s",x0.sym,x);
         remove_element(args,1);
         remove_element(eargs,1);
         x.set(list_cell(x0~args));
-      } else {
-        //writefln("*********** NOT %s %s",x0.sym,x);
       }
     }
     x0=r;
@@ -349,9 +346,9 @@ void abs_exec_ast(string filename) {
   operators_to_front(root,["defun","def"]);
   move_typedefs_to_root(root);
   operator_to_front(root,"supertype");
-//  operator_to_front(root,"aliastype");
   operator_to_front(root,"deftype");
   replace_alias_types(root);
+  //remove_empty_lists(root);
   if (showflag) writef("%s\n",pretty_str(root,0));
   writef("%s\n",pretty_str(root,0));
   static if (1) {
@@ -386,19 +383,20 @@ Env* mk_base_env() {
 void dump_info() {
   env_pr(environment);
 }
-void abs_exec(string fn) {
+void abs_exec(string base_filename) {
   base_env=mk_base_env();
   init_abs_libs();
 //  push_env();
-  abs_exec_ast(fn);
+  abs_exec_ast(base_filename~".l");
 }
 void env_info() {
   for (int k=0;k<envstack.length;++k) writef("%p ",envstack[k]);
   writef("[%d] be=%p e=%p\n",envstack.length,base_env,environment);
 }
 void main(string[] args) {
-  string fn;
-  if (args.length>1) fn=args[1]~".l";
-  else fn="test.l";
-  abs_exec(fn);
+  string base_filename;
+  if (args.length>1) base_filename=args[1];
+//  else base_filename="ctests";
+  else base_filename="test";
+  abs_exec(base_filename);
 }

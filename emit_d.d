@@ -16,7 +16,7 @@ import cells;
 import types;
 import environments;
 
-const bool debf=debflag && 0;
+const bool debf=debflag && 1;
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -27,6 +27,9 @@ const bool debf=debflag && 0;
 string emitstring="";
 int indval=0;
 bool newlnf=true;
+bool emitted_line_is_empty() {
+  return newlnf;
+}
 void indent(int n) {
   while (n-->0) emit("  ");
 }
@@ -133,7 +136,7 @@ void emit_ast(Cell c) {
     return;
   }
   if (!c.lst.length) {
-    emit("// line removed");
+    //emit("// line removed");
     return;
   }
   //writefln("%s",cells.str(c.lst[0]));
@@ -151,9 +154,9 @@ void emit_ast(Cell c) {
     emit("{");
     ind();
     foreach (Cell s;sub) {
-      crlf();
+      if (!emitted_line_is_empty()) crlf();
       emit_ast(s);
-      emit(";");
+      if (!emitted_line_is_empty()) emit(";");
     }
     unind();
     crlf();
@@ -236,20 +239,27 @@ void emit_ast(Cell c) {
     unind();
     emit("}");
   } else if (id=="&") {
-    emit("&(");
+    emit("(&");
     emit_ast(sub[0]);
     emit(")");
   } else if (id=="@") {
     emit("(*");
     emit_ast(sub[0]);
     emit(")");
+  } else if (id=="refset") {
+    emit("(*");
+    emit_ast(sub[0]);
+    emit(")=");
+    emit_ast(sub[1]);
+    emit(";");
   } else if (id_in(id,["=","+=","-=","*=","/=","~="])) {
     //Cell d=abs_eval(sub[0]);
+    emit("(");
     emit_ast(sub[0]);
     emit(id);
     //emit("cast()(");
     emit_ast(sub[1]);
-    //emit(")");
+    emit(")");
   } else if (id_in(id,["==","!="])) {
     emit("(");
     emit_ast(sub[0]);
@@ -258,9 +268,14 @@ void emit_ast(Cell c) {
     emit(")");
   } else if (id_in(id,[">","<",">=","<=","+","-","*","/","~"])) {
     emit("(");
-    emit_ast(sub[0]);
-    emit(id);
-    emit_ast(sub[1]);
+    if (sub.length>1) {
+      emit_ast(sub[0]);
+      emit(id);
+      emit_ast(sub[1]);
+    } else {
+      emit(id);
+      emit_ast(sub[0]);
+    }
     emit(")");
   } else if (id=="dotset") {
     if (is_list_with_operator(sub[0],"&")) sub[0]=sub[0].lst[1];
@@ -364,16 +379,16 @@ void emit_ast(Cell c) {
     emit(")");
   } else if (id=="defun") {
     // omit
-    emit("// local defun moved to outermost scope");
+    //emit("// local defun moved to outermost scope");
   } else if (id=="deftype") {
     // omit
-    emit("// omitting "~id);
+    //emit("// omitting "~id);
   } else if (id=="aliastype") {
     // omit
-    emit("// omitting "~id);
+    //emit("// omitting "~id);
   } else if (id=="supertype") {
     // omit
-    emit("// omitting "~id);
+    //emit("// omitting "~id);
   } else if (id=="unpack") {
     assert(sub.length==1);
     emit_ast(sub[0]);
@@ -453,7 +468,7 @@ void emit_ast(Type t,string name="") {
     Type st=get_array_subtype(t);
     emit_ast(st);
     Cell[] cf=get_compound_fields(t);
-    writefln("cf=%s",cf);
+//    writefln("cf=%s",cf);
     if (cf.length>1) {
       emit("[");
       emit(cf[1]);
@@ -582,7 +597,6 @@ void emit_d_main(Cell root,FTabEntry*[] fun_list,string fn="stdout") {
   emit_typedefs();
   emit_anon_typedefs();
   emit_globals(root);
-  crlf();
   //---
   source=emitstring~source;
   emitstring="";

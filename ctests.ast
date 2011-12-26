@@ -1,16 +1,3 @@
-/*defun pr(...) {
-  var k;
-  for (k=0;k<ellipse.length();k+=1) {
-    _pr(ellipse[k]);
-  }
-}
-defun prln(...) {
-  var k;
-  for (k=0;k<ellipse.length();k+=1) {
-    _pr(ellipse[k]);
-  }
-  _prln();
-}*/
 //----------------------------------------------------------------------
 //--- minimal testing framework
 var testname="";
@@ -194,12 +181,18 @@ defun test9() {
 }
 defun test10() {
   start("references");
-  var int i;
-  var pi;
+  var int i=1,j=2;
+  var int@ pi;
   pi=&i;
   test(pi@,i);
   i=10;
   test(pi@,i);
+  pi=&j;
+  test(pi@,j);
+  pi@=20;
+  test(pi@,j);
+  test(i,10);
+  test(j,20);
   finish();
 }
 defun test11() {
@@ -378,6 +371,64 @@ defun test23() {
   test(a,[0,1,2,3]);
   finish();
 }
+defun test24() {
+  start("anon struct specialisation");
+  defun bar(int a,int b) return 0;
+  defun bar(int a,string b) return 1;
+  defun bar(string a,int b) return 2;
+  defun bar(string a,string b) return 3;
+  defun foo(a,b) {
+    var struct{a,b} s;
+    s.a=a;
+    s.b=b;
+    return bar(s.a,s.b);
+  }
+  test(foo(0,0),0);
+  test(foo(1,"a"),1);
+  test(foo("b",2),2);
+  test(foo("c","c"),3);
+  finish();
+}
+defun test25() {
+  start("setters & getters, again");
+  deftype aifs struct{string a,int i,float f};
+  defun dotset(aifs@ x,string idx,value) return dotset(unpack(x@),idx,value);
+  defun dotget(aifs x,string idx) return dotget(unpack(x),idx);
+  defun tostr(aifs x) return "{a='"~tostr(x.a)~"',i="~tostr(x.i)~",f="~tostr(x.f)~"}";
+  var aifs s;
+  test(tostr(s),"{a='',i=0,f=nan}");
+  s.i=1;
+  test(tostr(s),"{a='',i=1,f=nan}");
+  unpack(s).i=2;
+  test(tostr(s),"{a='',i=2,f=nan}");
+  s.f=1.1;
+  test(tostr(s),"{a='',i=2,f=1.1}");
+  unpack(s).f=1.2;
+  test(tostr(s),"{a='',i=2,f=1.2}");
+  finish();
+}
+defun test26() {
+  start("arithmetic operation result type");
+  defun foo(int x) {return "int";}
+  defun foo(float x) {return "float";}
+  test(foo(1+1),"int");
+  test(foo(1+1.0),"float");
+  test(foo(1.0+1),"float");
+  test(foo(1.0+1.0),"float");
+  test(foo(1-1),"int");
+  test(foo(1-1.0),"float");
+  test(foo(1.0-1),"float");
+  test(foo(1.0-1.0),"float");
+  test(foo(1*1),"int");
+  test(foo(1*1.0),"float");
+  test(foo(1.0*1),"float");
+  test(foo(1.0*1.0),"float");
+  test(foo(1/1),"int");
+  test(foo(1/1.0),"float");
+  test(foo(1.0/1),"float");
+  test(foo(1.0/1.0),"float");
+  finish();
+}
 //----------------------------------------------------------------------
 //--- summary
 defun mainx() {
@@ -408,14 +459,11 @@ defun mainx() {
   test21();
   test22();
   test23();
-  summary();
-}
-defun mainy() {
-  test22();
+  test24();
+  test25();
+  test26();
   summary();
 }
 defun main() {
   mainx();
 }
-main();
-

@@ -58,6 +58,7 @@ void ast2l(string base_filename) {
 void main(string[] args) {
   string base_filename;
   if (args.length>1) base_filename=args[1];
+//  else base_filename="ctests";
   else base_filename="test";
   ast2l(base_filename);
 }

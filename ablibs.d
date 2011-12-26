@@ -341,39 +341,13 @@ Cell op_troff(Cell[] args) {
   trace=false;
   return null_cell();
 }
-Cell op_math_int(Cell[] args) {
+Cell op_math_mixed(Cell[] args) {
   static if (debf) {debEnter("[+-*/]");scope (exit) debLeave();}
-  assert(isa(args[0],TInt));
-  return args[0];
-}
-Cell op_math_float(Cell[] args) {
-  static if (debf) {debEnter("[+-*/]");scope (exit) debLeave();}
-  assert(isa(args[0],TFloat));
-  return args[0];
-}
-Cell op_math_int_int(Cell[] args) {
-  static if (debf) {debEnter("[+-*/]");scope (exit) debLeave();}
-  assert(isa(args[0],TInt));
-  assert(isa(args[1],TInt));
-  return args[0];
-}
-Cell op_math_int_float(Cell[] args) {
-  static if (debf) {debEnter("[+-*/]");scope (exit) debLeave();}
-  assert(isa(args[0],TInt));
-  assert(isa(args[1],TFloat));
-  return args[1];
-}
-Cell op_math_float_int(Cell[] args) {
-  static if (debf) {debEnter("[+-*/]");scope (exit) debLeave();}
-  assert(isa(args[0],TFloat));
-  assert(isa(args[1],TInt));
-  return args[0];
-}
-Cell op_math_float_float(Cell[] args) {
-  static if (debf) {debEnter("[+-*/]");scope (exit) debLeave();}
-  assert(isa(args[0],TFloat));
-  assert(isa(args[1],TFloat));
-  return args[0];
+  if (isa(args[0],TFloat) || isa(args[1],TFloat)) {
+    return float_cell(0);
+  } else {
+    return int_cell(0);
+  }
 }
 Cell op_less(Cell[] args) {
   static if (debf) {debEnter("[<]");scope (exit) debLeave();}
@@ -713,13 +687,8 @@ Cell op_deref(Cell[] args) {
   return new_cell(get_ref_subtype(args[0].type));
 }
 Cell op_ref_set(Cell[] args) {
-  static if (debf) {debEnter("[deref]");scope (exit) debLeave();}
+  static if (debf) {debEnter("[op_ref_set]");scope (exit) debLeave();}
   assert(args.length==2);
-  return args[1];
-}
-Cell op_result(Cell[] args) {
-  static if (debf) {debEnter("[$result]");scope (exit) debLeave();}
-  assert(args.length==1);
   return args[1];
 }
 Cell op_any_get(Cell[] args) {
@@ -742,26 +711,12 @@ Cell op_any_set(Cell[] args) {
   assert(false);
 }
 void add_abs_libs(Env* env) {
+  type_supertype("primnum",[type("int"),type("float")]);
   // normal functions
-  env_putfun_sigstr(env,"+",fun_cell(&op_math_int_int),"(int int)","int");
-  env_putfun_sigstr(env,"+",fun_cell(&op_math_int_float),"(int float)","float");
-  env_putfun_sigstr(env,"+",fun_cell(&op_math_float_int),"(float int)","float");
-  env_putfun_sigstr(env,"+",fun_cell(&op_math_float_float),"(float float)","float");
-  env_putfun_sigstr(env,"-",fun_cell(&op_math_int),"(int)","int");
-  env_putfun_sigstr(env,"-",fun_cell(&op_math_float),"(float)","float");
-  env_putfun_sigstr(env,"-",fun_cell(&op_math_int_int),"(int int)","int");
-  env_putfun_sigstr(env,"-",fun_cell(&op_math_int_float),"(int float)","float");
-  env_putfun_sigstr(env,"-",fun_cell(&op_math_float_int),"(float int)","float");
-  env_putfun_sigstr(env,"-",fun_cell(&op_math_float_float),"(float float)","float");
-  env_putfun_sigstr(env,"*",fun_cell(&op_math_int_int),"(int int)","int");
-  env_putfun_sigstr(env,"*",fun_cell(&op_math_int_float),"(int float)","float");
-  env_putfun_sigstr(env,"*",fun_cell(&op_math_float_int),"(float int)","float");
-  env_putfun_sigstr(env,"*",fun_cell(&op_math_float_float),"(float float)","float");
-  env_putfun_sigstr(env,"/",fun_cell(&op_math_int_int),"(int int)","int");
-  env_putfun_sigstr(env,"/",fun_cell(&op_math_int_float),"(int float)","float");
-  env_putfun_sigstr(env,"/",fun_cell(&op_math_float_int),"(float int)","float");
-  env_putfun_sigstr(env,"/",fun_cell(&op_math_float_float),"(float float)","float");
-
+  env_putfun_sigstr(env,"+",fun_cell(&op_math_mixed),"(primnum primnum)","any");
+  env_putfun_sigstr(env,"-",fun_cell(&op_math_mixed),"(primnum primnum)","any");
+  env_putfun_sigstr(env,"*",fun_cell(&op_math_mixed),"(primnum primnum)","any");
+  env_putfun_sigstr(env,"/",fun_cell(&op_math_mixed),"(primnum primnum)","any");
   env_put(env,"<",fun_cell(&op_less));
   env_put(env,">",fun_cell(&op_greater));
   env_put(env,"<=",fun_cell(&op_less_equal));
@@ -828,6 +783,7 @@ void add_abs_libs(Env* env) {
   env_putfun_sigstr(env,"@",fun_cell(&op_deref),"((ref))","any");
   //env_putfun_sigstr(env,"get",fun_cell(&op_ref_get),"((ref))","any");
   env_putfun_sigstr(env,"set",fun_cell(&op_ref_set),"((ref) any)","any");
+  env_putfun_sigstr(env,"refset",fun_cell(&op_ref_set),"((ref) any)","any");
 
   env_putfun_sigstr(env,"new",fun_cell(&op_new__string),"(string)","any");
   env_putfun_sigstr(env,"new",fun_cell(&op_new__type),"(type)","any");
@@ -838,7 +794,5 @@ void add_abs_libs(Env* env) {
 
 //  env_putfun_sigstr(env,"tron",fun_cell(&op_tron),"()","any");
 //  env_putfun_sigstr(env,"troff",fun_cell(&op_tron),"()","any");
-
-  env_put(env,"$result",fun_cell(&op_result));
 }
 
