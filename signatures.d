@@ -168,64 +168,6 @@ Signature signature_cell2signature(Cell arg) {
 //  writef("sc2s %s -> %s\n",cells.str(arg),str(sig));
   return sig;
 }
-/*
-Signature signature_cell2signature(Cell arg) {
-  static if (debf) {debEnter("signature_cell2signature(Cell)");scope (exit) debLeave();}
-  const int verbose=false;
-  if (!isa(arg,TList)) assert(false);
-  Signature sig;
-  static if (verbose) writef("signature_cell2signature");
-  for (int k;k<arg.lst.length;++k) {
-    Cell[] lst;
-    // for each entry lst is either of
-    //   [...]
-    //   [type]
-    //   [type ...]
-    //   [type default]
-    SigElement se;
-    se.defv=null_cell();
-    se.name="";
-    if (isa(arg.lst[k],TSymbol)) {
-      if (as_symbol(arg.lst[k])=="...") {
-        // ...
-        sig.open=TAny;
-        break;
-      } else {
-        // type
-        se.type=type(arg.lst[k]);
-      }
-    } else {
-      if (!isa(arg.lst[k],TList)) assert(false);
-      lst=arg.lst[k].lst;
-      if (!lst.length) assert(false);
-      if (lst.length==1) {
-        // type
-        se.type=type(lst[0]);
-      } else if (lst.length==2) {
-        if (isa(lst[1],TSymbol)&&(as_symbol(lst[1])=="...")) {
-          // type ...
-          sig.open=type(lst[0]);
-          break;
-        } else if (isa(lst[1],TSymbol)||isa(lst[1],TList)) {
-          // compount type
-          se.type=type(list_cell(lst));
-        } else {
-          // type default
-          se.defv=lst[1];
-          se.type=type(lst[0]);
-        }
-      } else {
-        writefln("??? %s",cells.str(arg.lst[k]));
-        assert(false);
-      }
-    }
-    sig~=se;
-  }
-  static if (verbose) writef("\n");
-//  writef("sc2s %s -> %s\n",cells.str(arg),str(sig));
-  return sig;
-}
-*/
 Signature types2signature(Type[] args,Type* open=null) {
   static if (debf) {debEnter("types2signature(Cell)");scope (exit) debLeave();}
   const int verbose=false;
@@ -389,17 +331,9 @@ int types_match_ordered(Cell[] pfs,Cell[] afs) {
   }
   return worst_match;
 }
-int struct_type_matches(Type tp,Type ta) {
+int struct_class_or_union_type_matches(Type tp,Type ta) {
   Cell[] pfs=get_compound_fields(tp);
   if (!pfs.length) return super_score; // any struct accepted
-  // we probably don't need to go down there:
-  // if the structs are really equivalent, type interning solved this
-  Cell[] afs=get_compound_fields(ta);
-  return fields_match_ordered(pfs,afs);
-}
-int union_type_matches(Type tp,Type ta) {
-  Cell[] pfs=get_compound_fields(tp);
-  if (!pfs.length) return super_score; // any union accepted
   // we probably don't need to go down there:
   // if the structs are really equivalent, type interning solved this
   Cell[] afs=get_compound_fields(ta);
@@ -446,8 +380,9 @@ int type_matches(Type tp,Type ta) {
     if (bm) --bm;
     return bm;
   }
-  if (is_struct_type(tp) && is_struct_type(ta)) return struct_type_matches(tp,ta);
-  if (is_union_type(tp) && is_union_type(ta)) return union_type_matches(tp,ta);
+  if (is_struct_type(tp) && is_struct_type(ta)) return struct_class_or_union_type_matches(tp,ta);
+  if (is_class_type(tp) && is_class_type(ta)) return struct_class_or_union_type_matches(tp,ta);
+  if (is_union_type(tp) && is_union_type(ta)) return struct_class_or_union_type_matches(tp,ta);
   if (is_assoc_type(tp) && is_assoc_type(ta)) return assoc_type_matches(tp,ta);
   if (is_ref_type(tp) && is_ref_type(ta)) return ref_type_matches(tp,ta);
   Cell cp=tp.cell;
