@@ -3,6 +3,15 @@ module rtlib;
 import std.date;
 import std.stdio;
 
+alias byte   s8;
+alias ubyte  u8;
+alias short  s16;
+alias ushort u16;
+alias int    s32;
+alias uint   u32;
+alias long   s64;
+alias ulong  u64;
+
 int length(T)(T v) {
   return v.length;
 }

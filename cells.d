@@ -127,6 +127,31 @@ Cell struct_set_field(Struct* s,string key,Cell val) {
   }
   assert(false,"struct has not field "~key);
 }
+struct Class {
+  string[] key;
+  Cell[] val;
+  Type[] typ;
+}
+Type class_get_fieldtype(Class* s,string key) {
+  for (int k;k<s.key.length;++k) {
+    if (key==s.key[k]) return s.typ[k];
+  }
+  assert(false,"class has no field "~key);
+  return TNull;
+}
+Cell class_get_field(Class* s,string key) {
+  for (int k;k<s.key.length;++k) {
+    if (key==s.key[k]) return s.val[k];
+  }
+  assert(false,"class has no field "~key);
+  return null_cell();
+}
+Cell class_set_field(Class* s,string key,Cell val) {
+  for (int k;k<s.key.length;++k) {
+    if (key==s.key[k]) return s.val[k]=val;
+  }
+  assert(false,"struct has not field "~key);
+}
 struct Union {
   string[] key;
   Type[] typ;
@@ -171,10 +196,12 @@ class Cell {
     Array* arr;
     Ref* ptr;
     Struct* stc;
+    Class* clc;
     Union* uni;
     Assoc* asc;
     float flt;
-    int fix;
+    long sfix;
+    ulong ufix;
     FTab* ftab;
     fun_type fun;
     lfn_type lfn;
@@ -270,12 +297,65 @@ Cell float_cell(float val) {
   c.flt=val;
   return c;
 }
+Cell u8_cell(uint val) {
+  static if (debf) {debEnter("u8_cell(int)");scope (exit) debLeave();}
+  Cell c=Cell();
+  c.type=TU8;
+  c.ufix=val;
+  return c;
+}
+Cell s8_cell(int val) {
+  static if (debf) {debEnter("s8_cell(int)");scope (exit) debLeave();}
+  Cell c=Cell();
+  c.type=TS8;
+  c.sfix=val;
+  return c;
+}
+Cell u16_cell(uint val) {
+  static if (debf) {debEnter("u16_cell(int)");scope (exit) debLeave();}
+  Cell c=Cell();
+  c.type=TU16;
+  c.ufix=val;
+  return c;
+}
+Cell s16_cell(int val) {
+  static if (debf) {debEnter("s16_cell(int)");scope (exit) debLeave();}
+  Cell c=Cell();
+  c.type=TS16;
+  c.sfix=val;
+  return c;
+}
+Cell u32_cell(uint val) {
+  static if (debf) {debEnter("u32_cell(int)");scope (exit) debLeave();}
+  Cell c=Cell();
+  c.type=TU32;
+  c.ufix=val;
+  return c;
+}
+Cell s32_cell(int val) {
+  static if (debf) {debEnter("s32_cell(int)");scope (exit) debLeave();}
+  Cell c=Cell();
+  c.type=TS32;
+  c.sfix=val;
+  return c;
+}
+Cell u64_cell(ulong val) {
+  static if (debf) {debEnter("u64_cell(int)");scope (exit) debLeave();}
+  Cell c=Cell();
+  c.type=TU64;
+  c.ufix=val;
+  return c;
+}
+Cell s64_cell(long val) {
+  static if (debf) {debEnter("s64_cell(int)");scope (exit) debLeave();}
+  Cell c=Cell();
+  c.type=TS64;
+  c.sfix=val;
+  return c;
+}
 Cell int_cell(int val) {
   static if (debf) {debEnter("int_cell(int)");scope (exit) debLeave();}
-  Cell c=Cell();
-  c.type=TInt;
-  c.fix=val;
-  return c;
+  return s32_cell(val);
 }
 Cell float_cell(string val) {
   static if (debf) {debEnter("float_cell(string)");scope (exit) debLeave();}
@@ -357,6 +437,25 @@ Cell cell_from_struct_type(Type t) {
   c.stc=cast(Struct*)([s].ptr);
   return c;
 }
+Cell cell_from_class_type(Type t) {
+  static if (debf) {debEnter("cell_from_class_type(Type)");scope (exit) debLeave();}
+  assert(is_class_type(t));
+  Struct s;
+  Cell[] fields=get_compound_fields(t);
+  for (int k;k<fields.length;++k) {
+//    field.show();
+    Cell[] lst=as_list(fields[k]);
+    Type ftype=type(lst[0]);
+    string fname=as_symbol(lst[1]);
+    s.key~=fname;
+    s.typ~=ftype;
+    s.val~=new_cell(ftype);
+  }
+  Cell c=Cell();
+  c.type=t;
+  c.clc=cast(Class*)([s].ptr);
+  return c;
+}
 Cell cell_from_union_type(Type t) {
   static if (debf) {debEnter("cell_from_union_type(Type)");scope (exit) debLeave();}
   assert(is_union_type(t));
@@ -386,6 +485,15 @@ Cell cell_from_def_type(Type typ) {
 Cell cell_from_alias_type(Type typ) {
   static if (debf) {debEnter("cell_from_alias_type(Type)");scope (exit) debLeave();}
   Cell c=new_cell(get_alias_subtype(typ));
+//  c.type=typ;
+  return c;
+//  return new_cell(get_alias_subtype(typ));
+}
+Cell cell_from_super_type(Type typ) {
+  static if (debf) {debEnter("cell_from_super_type(Type)");scope (exit) debLeave();}
+  // this makes no sense, whatsoever - except for abstract interpreter
+  Cell c=null_cell();
+  c.type=typ;
 //  c.type=typ;
   return c;
 //  return new_cell(get_alias_subtype(typ));
@@ -488,12 +596,13 @@ float as_float(Cell c) {
   return c.flt;
 }
 int as_int(Cell c) {
-  assert(c.type==TInt,"as_int: Type error.");
-  return c.fix;
+  assert(c.type==TS32,"as_int: Type error.");
+  return c.sfix;
 }
 float as_number(Cell c) {
   if (c.type==TFloat) return c.flt;
-  if (c.type==TInt) return c.fix;
+  if (is_uint(c)) return c.ufix;
+  if (is_sint(c)) return c.sfix;
   //writef("cell type = %d\n",c.type);
   assert(false,"as_number: Type error.");
 }
@@ -525,6 +634,10 @@ Struct* as_struct(Cell c) {
   assert(is_struct_type(c.type),"as_struct: Type error.");
   return c.stc;
 }
+Class* as_class(Cell c) {
+  assert(is_class_type(c.type),"as_class: Type error.");
+  return c.clc;
+}
 Union* as_union(Cell c) {
   assert(is_union_type(c.type),"as_union: Type error.");
   return c.uni;
@@ -550,7 +663,7 @@ Cell as_shell(Cell c) {
   return c.cel;
 }
 int istrue(Cell c) {
-  if (c.type==TInt)    return c.fix;
+  if (is_int(c))       return c.ufix;
   if (c.type==TFloat)  return c.flt!=0;
   if (c.type==TList)   return c.lst.length;
   if (c.type==TSymbol) return c.sym!="#f";
@@ -581,7 +694,14 @@ Cell new_cell(Type t) {
   if (t==TNull) return null_cell();
   if (t==TSymbol) return symbol_cell("");
   if (t==TString) return string_cell("");
-  if (t==TInt) return int_cell(0);
+  if (t==TU8) return u8_cell(0);
+  if (t==TS8) return s8_cell(0);
+  if (t==TU16) return u16_cell(0);
+  if (t==TS16) return s16_cell(0);
+  if (t==TU32) return u32_cell(0);
+  if (t==TS32) return s32_cell(0);
+  if (t==TU64) return u64_cell(0);
+  if (t==TS64) return s64_cell(0);
   if (t==TFloat) return float_cell(0.0);
   if (t==TList) return list_cell([]);
   if (t==TType) return type_cell(TAny);
@@ -595,6 +715,7 @@ Cell new_cell(Type t) {
     if (constructor=="ref") return cell_from_ref_type(t);
     if (constructor=="deftype") return cell_from_def_type(t);
     if (constructor=="aliastype") return cell_from_alias_type(t);
+    if (constructor=="supertype") return cell_from_super_type(t);
     assert(false,"unhandled compund type in new_cell");
   }
   writef("new_cell can't handle parameter %s\n",types.str(t));
@@ -613,12 +734,16 @@ string str(Cell c,int clothedString=clothedStringDefault,int rec=1) {
     writef("Base types must be initialised before using cells.str!\n");
     assert(false);
   }
-  if (c.type==TInt) {
-    string s=frm("%d",c.fix);
+  if (is_uint(c)) {
+    string s=frm("%d",c.ufix);
+    return s;
+  }
+  if (is_sint(c)) {
+    string s=frm("%d",c.sfix);
     return s;
   }
   if (c.type==TFloat) {
-    return frm("%g",cast(double)c.flt);
+    return frm("%g.0",cast(double)c.flt);
   }
   if (c.type==TList) {
     string s;
@@ -738,11 +863,16 @@ string pretty_str(Cell c,int ind=0) {
     writef("Base types must be initialised before using cells.str!\n");
     assert(false);
   }
-  if (c.type==TInt) {
-    return frm("%d",c.fix);
+  if (is_uint(c)) {
+    return frm("%d",c.ufix);
+  }
+  if (is_sint(c)) {
+    return frm("%d",c.sfix);
   }
   if (c.type==TFloat) {
-    return frm("%g",cast(double)c.flt);
+    string s=frm("%g",cast(double)c.flt);
+    if (find(s,'.')<0) s~=".0";
+    return s;
   }
   if (c.type==TList) {
     string s;
@@ -890,8 +1020,11 @@ string bondage_str(Cell c,int ind) {
     writef("Base types must be initialised before using cells.str!\n");
     assert(false);
   }
-  if (c.type==TInt) {
-    return frm("%d",c.fix);
+  if (is_uint(c)) {
+    return frm("%d",c.ufix);
+  }
+  if (is_sint(c)) {
+    return frm("%d",c.sfix);
   }
   if (c.type==TFloat) {
     string s=frm("%g",cast(double)c.flt);

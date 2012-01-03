@@ -22,7 +22,7 @@ import std.stdio;
 import std.string;
 import std.format;
 
-const bool debf=debflag && 01;
+const bool debf=debflag && 0;
 
 const bool require_declaration_before_use=true;
 
@@ -199,6 +199,14 @@ Cell abs_resolve_function(Cell sym,ref Cell[] args,Cell x) {
       if (k>=args.length) break;
       entry.sig.ses[k].type=args[k].type;
     }
+    for (int k=entry.sig.ses.length;k<args.length;++k) {
+      SigElement se;
+      se.defv=null_cell();
+      se.name="";
+      se.type=args[k].type;
+      entry.sig.ses~=se;
+    }
+    entry.sig.open.cell=null;
     entry.ret=TAny;
     env_putfun(ftab_env,name,entry);
   }

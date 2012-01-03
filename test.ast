@@ -181,8 +181,8 @@ defun test9() {
 }
 defun test10() {
   start("references");
-  var int i=1,j=2;
-  var int@ pi;
+  var s32 i=1,j=2;
+  var s32@ pi;
   pi=&i;
   test(pi@,i);
   i=10;
@@ -199,15 +199,15 @@ defun test11() {
   start("signature dispatch");
   defun foo(a,b) {return "foo-any-any";}
   defun foo(float a,float b) {return "foo-float-float";}
-  defun foo(int a,int b) {return "foo-int-int";}
-  defun foo(int a,b) {return "foo-int-any";}
-  defun foo(int a,string b) {return "foo-int-string";}
+  defun foo(s32 a,s32 b) {return "foo-s32-s32";}
+  defun foo(s32 a,b) {return "foo-s32-any";}
+  defun foo(s32 a,string b) {return "foo-s32-string";}
   test(foo("1","2"),"foo-any-any");
-  test(foo(1,2),"foo-int-int");
+  test(foo(1,2),"foo-s32-s32");
   test(foo(1.0,2.0),"foo-float-float");
   test(foo(1.0,2),"foo-any-any");
-  test(foo(1,2.0),"foo-int-any");
-  test(foo(1,"2"),"foo-int-string");
+  test(foo(1,2.0),"foo-s32-any");
+  test(foo(1,"2"),"foo-s32-string");
   finish();
 }
 defun test12() {
@@ -232,14 +232,14 @@ defun test12() {
 }
 defun test13() {
   start("types (1)");
-  var int i;
+  var s32 i;
   var float f;
-//   test(typeof(i),int);
+//   test(typeof(i),s32);
 //   test(typeof(f),float);
-  defun foo(int a) {return "foo-int";}
+  defun foo(s32 a) {return "foo-s32";}
   defun foo(float a) {return "foo-float";}
   defun foo(string a) {return "foo-string";}
-  test(foo(1),"foo-int");
+  test(foo(1),"foo-s32");
   test(foo(1.0),"foo-float");
   test(foo("2"),"foo-string");
   finish();
@@ -249,13 +249,13 @@ defun test14() {
   defun foo(a,b=2) return tostr([a,b]);
   test(foo(0,1),"[0,1]");
   test(foo(1),"[1,2]");
-//   test(typeof(new(array(int))),array(int));
+//   test(typeof(new(array(s32))),array(s32));
 //   test(typeof(new(array())),array(any));
   finish();
 }
 defun test15() {
   start("structs (anonymous)");
-  var struct{string a,int i,float f} asx;
+  var struct{string a,s32 i,float f} asx;
 //  test(tostr(asx),"{a='',i=0,f=0}");
   asx.a="prlnx";
   test(asx.a,"prlnx");
@@ -268,7 +268,7 @@ defun test15() {
 }
 defun test16() {
   start("structs (aliastype)");
-  aliastype at struct{string a,int i,float f};
+  aliastype at struct{string a,s32 i,float f};
   var at x;
 //  test(tostr(x),"{a='',i=0,f=0}");
   x.a="prlnx";
@@ -283,8 +283,8 @@ defun test16() {
 }
 defun test17() {
   start("structs (deftype)");
-  deftype ts struct{string a,int i,float f};
-  //test("(struct (any a) (int i) (float f))",tostr(t));
+  deftype ts struct{string a,s32 i,float f};
+  //test("(struct (any a) (s32 i) (float f))",tostr(t));
   defun dotset(ts@ x,string idx,value) return dotset(unpack(x@),idx,value);
   defun dotget(ts x,string idx) return dotget(unpack(x),idx);
   defun tostr(ts x) return "{a='"~tostr(x.a)~"',i="~tostr(x.i)~",f="~tostr(x.f)~"}";
@@ -301,7 +301,7 @@ defun test17() {
 }
 defun test18() {
   start("unions (anonymous)");
-  var union{string a,int i,float f} z;
+  var union{string a,s32 i,float f} z;
   z.a="prlnz";
   test(z.a,"prlnz");
   z.i=1;
@@ -312,8 +312,8 @@ defun test18() {
 }
 defun test19() {
   start("unions (deftype)");
-  deftype tu union{string a,int i,float f};
-  //test("(union (any a) (int i) (float f))",tostr(u));
+  deftype tu union{string a,s32 i,float f};
+  //test("(union (any a) (s32 i) (float f))",tostr(u));
   defun dotset(tu@ x,string idx,value) return dotset(unpack(x@),idx,value);
   defun dotget(tu x,string idx) return dotget(unpack(x),idx);
   defun tostr(tu x) return "{a='"~tostr(x.a)~"',i="~tostr(x.i)~",f="~tostr(x.f)~"}";
@@ -328,9 +328,9 @@ defun test19() {
 }
 defun test20() {
   start("aliastype");
-  aliastype intarr int[];
-  //test(tostr(intarr),"intarr");
-  var intarr ia;
+  aliastype s32arr s32[];
+  //test(tostr(s32arr),"s32arr");
+  var s32arr ia;
   test(tostr(ia),"[]");
   resize(ia,4);
   test(tostr(ia),"[0,0,0,0]");
@@ -340,27 +340,27 @@ defun test20() {
 }
 defun test21() {
   start("ternary dispatch");
-  var int xa;
+  var s32 xa;
   var float xb;
-  defun foo(int x) return "int";
+  defun foo(s32 x) return "s32";
   defun foo(float x) return "float";
-  test(xa.foo(),"int");
+  test(xa.foo(),"s32");
   test(xb.foo(),"float");
   finish();
 }
 defun test22() {
   start("ternary dispatch (2)");
-  var struct{int x} a;
+  var struct{s32 x} a;
   var struct{float x} b;
-  defun foo(int x) return "int";
+  defun foo(s32 x) return "s32";
   defun foo(float x) return "float";
-  test(a.x.foo(),"int");
+  test(a.x.foo(),"s32");
   test(b.x.foo(),"float");
   finish();
 }
 defun test23() {
   start("array concatenation");
-  var int[] a;
+  var s32[] a;
   a=[0,1];
   test(a,[0,1]);
   test(a~2,[0,1,2]);
@@ -373,9 +373,9 @@ defun test23() {
 }
 defun test24() {
   start("anon struct specialisation");
-  defun bar(int a,int b) return 0;
-  defun bar(int a,string b) return 1;
-  defun bar(string a,int b) return 2;
+  defun bar(s32 a,s32 b) return 0;
+  defun bar(s32 a,string b) return 1;
+  defun bar(string a,s32 b) return 2;
   defun bar(string a,string b) return 3;
   defun foo(a,b) {
     var struct{a,b} s;
@@ -391,7 +391,7 @@ defun test24() {
 }
 defun test25() {
   start("setters & getters, again");
-  deftype aifs struct{string a,int i,float f};
+  deftype aifs struct{string a,s32 i,float f};
   defun dotset(aifs@ x,string idx,value) return dotset(unpack(x@),idx,value);
   defun dotget(aifs x,string idx) return dotget(unpack(x),idx);
   defun tostr(aifs x) return "{a='"~tostr(x.a)~"',i="~tostr(x.i)~",f="~tostr(x.f)~"}";
@@ -409,24 +409,40 @@ defun test25() {
 }
 defun test26() {
   start("arithmetic operation result type");
-  defun foo(int x) {return "int";}
+  defun foo(s32 x) {return "s32";}
   defun foo(float x) {return "float";}
-  test(foo(1+1),"int");
+  test(foo(1+1),"s32");
   test(foo(1+1.0),"float");
   test(foo(1.0+1),"float");
   test(foo(1.0+1.0),"float");
-  test(foo(1-1),"int");
+  test(foo(1-1),"s32");
   test(foo(1-1.0),"float");
   test(foo(1.0-1),"float");
   test(foo(1.0-1.0),"float");
-  test(foo(1*1),"int");
+  test(foo(1*1),"s32");
   test(foo(1*1.0),"float");
   test(foo(1.0*1),"float");
   test(foo(1.0*1.0),"float");
-  test(foo(1/1),"int");
+  test(foo(1/1),"s32");
   test(foo(1/1.0),"float");
   test(foo(1.0/1),"float");
   test(foo(1.0/1.0),"float");
+  finish();
+}
+defun test27() {
+  start("more arrays");
+  deftype sifs struct{string s,s32 i,float f};
+  defun dotset(sifs@ x,string idx,value) return dotset(unpack(x@),idx,value);
+  defun dotget(sifs x,string idx) return dotget(unpack(x),idx);
+  defun tostr(sifs x) return "{s='"~tostr(x.s)~"',i="~tostr(x.i)~",f="~tostr(x.f)~"}";
+  var sifs[2] x;
+  for (s32 k;k<2;k+=1) {
+    x[k].s=tostr(k);
+    x[k].i=k;
+    x[k].f=k+0.1;
+  }
+  test(tostr(x[0]),"{s='0',i=0,f=0.1}");
+  test(tostr(x[1]),"{s='1',i=1,f=1.1}");
   finish();
 }
 //----------------------------------------------------------------------
@@ -462,6 +478,7 @@ defun mainx() {
   test24();
   test25();
   test26();
+  test27();
   summary();
 }
 defun main() {

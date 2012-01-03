@@ -107,11 +107,14 @@ void emit_ast(Cell c) {
 //       emit_ast(as_type(c));
       emit("\"");
     }
-    if (isa(c,TInt)) {
-      emit("%d",as_int(c));
+    if (is_uint(c)) {
+      emit("%d",c.ufix);
+    }
+    if (is_sint(c)) {
+      emit("%d",c.sfix);
     }
     if (isa(c,TFloat)) {
-      emit("%g",as_float(c));
+      emit("%gf",as_float(c));
     }
     if (isa(c,TSymbol)) {
       emit("%s",as_symbol(c));

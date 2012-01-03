@@ -666,7 +666,7 @@ Token type_constructor() {
   if (token.arity != "name") {
     token.error("Type expected to start with a name.",__FILE__,__LINE__);
   }
-  if ((token.value=="struct")||(token.value=="union")) {
+  if ((token.value=="struct")||(token.value=="union")||(token.value=="class")) {
     return struct_type_constructor(token.value);
   }
   Token t=token;
@@ -1284,7 +1284,8 @@ void show(Lexeme[] lexemes) {
   writef("\n");
 }
 void init_skope() {
-  string[] type_names=["type","any","int","float","string","array","struct","union","assoc"];
+  string[] type_names=["type","any","float","string","array","struct","union","class","assoc",
+                       "u8","s8","u16","s16","u32","s32","u64","s64"];
   skope=new Scope();
   foreach (tn;type_names) {
     skope.define(type_token(tn));

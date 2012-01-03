@@ -5,7 +5,7 @@ import std.stdio;
 import std.format;
 
 bool trace=false;
-const bool debflag=!true;
+const bool debflag=0;
 
 void delegate() testfun;
 const bool debEnable=debflag;

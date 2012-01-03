@@ -144,7 +144,9 @@ Cell env_putfun(Env* e,string key,FTabEntry* fte) {
 }
 Cell env_putfun_sigstr(Env* e,string key,Cell fun,string sigstr,string retstr) {
   static if (debf) {debEnter("env_putfun_sigstr(Env*,string,Cell,string,string)");scope (exit) debLeave();}
-  return env_putfun(e,key,fun,signature_string2signature(sigstr),type(retstr));
+  Signature sig=signature_string2signature(sigstr);
+  writefln("env_putfun_sigstr %s\n%s",key,signatures.str(sig));
+  return env_putfun(e,key,fun,sig,type(retstr));
 }
 
 //----------------------------------------------------------------------
@@ -181,10 +183,12 @@ FTab* mk_ftab(Env* e=null) {
 string str(FTab* ft) {
   string s;
   foreach (FTabEntry* e;ft.dat) {
+    s~="  ";
     s~="("~signatures.str(e.sig)~" -> "~types.str(e.ret)~" "~cells.str(e.fun)~") ";
+    s~="\n";
   }
   if (s.length) {
-    s.length=s.length-1;
+//    s.length=s.length-1;
   } else {
     s="()";
   }
@@ -195,6 +199,10 @@ bool ftab_add(FTab* ft,FTabEntry* fte) {
 //  writef("*** ftab_add %s\n",fte.fun);
   fte.env=ft.env;
   ft.dat~=fte;
+  /*
+  writefln("------- added to ftab (%s), it is now:",fte.nam);
+  writefln("%s",str(ft));
+  */
   return true;
 }
 FTabEntry* ftab_resolve(FTab *ft,Cell[] args,string id="") {

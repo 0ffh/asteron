@@ -91,9 +91,9 @@ Lextab mkLispLextab() {
     function string(string m) {
       return m[1..$-1];
     });
-  lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*\.[_0-9]*([eE][+-]?[_0-9.]*)?`);
-  lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*[eE][+-]?[_0-9.]+`);
-  lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*`);
+  lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*\.[_0-9]*([eE][+-]?[_0-9.]*)?f?`);
+  lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*[eE][+-]?[_0-9.]+f?`);
+  lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*f?`);
   lt~=LextabEntry("operator",`[()]`);
   lt~=LextabEntry("operator",`[^()\x09\x0a\x0b\x0c\x0d\x20]+`);
   foreach (ref e;lt) {
@@ -127,9 +127,9 @@ Lextab mkAstLextab() {
   lt~=LextabEntry("name",`(\.\.\.)`);
   lt~=LextabEntry("operator",`[!*/<>&|=~^+-]*[=]`);
   lt~=LextabEntry("operator",`[!*/<>&|=~^+-][<>&|=]*`);
-  lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*\.[_0-9]*([eE][+-]?[_0-9.]*)?`);
-  lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*[eE][+-]?[_0-9.]+`);
-  lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*`);
+  lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*\.[_0-9]*([eE][+-]?[_0-9.]*)?f?`);
+  lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*[eE][+-]?[_0-9.]+f?`);
+  lt~=LextabEntry("number",`[+-]?[0-9][_0-9]*f?`);
   lt~=LextabEntry("name",`[_a-zA-Z][_a-zA-Z0-9]*`);
   lt~=LextabEntry("operator",`[][(){},;.:?]`);
   lt~=LextabEntry("operator",`[%#@$?\\]`);

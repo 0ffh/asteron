@@ -11,7 +11,7 @@ import std.stdio;
 import std.string;
 import std.format;
 
-const bool debf=debflag && 01;
+const bool debf=debflag && 0;
 
 FTabEntry* resolve_name_as_ftab_entry(string name,ref Cell[] args,ref Env* e) {
   static if (debf) {debEnter("resolve_name_as_ftab_entry('%s')",name);scope (exit) debLeave();}

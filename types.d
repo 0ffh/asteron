@@ -17,8 +17,6 @@ Type TAny;
 Type TShell;
 Type TNull;
 Type TString;
-Type TInt;
-Type TFloat;
 Type TList;
 Type TEnv;
 Type TFtab;
@@ -27,13 +25,25 @@ Type TLfun;
 Type TLambda;
 Type TTypeTable;
 
+Type TU8,TS8,TU16,TS16,TU32,TS32,TU64,TS64;
+Type _TUInt,_TSInt,_TInt;
+Type TFloat;
+
 const string id_sym="symbol";
 const string id_type="type";
 const string id_any="any";
 const string id_shell="shell";
 const string id_null="null";
 const string id_str="string";
-const string id_int="int";
+//const string id_int="int";
+const string id_u8="u8";
+const string id_s8="s8";
+const string id_u16="u16";
+const string id_s16="s16";
+const string id_u32="u32";
+const string id_s32="s32";
+const string id_u64="u64";
+const string id_s64="s64";
 const string id_flt="float";
 const string id_list="list";
 const string id_env="env";
@@ -43,8 +53,11 @@ const string id_lfun="lfun";
 const string id_lambda="lambda";
 const string id_typetable="typetable";
 const string[] type_ids=[
-  id_sym,id_type,id_any,id_shell,id_null,id_str,id_int,id_flt,id_env,
-  id_list,id_funtab,id_fun,id_lfun,id_lambda,id_typetable
+  id_sym,id_type,id_any,id_shell,id_null,id_str,id_env,
+  id_list,id_funtab,id_fun,id_lfun,id_lambda,id_typetable,
+  id_flt,
+//  id_int,
+  id_u8,id_s8,id_u16,id_s16,id_u32,id_s32,id_u64,id_s64,
 ];
 
 //----------------------------------------------------------------------
@@ -316,6 +329,29 @@ Type struct_type_from_keys_and_values(string[] keys,Cell[] vals) {
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //--------------------
+//-------------------- class type
+//--------------------
+bool is_class_type(Type t) {
+  return (get_compound_type_constructor(t)=="class");
+}
+Type class_type_from_fields(Cell[] fields) {
+  static if (debf) {debEnter("class_type_from_fields(Cell[])");scope (exit) debLeave();}
+  string s=cells.str(list_cell(symbol_cell("class")~fields));
+//  writef("new struct type %s\n",s);
+  return type(s);
+}
+Type class_type_from_keys_and_values(string[] keys,Cell[] vals) {
+  Cell c=list_cell([symbol_cell("class")]);
+  assert(keys.length==vals.length,"Internal error in class_type_from_keys_and_values");
+  for (int k;k<keys.length;++k) {
+    c.lst~=list_cell([vals[k].type.cell,symbol_cell(keys[k])]);
+  }
+//  writef("new struct type %s\n",cells.str(c));
+  return type(cells.str(c));
+}
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------
+//--------------------
 //-------------------- union type
 //--------------------
 bool is_union_type(Type t) {
@@ -416,7 +452,6 @@ void init_types() {
   TShell=prim_type(id_shell);
   TNull=prim_type(id_null);
   TString=prim_type(id_str);
-  TInt=prim_type(id_int);
   TFloat=prim_type(id_flt);
   TList=prim_type(id_list);
   TEnv=prim_type(id_env);
@@ -424,8 +459,20 @@ void init_types() {
   TFun=prim_type(id_fun);
   TLfun=prim_type(id_lfun);
   TLambda=prim_type(id_lambda);
+//  TInt=prim_type(id_int);
+  TU8=prim_type(id_u8);
+  TS8=prim_type(id_s8);
+  TU16=prim_type(id_u16);
+  TS16=prim_type(id_s16);
+  TU32=prim_type(id_u32);
+  TS32=prim_type(id_s32);
+  TU64=prim_type(id_u64);
+  TS64=prim_type(id_s64);
   //
   types_initialised=true;
+  _TUInt=type_supertype("uint",[TU8,TU16,TU32,TU64]);
+  _TSInt=type_supertype("sint",[TS8,TS16,TS32,TS64]);
+  _TInt=type_supertype("int",[_TUInt,_TSInt]);
   // test type interning
   assert(TType==type(id_type),"Type interning failure");
   assert(TSymbol==type(id_sym),"Type interning failure");
@@ -433,7 +480,7 @@ void init_types() {
   assert(TNull==type(id_null),"Type interning failure");
   assert(TShell==type(id_shell),"Type interning failure");
   assert(TString==type(id_str),"Type interning failure");
-  assert(TInt==type(id_int),"Type interning failure");
+//  assert(TInt==type(id_int),"Type interning failure");
   assert(TFloat==type(id_flt),"Type interning failure");
   assert(TList==type(id_list),"Type interning failure");
   assert(TEnv==type(id_env),"Type interning failure");
@@ -444,4 +491,32 @@ void init_types() {
   assert(TTypeTable==type(id_typetable),"Type interning failure");
   //
   foreach (tid;type_ids) env_put(environment,tid,type_cell(type(tid)));
+  //
+  env_put(environment,"int",type_cell(_TInt));
+  env_put(environment,"primnum",type_cell(type_supertype("primnum",[_TInt,TFloat])));
+}
+
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
+//--------------------
+//-------------------- type comparsion functions
+//--------------------
+
+bool is_int(Type t) {
+  return (is_uint(t)||is_sint(t));
+}
+bool is_uint(Type t) {
+  return ((t==TU8)||(t==TU16)||(t==TU32)||(t==TU64));
+}
+bool is_sint(Type t) {
+  return ((t==TS8)||(t==TS16)||(t==TS32)||(t==TS64));
+}
+bool is_int(Cell c) {
+  return is_int(c.type);
+}
+bool is_uint(Cell c) {
+  return is_uint(c.type);
+}
+bool is_sint(Cell c) {
+  return is_sint(c.type);
 }

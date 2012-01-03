@@ -86,8 +86,8 @@ Cell op_assign(Cell[] args) {
   Cell oldv=env_get(e,id);
   Cell newv=abs_eval(args[1]);
   if (! (isa(oldv,TAny) || isa(newv,TAny))) {
-    if (oldv.type!=newv.type) {
-      writef("%s %s\n",types.str(oldv.type),types.str(newv.type));
+    if (!type_matches(oldv.type,newv.type)) {
+      writef("%s %s = %s\n",id,types.str(oldv.type),types.str(newv.type));
       assert(false,"Type error");
     }
   }
@@ -349,67 +349,10 @@ Cell op_math_mixed(Cell[] args) {
     return int_cell(0);
   }
 }
-Cell op_less(Cell[] args) {
-  static if (debf) {debEnter("[<]");scope (exit) debLeave();}
+Cell op_generic_binary_to_int(Cell[] args) {
+  static if (debf) {debEnter("[op_generic_binary_to_int]");scope (exit) debLeave();}
   assert(args.length==2);
   return int_cell(0);
-}
-Cell op_greater(Cell[] args) {
-  static if (debf) {debEnter("[>]");scope (exit) debLeave();}
-  assert(args.length==2);
-  return int_cell(0);
-}
-Cell op_less_equal(Cell[] args) {
-  static if (debf) {debEnter("[<=]");scope (exit) debLeave();}
-  assert(args.length==2);
-  return int_cell(0);
-}
-Cell op_greater_equal(Cell[] args) {
-  static if (debf) {debEnter("[>=]");scope (exit) debLeave();}
-  assert(args.length==2);
-  return int_cell(0);
-}
-Cell op_equal(Cell[] args) {
-  static if (debf) {debEnter("[==]");scope (exit) debLeave();}
-  assert(args.length==2);
-  return int_cell(0);
-}
-Cell op_not_equal(Cell[] args) {
-  static if (debf) {debEnter("[!=]");scope (exit) debLeave();}
-  assert(args.length==2);
-  return int_cell(0);
-}
-Cell op_sqrt(Cell[] args) {
-  static if (debf) {debEnter("[sqrt]");scope (exit) debLeave();}
-  assert(args.length==1);
-  return float_cell(0);
-}
-Cell op_car(Cell[] args) {
-  static if (debf) {debEnter("[car]");scope (exit) debLeave();}
-  assert(args.length==1);
-  Cell[] help=as_list(args[0]);
-  if (!help.length) return args[0];
-  return help[0];
-}
-Cell op_cdr(Cell[] args) {
-  static if (debf) {debEnter("[cdr]");scope (exit) debLeave();}
-  assert(args.length==1);
-  Cell[] help=as_list(args[0]);
-  if (help.length<2) return list_cell();
-  return list_cell(help[1..$].dup);
-}
-Cell op_cons(Cell[] args) {
-  static if (debf) {debEnter("[cons]");scope (exit) debLeave();}
-  assert(args.length==2);
-  assert(isa(args[0],TList));
-  return args[0];
-}
-Cell op_append(Cell[] args) {
-  static if (debf) {debEnter("[append]");scope (exit) debLeave();}
-  assert(args.length==2);
-  assert(isa(args[0],TList));
-  assert(isa(args[1],TList));
-  return args[0];
 }
 Cell op_list(Cell[] args) {
   static if (debf) {debEnter("[list]");scope (exit) debLeave();}
@@ -517,7 +460,7 @@ Cell op_array_get(Cell[] args) {
   assert(args.length==2);
   Cell arr=args[0];
   assert(is_array_type(arr.type));
-  assert(isa(args[1],TInt));
+//  assert(isa(args[1],TInt));
   return new_cell(get_array_subtype(arr.type));
 }
 Cell op_array_set(Cell[] args) {
@@ -526,7 +469,7 @@ Cell op_array_set(Cell[] args) {
   Cell arr=args[0];
   assert(is_array_type(arr.type));
   if (!type_matches(get_array_subtype(arr.type),args[2].type)) assert(false,"Type error in element assignment");
-  assert(isa(args[1],TInt));
+//  assert(isa(args[1],TInt));
   return args[2];
 }
 // op_array_resize(array,int)
@@ -629,6 +572,49 @@ Cell op_struct_set(Cell[] args) {
   }
   return args[2];
 }
+Cell op_class(Cell[] args) {
+  static if (debf) {debEnter("[class]");scope (exit) debLeave();}
+//  writefln("------------------------- STRUCT");
+  foreach (ref arg;args) {
+//    arg.show();
+    assert(as_list(arg).length==2);
+    arg.lst[0]=abs_eval(arg.lst[0]);
+    arg.lst[0]=unalias_type(arg.lst[0]);
+    assert(isa(arg.lst[0],TType));
+//    writefln("------- struct field %s of type %s",as_symbol(arg.lst[1]),cells.str(arg.lst[0]));
+  }
+  Type t=class_type_from_fields(args);
+  return type_cell(t);
+}
+Cell op_class_get(Cell[] args) {
+  static if (debf) {debEnter("[class_get_field]");scope (exit) debLeave();}
+  assert(args.length==2);
+  Class* s=as_class(args[0]);
+  string key=as_string(args[1]);
+  Cell res=class_get_field(s,key);
+//  writef("struct_get_field %s -> [%s]\n",key,types.str(res.type));
+  return res;
+}
+Cell op_class_set(Cell[] args) {
+  static if (debf) {debEnter("[class_set_field]");scope (exit) debLeave();}
+  //
+  Class* s=as_class(op_deref([args[0]]));
+  string key=as_string(args[1]);
+  Cell field=class_get_field(s,key);
+  if (isa(field,TAny)) {
+    class_set_field(s,key,args[2]);
+    Type t=class_type_from_keys_and_values(s.key,s.val);
+    ref_cell_set(args[0],cell_from_class_type(t));
+    return args[2];
+  }
+//  unalias_type_of(field);
+//  unalias_type_of(args[2]);
+  if (field.type!=args[2].type) {
+    writef("Incompatible assignment!\n");
+    assert(false);
+  }
+  return args[2];
+}
 Cell op_union(Cell[] args) {
   static if (debf) {debEnter("[union]");scope (exit) debLeave();}
   foreach (ref arg;args) {
@@ -697,6 +683,7 @@ Cell op_any_get(Cell[] args) {
   //args[0].type=unalias_type(args[0].type);
   Type t=args[0].type;
   if (is_struct_type(t)) return op_struct_get(args);
+  if (is_class_type(t)) return op_class_get(args);
   if (is_union_type(t)) return op_union_get(args);
   assert(false);
 }
@@ -706,43 +693,36 @@ Cell op_any_set(Cell[] args) {
   //args[0].type=unalias_type(args[0].type);
   Type t=args[0].type;
   if (is_struct_type(t)) return op_struct_set(args);
+  if (is_class_type(t)) return op_class_set(args);
   if (is_union_type(t)) return op_union_set(args);
   writef("set unde'f for type %s\n",types.str(t));
   assert(false);
 }
 void add_abs_libs(Env* env) {
-  type_supertype("primnum",[type("int"),type("float")]);
   // normal functions
   env_putfun_sigstr(env,"+",fun_cell(&op_math_mixed),"(primnum primnum)","any");
   env_putfun_sigstr(env,"-",fun_cell(&op_math_mixed),"(primnum primnum)","any");
   env_putfun_sigstr(env,"*",fun_cell(&op_math_mixed),"(primnum primnum)","any");
   env_putfun_sigstr(env,"/",fun_cell(&op_math_mixed),"(primnum primnum)","any");
-  env_put(env,"<",fun_cell(&op_less));
-  env_put(env,">",fun_cell(&op_greater));
-  env_put(env,"<=",fun_cell(&op_less_equal));
-  env_put(env,">=",fun_cell(&op_greater_equal));
-  env_put(env,"==",fun_cell(&op_equal));
-  env_put(env,"!=",fun_cell(&op_not_equal));
-  env_put(env,"sqrt",fun_cell(&op_sqrt));
 
-  env_put(env,"equal?",env_get(env,"=="));
-  env_put(env,"eq?",env_get(env,"=="));
-  env_put(env,"length",fun_cell(&op_length));
-  env_put(env,"car",fun_cell(&op_car));
-  env_put(env,"cdr",fun_cell(&op_cdr));
-  env_put(env,"cons",fun_cell(&op_cons));
-  env_put(env,"append",fun_cell(&op_append));
-  env_put(env,"list",fun_cell(&op_list));
-  env_put(env,"list?",fun_cell(&op_listp));
-  env_put(env,"symbol?",fun_cell(&op_symbolp));
-  env_put(env,"null?",fun_cell(&op_nullp));
-  env_put(env,"pr",fun_cell(&op_pr));
-  env_put(env,"prln",fun_cell(&op_prln));
-  env_put(env,"tic",fun_cell(&op_tic));
-  env_put(env,"toc",fun_cell(&op_toc));
-  env_putfun_sigstr(env,"tostr",fun_cell(&op_tostr),"(any)","any");
+  env_putfun_sigstr(env,"<",fun_cell(&op_generic_binary_to_int),"(any any)","int");
+  env_putfun_sigstr(env,">",fun_cell(&op_generic_binary_to_int),"(any any)","int");
+  env_putfun_sigstr(env,"<=",fun_cell(&op_generic_binary_to_int),"(any any)","int");
+  env_putfun_sigstr(env,">=",fun_cell(&op_generic_binary_to_int),"(any any)","int");
+  env_putfun_sigstr(env,"==",fun_cell(&op_generic_binary_to_int),"(any any)","int");
+  env_putfun_sigstr(env,"!=",fun_cell(&op_generic_binary_to_int),"(any any)","int");
 
-  env_put(env,"new_object",fun_cell(&op_new_object));
+  env_putfun_sigstr(env,"length",fun_cell(&op_length),"(any)","int");
+
+//  env_putfun_sigstr(env,"list",fun_cell(&op_list),"(any ...)","any");
+  env_putfun_sigstr(env,"pr",fun_cell(&op_pr),"(...)","int");
+//  env_putfun_sigstr(env,"prln",fun_cell(&op_prln),"()","any");
+  env_putfun_sigstr(env,"prln",fun_cell(&op_prln),"(...)","int");
+  env_putfun_sigstr(env,"tic",fun_cell(&op_tic),"()","any");
+  env_putfun_sigstr(env,"toc",fun_cell(&op_toc),"()","any");
+  env_putfun_sigstr(env,"tostr",fun_cell(&op_tostr),"(any)","string");
+
+//  env_put(env,"new_object",fun_cell(&op_new_object));
   env_putfun_sigstr(env,"dotget",fun_cell(&op_assoc_get),"((assoc) string)","any");
   env_putfun_sigstr(env,"dotset",fun_cell(&op_assoc_set),"((assoc) string any)","any");
   env_putfun_sigstr(env,"idxget",fun_cell(&op_assoc_get),"((assoc) string)","any");
@@ -753,17 +733,19 @@ void add_abs_libs(Env* env) {
   env_putfun_sigstr(env,"idxget",fun_cell(&op_env_get),"(env string)","any");
   env_putfun_sigstr(env,"idxset",fun_cell(&op_env_set),"(env string any)","any");
 
-  env_putfun_sigstr(env,"dotget",fun_cell(&op_ftab_get),"(funtab (... type))","any");
-  env_putfun_sigstr(env,"dotset",fun_cell(&op_ftab_set),"(funtab (... type))","any");
-  env_putfun_sigstr(env,"idxget",fun_cell(&op_ftab_get),"(funtab (... type))","any");
-  env_putfun_sigstr(env,"idxset",fun_cell(&op_ftab_set),"(funtab (... type))","any");
+  env_putfun_sigstr(env,"dotget",fun_cell(&op_ftab_get),"(funtab (type ...))","any");
+  env_putfun_sigstr(env,"dotset",fun_cell(&op_ftab_set),"(funtab (type ...))","any");
+  env_putfun_sigstr(env,"idxget",fun_cell(&op_ftab_get),"(funtab (type ...))","any");
+  env_putfun_sigstr(env,"idxset",fun_cell(&op_ftab_set),"(funtab (type ...))","any");
 
-  env_put(env,"new_array",fun_cell(&op_new_array));
+  env_putfun_sigstr(env,"new_array",fun_cell(&op_new_array),"(any ...)","any");
+
   env_put(env,"array",lfun_cell(&op_array));
+
 //  env_putfun_sigstr(env,"array",lfun_cell(&op_array),"(type = any)","type");
   env_putfun_sigstr(env,"idxget",fun_cell(&op_array_get),"((array) int)","any");
   env_putfun_sigstr(env,"idxset",fun_cell(&op_array_set),"((array) int any)","any");
-  env_putfun_sigstr(env,"resize",fun_cell(&op_array_resize),"((array any) int)","any");
+  env_putfun_sigstr(env,"resize",fun_cell(&op_array_resize),"((array) int)","any");
   env_putfun_sigstr(env,"~",fun_cell(&op_array_cat),"((array) any)","any");
   env_putfun_sigstr(env,"~",fun_cell(&op_string_cat),"(string string)","string");
 
@@ -775,11 +757,17 @@ void add_abs_libs(Env* env) {
   env_putfun_sigstr(env,"dotget",fun_cell(&op_union_get),"((union) string)","any");
   env_putfun_sigstr(env,"dotset",fun_cell(&op_union_set),"((ref (union)) string any)","any");
 
+  env_put(env,"class",lfun_cell(&op_struct));
+  env_putfun_sigstr(env,"dotget",fun_cell(&op_struct_get),"((class) string)","any");
+  env_putfun_sigstr(env,"dotset",fun_cell(&op_struct_set),"((class) string any)","any");
+
   //env_putfun_sigstr(env,"get",fun_cell(&op_any_get),"(any string)","any");
   //env_putfun_sigstr(env,"set",fun_cell(&op_any_set),"(any string any)","any");
 
   env_put(env,"ref",lfun_cell(&op_ref));
   env_put(env,"&",lfun_cell(&op_getref));
+//  env_putfun_sigstr(env,"ref",lfun_cell(&op_ref),"(any)","any");
+//  env_putfun_sigstr(env,"&",lfun_cell(&op_getref),"(any)","any");
   env_putfun_sigstr(env,"@",fun_cell(&op_deref),"((ref))","any");
   //env_putfun_sigstr(env,"get",fun_cell(&op_ref_get),"((ref))","any");
   env_putfun_sigstr(env,"set",fun_cell(&op_ref_set),"((ref) any)","any");

@@ -96,6 +96,9 @@ Cell token2cell(Token t) {
     if (t.id=="struct") {
       return list_cell([symbol_cell("struct")]~tokens2cells(t.sub));
     }
+    if (t.id=="class") {
+      return list_cell([symbol_cell("class")]~tokens2cells(t.sub));
+    }
     if (t.id=="union") {
       return list_cell([symbol_cell("union")]~tokens2cells(t.sub));
     }
